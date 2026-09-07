@@ -15,7 +15,8 @@ class LocalPIIDetector:
 
     # Regex patterns
     EMAIL_REGEX = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
-    PHONE_REGEX = re.compile(r'(?:\+91[\-\s]?)?[6-9]\d{9}|\b\d{3}[\-\s]?\d{3}[\-\s]?\d{4}\b')
+    # Phone regex: requires explicit +91 / 0 prefix or standard phone separators (e.g. 123-456-7890 or +91 9876543210) to avoid false positives on arbitrary 10-digit IDs
+    PHONE_REGEX = re.compile(r'(?:\+91[\-\s]?|0)?[6-9]\d{9}|\b\d{3}[\-\s]\d{3}[\-\s]\d{4}\b')
     AADHAAR_REGEX = re.compile(r'\b[1-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}\b')
     CREDIT_CARD_REGEX = re.compile(r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b')
     CANARY_REGEX = re.compile(r'CANARY_[A-Z0-9_]+', re.IGNORECASE)

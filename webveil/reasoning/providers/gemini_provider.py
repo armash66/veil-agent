@@ -53,44 +53,65 @@ class GeminiProvider:
             task, world_model, action_history, error_context
         )
 
-        try:
-            response = self._client.models.generate_content(
-                model=self._model_name,
-                contents=[
-                    {"role": "user", "parts": [{"text": SYSTEM_PROMPT + "\n\n" + user_message}]}
-                ],
-                config=self._types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.2,
-                    max_output_tokens=1024,
-                ),
-            )
+        max_retries = 5
+        base_delay = 3.0
 
-            raw_text = response.text or ""
-
-            # Track token usage
-            if hasattr(response, 'usage_metadata') and response.usage_metadata:
-                self._token_usage.add(
-                    input_tokens=getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
-                    output_tokens=getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
-                )
-            else:
-                # Estimate if metadata not available
-                self._token_usage.add(
-                    input_tokens=len(user_message) // 4,
-                    output_tokens=len(raw_text) // 4,
+        for attempt in range(max_retries + 1):
+            try:
+                response = self._client.models.generate_content(
+                    model=self._model_name,
+                    contents=[
+                        {"role": "user", "parts": [{"text": SYSTEM_PROMPT + "\n\n" + user_message}]}
+                    ],
+                    config=self._types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.2,
+                        max_output_tokens=1024,
+                    ),
                 )
 
-            logger.info(f"[Gemini] Response received ({len(raw_text)} chars)")
-            return parse_action_plan(raw_text)
+                raw_text = response.text or ""
 
-        except Exception as e:
-            logger.error(f"[Gemini] API call failed: {e}")
-            from webveil.core.models.schema import BrowserAction, ActionType
-            return ActionPlan(
-                actions=[BrowserAction(action=ActionType.WAIT, thought=f"Gemini API error: {str(e)[:100]}")],
-                thought=f"API error, waiting to retry: {str(e)[:100]}",
-            )
+                # Track token usage
+                if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                    self._token_usage.add(
+                        input_tokens=getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
+                        output_tokens=getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
+                    )
+                else:
+                    # Estimate if metadata not available
+                    self._token_usage.add(
+                        input_tokens=len(user_message) // 4,
+                        output_tokens=len(raw_text) // 4,
+                    )
+
+                logger.info(f"[Gemini] Response received ({len(raw_text)} chars)")
+                return parse_action_plan(raw_text)
+
+            except Exception as e:
+                err_str = str(e)
+                # Check for transient error (503 / 429 / resource exhausted / rate limit)
+                is_transient = any(code in err_str for code in ["503", "429", "UNAVAILABLE", "RESOURCE_EXHAUSTED", "Quota exceeded", "High Demand"])
+                
+                if is_transient and attempt < max_retries:
+                    import random, time, re
+                    # Look for suggested retry delay from API error message (e.g. "Please retry in 16s")
+                    suggested_match = re.search(r'retry in ([0-9]+(?:\.[0-9]+)?)s', err_str, re.IGNORECASE)
+                    if suggested_match:
+                        delay = float(suggested_match.group(1)) + random.uniform(0.5, 1.5)
+                    else:
+                        delay = (base_delay * (2 ** attempt)) + random.uniform(0.5, 2.0)
+
+                    logger.warning(f"[Gemini] Transient rate limit ({err_str[:80]}). Waiting {delay:.1f}s (Attempt {attempt+1}/{max_retries})...")
+                    time.sleep(delay)
+                    continue
+                else:
+                    logger.error(f"[Gemini] API call failed (permanent or max retries reached): {err_str[:200]}")
+                    from webveil.core.models.schema import BrowserAction, ActionType
+                    return ActionPlan(
+                        actions=[BrowserAction(action=ActionType.WAIT, thought=f"Gemini API error: {err_str[:100]}")],
+                        thought=f"API error ({'transient exhausted' if is_transient else 'permanent'}): {err_str[:100]}",
+                    )
 
     @property
     def token_usage(self) -> TokenUsage:

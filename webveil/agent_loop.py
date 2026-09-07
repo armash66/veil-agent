@@ -98,7 +98,7 @@ class WebVeilAgent:
             except Exception:
                 pass
 
-    def run_task(self, start_url: str, task: str) -> Dict[str, Any]:
+    def run_task(self, start_url: str, task: str, initial_navigate: bool = True) -> Dict[str, Any]:
         """
         Run a browser task with privacy-preserving observation and reasoning.
         """
@@ -114,8 +114,9 @@ class WebVeilAgent:
         self._emit("task_start", {"task": task, "url": start_url, "provider": self.provider.provider_name})
 
         try:
-            self.browser.navigate(start_url)
-            current_origin = self._get_origin(start_url)
+            if initial_navigate and start_url:
+                self.browser.navigate(start_url)
+                current_origin = self._get_origin(start_url)
 
             step_count = 0
             latest_pii_matches = []

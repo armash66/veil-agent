@@ -163,19 +163,28 @@ def parse_action_plan(raw_response: str, max_actions: int = 5) -> ActionPlan:
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
-        # Try to find JSON object in the response
-        match = re.search(r'\{.*\}', text, re.DOTALL)
+        # Try finding JSON block surrounded by ```json ... ``` or raw { ... }
+        match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', raw_response, re.DOTALL)
+        if not match:
+            match = re.search(r'(\{[\s\S]*\})', text)
+        
         if match:
+            json_candidate = match.group(1) if match.lastindex else match.group(0)
             try:
-                data = json.loads(match.group())
+                data = json.loads(json_candidate)
             except json.JSONDecodeError:
-                logger.error(f"[Reasoning] Failed to parse JSON from response: {text[:200]}")
-                return ActionPlan(
-                    actions=[BrowserAction(action=ActionType.WAIT, thought="Failed to parse LLM response")],
-                    thought="Parse error — waiting for retry",
-                )
+                # Fallback: extract "thought" and "actions" manually or sanitize trailing commas
+                cleaned = re.sub(r',\s*([\}\]])', r'\1', json_candidate)
+                try:
+                    data = json.loads(cleaned)
+                except json.JSONDecodeError:
+                    logger.error(f"[Reasoning] Failed to parse JSON candidate: {json_candidate[:200]}")
+                    return ActionPlan(
+                        actions=[BrowserAction(action=ActionType.WAIT, thought="Failed to parse LLM response")],
+                        thought="Parse error — waiting for retry",
+                    )
         else:
-            logger.error(f"[Reasoning] No JSON found in response: {text[:200]}")
+            logger.error(f"[Reasoning] No JSON structure found in response: {text[:200]}")
             return ActionPlan(
                 actions=[BrowserAction(action=ActionType.WAIT, thought="No JSON in LLM response")],
                 thought="Parse error — waiting for retry",
