@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebVeil SIH Privacy & KYC Test Page</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 40px; }
+        .card { max-width: 500px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h2 { color: #38bdf8; margin-top: 0; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #94a3b8; }
+        input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; box-sizing: border-box; }
+        button { width: 100%; background: #0284c7; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 12px; }
+        button:hover { background: #0369a1; }
+        .badge { display: inline-block; background: #0369a1; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <span class="badge">SIH Prototype Verification Harness</span>
+        <h2>KYC Verification Form</h2>
+        <p>Complete your identity verification without sharing raw credentials.</p>
+        <form id="kycForm" onsubmit="event.preventDefault(); alert('Form submitted!');">
+            <div class="form-group">
+                <label for="fullName">Full Name</label>
+                <input type="text" id="fullName" name="fullName" placeholder="Enter full name" value="Armash Test User">
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" placeholder="name@example.com" value="canary-email-001@example.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="text" id="phone" name="phone" placeholder="9876543210" value="9876543210">
+            </div>
+            <div class="form-group">
+                <label for="aadhaar">Aadhaar Card Identifier</label>
+                <input type="text" id="aadhaar" name="aadhaar" placeholder="1234 5678 9012" value="1234 5678 9012">
+            </div>
+            <div class="form-group">
+                <label for="password">Account Password</label>
+                <input type="password" id="password" name="password" placeholder="Password" value="CANARY_PASSWORD_001">
+            </div>
+            <button type="submit" id="submitBtn">Submit KYC Form</button>
+        </form>
+    </div>
+</body>
+</html>
