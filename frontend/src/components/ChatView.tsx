@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PromptComposer from './PromptComposer';
 
 export interface ProductItem {
@@ -63,7 +63,7 @@ export function ChatView({ messages, onSendMessage }: ChatViewProps) {
         ))}
       </div>
 
-      {/* Sticky Bottom Chat Composer */}
+      {/* Sticky Bottom Chat Composer (68px height) */}
       <div className="py-4 bg-[#FAFAF8] sticky bottom-0 border-t border-[#E7E7E2]">
         <PromptComposer
           onSend={onSendMessage}
