@@ -235,3 +235,71 @@ class SIHMetrics:
     stage_latencies: StageLatencies = field(default_factory=StageLatencies)
     llm_call_count: int = 0
     llm_total_tokens: int = 0
+
+
+# ─── Phase 3 Intelligence & Stage Types (V1.5, new) ────────────────────
+
+class AgentStage(str, Enum):
+    UNDERSTAND = "UNDERSTAND"
+    PERCEIVE = "PERCEIVE"
+    REASON = "REASON"
+    GROUND = "GROUND"
+    ACT = "ACT"
+    VERIFY = "VERIFY"
+    REPLAN = "REPLAN"
+
+
+@dataclass
+class TaskRepresentation:
+    """Structured local NLP representation of user task."""
+    raw_prompt: str
+    intent: str  # e.g., "product_search", "information_retrieval", "form_fill"
+    entities: List[str] = field(default_factory=list)
+    constraints: Dict[str, Any] = field(default_factory=dict)
+    count: Optional[int] = None
+    objective: Optional[str] = None
+    actions: List[str] = field(default_factory=list)
+    confidence: float = 0.95
+
+
+@dataclass
+class DOMRankingMetrics:
+    """Task-aware DOM intelligence & context compression statistics."""
+    raw_nodes: int = 0
+    filtered_nodes: int = 0
+    compression_ratio: float = 0.0  # e.g., 96.3%
+    estimated_tokens_saved: int = 0
+    ranking_latency_ms: float = 0.0
+
+
+@dataclass
+class PrivacyDecision:
+    """Hybrid local PII detection decision enforcing deterministic precedence."""
+    entity_type: str
+    raw_value: str
+    placeholder: str
+    confidence: float
+    sources: List[str]  # ["regex"], ["metadata"], ["ner"]
+    action: str = "REDACT"
+    source_node_id: Optional[int] = None
+
+
+@dataclass
+class GroundingResult:
+    """Local element grounding decision between LLM proposal and firewall."""
+    action: BrowserAction
+    selected_node_id: Optional[int]
+    confidence: float  # 0.0 to 1.0
+    alternative_nodes: List[Dict[str, Any]] = field(default_factory=list)
+    threshold_action: str = "EXECUTE"  # "EXECUTE" (>=0.85), "VERIFY" (0.60-0.84), "REPLAN" (<0.60)
+    reasoning: str = ""
+
+
+@dataclass
+class AgentEvent:
+    """Structured state/event envelope emitted by the WebVeil agent loop."""
+    event_type: str
+    stage: AgentStage
+    data: Dict[str, Any]
+    timestamp: float = 0.0
+

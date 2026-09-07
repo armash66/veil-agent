@@ -19,9 +19,14 @@ from webveil.security.firewall.action_firewall import ActionFirewall, ActionSecu
 from webveil.core.verification.local_verifier import LocalVerifier
 from webveil.evaluation.metrics import SIHMetricsEvaluator
 from webveil.reasoning.provider import create_provider, ReasoningProvider
+from webveil.core.nlp.task_analyzer import TaskAnalyzer
+from webveil.core.observation.dom_ranker import DOMRanker
+from webveil.core.privacy.ner_detector import LocalPIINerEngine
+from webveil.core.grounding.element_grounder import ElementGrounder
 from webveil.core.models.schema import (
     ActionPlan, ActionResult, ActionType, BrowserAction,
     SanitizedObservation, EgressPayload, LocalWorldModel, SanitizedWorldModel,
+    AgentStage, TaskRepresentation, DOMRankingMetrics, GroundingResult,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -30,8 +35,8 @@ logger = logging.getLogger("WebVeilAgent")
 
 class WebVeilAgent:
     """
-    Core WebVeil V1 Agent.
-    Enforces: local observation → privacy processing → sanitized reasoning → local execution authority.
+    Core WebVeil V1.5 Agent.
+    Enforces: Local NLP → Local DOM Ranking → PII Risk Fusion → Sanitized Reasoning → Element Grounding → Action Firewall → Verification.
     """
 
     def __init__(
@@ -47,14 +52,18 @@ class WebVeilAgent:
         self.on_event = on_event  # Dashboard event callback
 
         # Subsystems
+        self.task_analyzer = TaskAnalyzer()
+        self.dom_ranker = DOMRanker()
         self.browser = PlaywrightAdapter()
         self.detector = LocalPIIDetector()
+        self.ner_engine = LocalPIINerEngine(self.detector)
         self.vault = ClientVault()
         self.redactor = LocalRedactor(self.detector, self.vault)
         self.world_model_builder = WorldModelBuilder(
             self.redactor, ocr_enabled=config.ocr_enabled
         )
         self.egress_gate = EgressPrivacyGate(self.detector)
+        self.grounder = ElementGrounder()
         self.firewall = ActionFirewall(self.vault, self.browser)
         self.verifier = LocalVerifier()
         self.metrics_evaluator = SIHMetricsEvaluator()
@@ -111,6 +120,19 @@ class WebVeilAgent:
         self.action_history.clear()
         self._consecutive_same_action = 0
 
+        # Stage 1: UNDERSTAND
+        task_rep: TaskRepresentation = self.task_analyzer.analyze_task(task)
+        self._emit("stage_change", {
+            "stage": AgentStage.UNDERSTAND.value,
+            "data": {
+                "intent": task_rep.intent,
+                "entities": task_rep.entities,
+                "constraints": task_rep.constraints,
+                "count": task_rep.count,
+                "objective": task_rep.objective,
+                "confidence": task_rep.confidence,
+            }
+        })
         self._emit("task_start", {"task": task, "url": start_url, "provider": self.provider.provider_name})
 
         try:
@@ -131,9 +153,10 @@ class WebVeilAgent:
                 self.metrics_evaluator.sample_resources()
                 self._emit("step_start", {"step": step_count, "max_steps": self.max_steps})
 
-                # ── 1. LOCAL OBSERVATION ──────────────────────────────
+                # ── STAGE 2: PERCEIVE (DOM + Ranking + PII + Vision) ───────
+                self._emit("stage_change", {"stage": AgentStage.PERCEIVE.value, "data": {"step": step_count}})
                 t0 = time.time()
-                dom_nodes, formatted_dom = self.browser.extract_dom()
+                raw_dom_nodes, formatted_dom = self.browser.extract_dom()
                 screenshot_b64 = self.browser.capture_screenshot_b64()
                 current_url = self.browser.get_current_url()
                 title = self.browser.get_page_title()
@@ -141,11 +164,14 @@ class WebVeilAgent:
                     "dom_extraction_ms", (time.time() - t0) * 1000
                 )
 
-                # ── 2. BUILD LOCAL WORLD MODEL ────────────────────────
+                # Task-Aware DOM Ranking Compression
+                ranked_nodes, ranking_metrics = self.dom_ranker.rank_and_compress(raw_dom_nodes, task_rep)
+
+                # Build World Model
                 t0 = time.time()
                 local_model, obs_timings = self.world_model_builder.build_local_model(
                     page=self.browser.page,
-                    dom_nodes=dom_nodes,
+                    dom_nodes=ranked_nodes,
                     formatted_dom=formatted_dom,
                     screenshot_b64=screenshot_b64,
                     url=current_url,
@@ -157,7 +183,7 @@ class WebVeilAgent:
                     "world_model_build_ms", (time.time() - t0) * 1000
                 )
 
-                # ── 3. PRIVACY PROCESSING ─────────────────────────────
+                # Privacy Processing & Risk Fusion
                 current_origin = self._get_origin(current_url)
                 sanitized_model, pii_matches, privacy_timings = (
                     self.world_model_builder.sanitize(local_model, current_origin)
@@ -169,7 +195,10 @@ class WebVeilAgent:
                 self._emit("observation", {
                     "url": current_url,
                     "title": title,
-                    "dom_nodes": len(dom_nodes),
+                    "raw_dom_nodes": ranking_metrics.raw_nodes,
+                    "dom_nodes": ranking_metrics.filtered_nodes,
+                    "compression_ratio": ranking_metrics.compression_ratio,
+                    "tokens_saved": ranking_metrics.estimated_tokens_saved,
                     "pii_count": len(pii_matches),
                     "pii_categories": [m.category.name for m in pii_matches],
                     "ocr_regions": len(local_model.ocr_regions),
@@ -177,7 +206,7 @@ class WebVeilAgent:
                     "screenshot_b64": sanitized_model.redacted_screenshot_b64,
                 })
 
-                # ── 4. EGRESS GATE (Zero-Leakage Enforcement) ─────────
+                # Egress Gate (Zero-Leakage Audit)
                 t0 = time.time()
                 legacy_obs = self.world_model_builder.to_legacy_observation(sanitized_model)
                 legacy_payload = EgressPayload(
@@ -199,7 +228,8 @@ class WebVeilAgent:
                     "egress_audit_ms", (time.time() - t0) * 1000
                 )
 
-                # ── 5. REMOTE REASONING ───────────────────────────────
+                # ── STAGE 3: REASON (LLM Action Proposal) ───────────────────
+                self._emit("stage_change", {"stage": AgentStage.REASON.value, "data": {"step": step_count}})
                 t0 = time.time()
                 plan: ActionPlan = self.provider.reason(
                     task=task,
@@ -226,17 +256,16 @@ class WebVeilAgent:
                 for i, a in enumerate(plan.actions):
                     logger.info(f"  Action {i+1}: {a.action.value} | {a.thought}")
 
-                # ── 6. LOCAL EXECUTION (per-action firewall) ──────────
                 if plan.actions and plan.actions[0].action == ActionType.DONE:
                     logger.info("Task completed!")
                     self._emit("task_complete", {"step": step_count})
 
                     sih_report = self._build_sih_report(
-                        latest_pii_matches, dom_nodes, step_count
+                        latest_pii_matches, raw_dom_nodes, step_count
                     )
                     return self._build_result("SUCCESS", step_count, pii_matches, sih_report)
 
-                # Check for loop detection
+                # Loop Detection Check
                 action_key = self._action_plan_key(plan)
                 if action_key == self._last_action_key:
                     self._consecutive_same_action += 1
@@ -244,14 +273,14 @@ class WebVeilAgent:
                         logger.warning("Loop detected — same plan proposed 3 times. Terminating.")
                         self._emit("task_complete", {"step": step_count, "reason": "loop_detected"})
                         sih_report = self._build_sih_report(
-                            latest_pii_matches, dom_nodes, step_count
+                            latest_pii_matches, raw_dom_nodes, step_count
                         )
                         return self._build_result("LOOP_DETECTED", step_count, pii_matches, sih_report)
                 else:
                     self._consecutive_same_action = 0
                 self._last_action_key = action_key
 
-                # Execute each action with firewall validation
+                # Execute each action with Grounding + Firewall
                 t0 = time.time()
                 plan_broken = False
                 for action_idx, proposed_action in enumerate(plan.actions):
@@ -259,17 +288,30 @@ class WebVeilAgent:
                         logger.info("Task completed (mid-plan)!")
                         self._emit("task_complete", {"step": step_count})
                         sih_report = self._build_sih_report(
-                            latest_pii_matches, dom_nodes, step_count
+                            latest_pii_matches, raw_dom_nodes, step_count
                         )
                         return self._build_result("SUCCESS", step_count, pii_matches, sih_report)
 
                     # Re-extract DOM for freshness check on actions after the first
                     if action_idx > 0:
-                        dom_nodes, formatted_dom = self.browser.extract_dom()
+                        raw_dom_nodes, formatted_dom = self.browser.extract_dom()
 
+                    # ── STAGE 4: GROUND (Element Grounding Engine) ─────────
+                    self._emit("stage_change", {"stage": AgentStage.GROUND.value, "data": {"node_id": proposed_action.node_id}})
+                    grounding: GroundingResult = self.grounder.ground_action(proposed_action, raw_dom_nodes)
+
+                    if grounding.threshold_action == "REPLAN":
+                        logger.warning(f"[Grounding REJECT] Low confidence ({grounding.confidence}). Requesting REPLAN.")
+                        self._emit("stage_change", {"stage": AgentStage.REPLAN.value, "data": {"reason": grounding.reasoning}})
+                        error_context = f"Grounding failed: {grounding.reasoning}"
+                        plan_broken = True
+                        break
+
+                    # ── STAGE 5: ACT (Action Firewall Execution) ───────────
+                    self._emit("stage_change", {"stage": AgentStage.ACT.value, "data": {"action": proposed_action.action.value}})
                     try:
                         success = self.firewall.execute_validated_action(
-                            proposed_action, dom_nodes, current_origin
+                            proposed_action, raw_dom_nodes, current_origin
                         )
 
                         result = ActionResult(
@@ -285,6 +327,7 @@ class WebVeilAgent:
                             "text": proposed_action.text,
                             "success": success,
                             "thought": proposed_action.thought,
+                            "confidence": grounding.confidence,
                         })
 
                         if not success:
@@ -310,13 +353,14 @@ class WebVeilAgent:
                     "firewall_execution_ms", (time.time() - t0) * 1000
                 )
 
-                # ── 7. LOCAL VERIFICATION ─────────────────────────────
+                # ── STAGE 6: VERIFY (Local Action Verifier) ────────────────
+                self._emit("stage_change", {"stage": AgentStage.VERIFY.value, "data": {"step": step_count}})
                 t0 = time.time()
                 post_nodes, _ = self.browser.extract_dom()
                 if self.action_history:
                     last = self.action_history[-1]
                     verified = self.verifier.verify_action_execution(
-                        last.action, dom_nodes, post_nodes
+                        last.action, raw_dom_nodes, post_nodes
                     )
                     if not verified:
                         logger.warning("[Verifier] Action verification flagged anomaly.")
