@@ -3,288 +3,411 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebVeil — AI Browser Companion</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>WebVeil</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-canvas: #090c15;
-            --bg-sidebar: #0f172a;
-            --bg-card: #1e293b;
-            --bg-card-hover: #334155;
-            --border: #334155;
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
-            --text-muted: #64748b;
-            --brand-cyan: #38bdf8;
-            --brand-green: #34d399;
-            --brand-amber: #fbbf24;
-            --brand-red: #f87171;
-            --brand-purple: #c084fc;
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--bg-canvas);
-            color: var(--text-main);
+        html, body {
+            width: 100vw;
             height: 100vh;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0f1117;
+            color: #eceef2;
         }
 
-        /* Top Bar */
-        .header {
-            background: #090d16;
-            border-bottom: 1px solid var(--border);
-            padding: 8px 16px;
+        /* 
+         Product Pattern: REAL BROWSER + COMPACT AI SIDE PANEL 
+         The browser is the main view (flex: 1).
+         The sidebar panel is docked on the right (~360px wide).
+        */
+        .app-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 1. REAL BROWSER VIEWPORT */
+        .browser-viewport {
+            flex: 1;
+            height: 100vh;
+            background: #05070a;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .browser-viewport img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        .browser-placeholder {
+            color: #4b5563;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* 2. DOCKED RIGHT AI SIDEBAR PANEL (~360px) */
+        .sidebar-panel {
+            width: 360px;
+            min-width: 320px;
+            max-width: 400px;
+            height: 100vh;
+            background: #121621;
+            border-left: 1px solid #1f293d;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Sidebar Header: WebVeil + 🔒 Protected + ⚙ Settings */
+        .sidebar-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid #1f293d;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            height: 44px;
-        }
-        .header-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
-        .header-brand .logo-icon { color: var(--brand-cyan); font-size: 18px; }
-        .privacy-pill {
-            font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px;
-            background: rgba(52, 211, 153, 0.12); color: var(--brand-green); border: 1px solid rgba(52, 211, 153, 0.3);
-            cursor: pointer; display: flex; align-items: center; gap: 4px;
-        }
-        .privacy-pill:hover { background: rgba(52, 211, 153, 0.2); }
-        .dev-btn { font-size: 11px; background: transparent; border: 1px solid var(--border); color: var(--text-sub); padding: 4px 10px; border-radius: 6px; cursor: pointer; }
-        .dev-btn:hover { border-color: var(--text-sub); color: var(--text-main); }
-
-        /* Product Layout: 80% Browser Viewport + 20% Compact Agent Sidebar */
-        .workspace {
-            display: grid;
-            grid-template-columns: 1fr 340px;
-            flex: 1;
-            height: calc(100vh - 44px);
-            overflow: hidden;
+            background: #121621;
         }
 
-        /* 1. Main Browser Viewport */
-        .browser-container {
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--border);
-            overflow: hidden;
-        }
-        .url-bar {
-            background: #0f172a;
-            padding: 6px 14px;
-            font-size: 12px;
-            color: var(--text-sub);
-            border-bottom: 1px solid var(--border);
+        .header-left {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .viewport {
-            flex: 1;
-            display: flex;
+
+        .brand-title {
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: -0.2px;
+            color: #ffffff;
+        }
+
+        .privacy-badge {
+            font-size: 11px;
+            font-weight: 500;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            padding: 2px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            position: relative;
-            background: #090c15;
-            overflow: hidden;
+            gap: 4px;
         }
-        .viewport img { width: 100%; height: 100%; object-fit: contain; }
-
-        /* 2. WebVeil Companion Sidebar */
-        .sidebar {
-            background: var(--bg-sidebar);
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            overflow: hidden;
+        .privacy-badge:hover {
+            background: rgba(16, 185, 129, 0.18);
         }
 
-        /* Chat / Activity Message Feed */
+        .dev-gear-btn {
+            background: transparent;
+            border: none;
+            color: #6b7280;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+        .dev-gear-btn:hover {
+            color: #9ca3af;
+        }
+
+        /* Conversation / Activity Feed */
         .feed {
             flex: 1;
             padding: 16px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 16px;
         }
 
-        /* Message Bubbles */
-        .msg { display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.5; }
-        .msg.user { align-self: flex-end; background: #2563eb; color: #fff; padding: 10px 14px; border-radius: 12px 12px 2px 12px; max-width: 90%; }
-        .msg.assistant { align-self: flex-start; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 14px; border-radius: 12px 12px 12px 2px; max-width: 95%; color: var(--text-main); }
-        .msg-meta { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px; font-weight: 600; }
+        /* Greeting / Idle state */
+        .idle-prompt-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #f3f4f6;
+            margin-bottom: 12px;
+        }
 
-        /* Live Working State Banner */
-        .working-card {
-            background: rgba(56, 189, 248, 0.08);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            border-radius: 10px;
-            padding: 12px 14px;
+        .example-chip-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
-        .working-header { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--brand-cyan); }
-        .working-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-sub); }
-        .spinner { width: 10px; height: 10px; border: 2px solid var(--brand-cyan); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
 
-        /* Complete Outcome Card */
-        .outcome-card {
-            background: linear-gradient(135deg, rgba(52, 211, 153, 0.1), rgba(56, 189, 248, 0.1));
-            border: 1px solid rgba(52, 211, 153, 0.3);
-            border-radius: 10px;
-            padding: 14px;
-        }
-        .outcome-title { font-size: 13px; font-weight: 700; color: var(--brand-green); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-
-        /* Examples List for Idle State */
-        .example-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
-        .example-chip { font-size: 12px; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; color: var(--text-sub); cursor: pointer; transition: all 0.15s; }
-        .example-chip:hover { border-color: var(--brand-cyan); color: var(--text-main); background: var(--bg-card-hover); }
-
-        /* Input Controls */
-        .input-box {
-            padding: 12px 16px;
-            background: #0b1120;
-            border-top: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .input-row { display: flex; gap: 8px; }
-        .input-row textarea {
-            flex: 1;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
+        .example-chip {
+            background: #1a202c;
+            border: 1px solid #2d3748;
             border-radius: 8px;
-            padding: 8px 12px;
-            color: var(--text-main);
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .example-chip:hover {
+            background: #2d3748;
+            color: #f3f4f6;
+            border-color: #4a5568;
+        }
+
+        /* Chat messages */
+        .chat-msg {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .chat-msg.user {
+            align-self: flex-end;
+            background: #2563eb;
+            color: #ffffff;
+            padding: 10px 14px;
+            border-radius: 12px 12px 2px 12px;
+            max-width: 88%;
+            word-wrap: break-word;
+        }
+
+        .chat-msg.assistant {
+            align-self: flex-start;
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            color: #e2e8f0;
+            padding: 12px 14px;
+            border-radius: 12px 12px 12px 2px;
+            max-width: 95%;
+        }
+
+        /* Live Activity Status */
+        .working-block {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px;
+            background: rgba(37, 99, 235, 0.08);
+            border: 1px solid rgba(37, 99, 235, 0.25);
+            border-radius: 8px;
+        }
+
+        .working-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+
+        .spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid #60a5fa;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .status-text {
+            font-size: 12.5px;
+            color: #9ca3af;
+        }
+
+        /* Done Outcome */
+        .outcome-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .outcome-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Input Bar */
+        .input-container {
+            padding: 12px 16px;
+            border-top: 1px solid #1f293d;
+            background: #121621;
+        }
+
+        .input-form {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-form textarea {
+            flex: 1;
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: #ffffff;
             font-family: inherit;
             font-size: 13px;
             resize: none;
             outline: none;
-            height: 38px;
+            height: 40px;
         }
-        .input-row textarea:focus { border-color: var(--brand-cyan); }
-        .send-btn {
-            background: #2563eb; color: #fff; border: none; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+        .input-form textarea:focus {
+            border-color: #3b82f6;
         }
-        .send-btn:hover { background: #1d4ed8; }
 
-        /* Privacy Popover Modal */
-        .popover-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 90; }
-        .privacy-modal { display: none; position: fixed; top: 60px; left: 50%; transform: translateX(-50%); width: 360px; background: var(--bg-card); border: 1px solid var(--brand-green); border-radius: 12px; padding: 18px; z-index: 100; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
+        .send-button {
+            background: #2563eb;
+            color: #ffffff;
+            border: none;
+            padding: 0 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .send-button:hover {
+            background: #1d4ed8;
+        }
 
-        /* Dev Settings Drawer */
-        .dev-drawer { display: none; position: fixed; top: 50px; right: 16px; width: 340px; background: #0f172a; border: 1px solid var(--border); border-radius: 10px; padding: 16px; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.7); font-size: 12px; }
+        /* Privacy Info Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 99;
+        }
+        .privacy-modal {
+            display: none;
+            position: fixed;
+            top: 60px;
+            right: 380px;
+            width: 300px;
+            background: #1a202c;
+            border: 1px solid #2d3748;
+            border-radius: 10px;
+            padding: 16px;
+            z-index: 100;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        /* Hidden Developer View Drawer */
+        .dev-drawer {
+            display: none;
+            position: fixed;
+            top: 50px;
+            right: 370px;
+            width: 320px;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 16px;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            font-size: 12px;
+            color: #94a3b8;
+        }
 
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <!-- Top Header -->
-    <div class="header">
-        <div class="header-brand">
-            <span class="logo-icon">◉</span> WebVeil
-        </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div class="privacy-pill" onclick="openPrivacyModal()">
-                🔒 Privacy Protected
-            </div>
-            <button class="dev-btn" onclick="toggleDevDrawer()">⚙ Developer View</button>
-        </div>
-    </div>
-
-    <!-- Product Workspace -->
-    <div class="workspace">
-        <!-- Main Browser Viewport (80% Width) -->
-        <div class="browser-container">
-            <div class="url-bar">
-                <span>🌐</span>
-                <span id="currentUrl">https://www.google.com</span>
-            </div>
-            <div class="viewport" id="viewport">
-                <div style="color: var(--text-muted); font-size: 13px;">Active browser window standby...</div>
-            </div>
+    <div class="app-container">
+        <!-- 1. BROWSER VIEW (FULL CANVAS EXCEPT SIDEBAR) -->
+        <div class="browser-viewport" id="browserViewport">
+            <div class="browser-placeholder" id="placeholderText">Browser loading...</div>
         </div>
 
-        <!-- Compact AI Agent Companion Sidebar (20% Width) -->
-        <div class="sidebar">
-            <div class="feed" id="chatFeed">
-                <!-- Initial Welcome Greeting -->
-                <div class="msg assistant">
-                    <div class="msg-meta">WebVeil Agent</div>
-                    <div>Hello. What would you like me to do on your browser today?</div>
-                    <div class="example-list">
-                        <div class="example-chip" onclick="selectPrompt(this.textContent)">"Find three laptops under ₹80,000 and compare them"</div>
-                        <div class="example-chip" onclick="selectPrompt(this.textContent)">"Summarize this page"</div>
-                        <div class="example-chip" onclick="selectPrompt(this.textContent)">"Go to Wikipedia and search for ISRO"</div>
-                        <div class="example-chip" onclick="selectPrompt(this.textContent)">"Fill out this form"</div>
+        <!-- 2. COMPACT RIGHT AI SIDEBAR PANEL -->
+        <div class="sidebar-panel">
+            <div class="sidebar-header">
+                <div class="header-left">
+                    <span class="brand-title">WebVeil</span>
+                    <span class="privacy-badge" onclick="togglePrivacyModal()">🔒 Protected</span>
+                </div>
+                <button class="dev-gear-btn" onclick="toggleDevDrawer()" title="Developer View">⚙</button>
+            </div>
+
+            <!-- Chat & Activity Feed -->
+            <div class="feed" id="feed">
+                <div>
+                    <div class="idle-prompt-title">What can I do for you?</div>
+                    <div class="example-chip-list">
+                        <div class="example-chip" onclick="usePrompt('Find information')">Find information</div>
+                        <div class="example-chip" onclick="usePrompt('Compare products')">Compare products</div>
+                        <div class="example-chip" onclick="usePrompt('Summarize this page')">Summarize this page</div>
+                        <div class="example-chip" onclick="usePrompt('Fill out a form')">Fill out a form</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Conversational Task Input -->
-            <div class="input-box">
-                <div class="input-row">
-                    <textarea id="taskInput" placeholder="Ask WebVeil to do something..." rows="1"></textarea>
-                    <button class="send-btn" onclick="submitTask()">Ask</button>
+            <!-- Input Controls -->
+            <div class="input-container">
+                <div class="input-form">
+                    <textarea id="taskInput" placeholder="Ask WebVeil..." rows="1"></textarea>
+                    <button class="send-button" onclick="sendTask()">Ask</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Privacy Popover Modal -->
-    <div class="popover-backdrop" id="backdrop" onclick="closePrivacyModal()"></div>
+    <!-- Privacy Info Modal -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closePrivacyModal()"></div>
     <div class="privacy-modal" id="privacyModal">
-        <div style="font-size: 14px; font-weight: 700; color: var(--brand-green); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-            🔒 Privacy Engine Active
-        </div>
-        <div style="font-size: 12px; color: var(--text-sub); line-height: 1.5; margin-bottom: 12px;">
-            WebVeil detects sensitive information locally and replaces it with synthetic placeholders before sending context to remote AI reasoning models. Zero raw PII ever leaves your device.
-        </div>
-        <div style="background: var(--bg-sidebar); padding: 10px; border-radius: 8px; font-size: 11px; display: flex; justify-content: space-around; text-align: center;">
-            <div><strong id="mPiiDetected" style="color: var(--brand-cyan); font-size: 14px;">0</strong><br><span style="color: var(--text-muted);">Protected</span></div>
-            <div><strong style="color: var(--brand-green); font-size: 14px;">0</strong><br><span style="color: var(--text-muted);">Transmitted</span></div>
-            <div><strong style="color: var(--brand-green); font-size: 14px;">100%</strong><br><span style="color: var(--text-muted);">Egress Gate</span></div>
+        <div style="font-size: 13px; font-weight: 700; color: #10b981; margin-bottom: 6px;">Privacy Protected</div>
+        <div style="font-size: 12px; color: #9ca3af; line-height: 1.4;">
+            Local zero-leakage privacy engine active.<br>
+            <span id="piiStatsText" style="color: #e2e8f0; font-weight: 600; display: inline-block; margin-top: 6px;">0 sensitive values protected · 0 transmitted</span>
         </div>
     </div>
 
-    <!-- Developer & Research Metrics Drawer -->
+    <!-- Developer View Drawer (Hidden by default behind ⚙) -->
     <div class="dev-drawer" id="devDrawer">
-        <div style="font-weight: 700; color: var(--brand-cyan); margin-bottom: 10px; display: flex; justify-content: space-between;">
-            <span>DEVELOPER & RESEARCH VIEW</span>
+        <div style="font-weight: 700; color: #38bdf8; margin-bottom: 10px; display: flex; justify-content: space-between;">
+            <span>DEVELOPER VIEW</span>
             <span style="cursor: pointer;" onclick="toggleDevDrawer()">✕</span>
         </div>
-        <div style="line-height: 1.8; color: var(--text-sub);">
+        <div style="line-height: 1.8;">
             <div>Raw DOM Elements: <strong id="devRawNodes" style="color:#fff;">—</strong></div>
             <div>Compressed Elements: <strong id="devFilteredNodes" style="color:#fff;">—</strong></div>
-            <div>DOM Compression Ratio: <strong id="devCompression" style="color: var(--brand-cyan);">0%</strong></div>
-            <div>Estimated Tokens Saved: <strong id="devTokensSaved" style="color: var(--brand-green);">0</strong></div>
+            <div>DOM Compression Ratio: <strong id="devCompression" style="color: #38bdf8;">0%</strong></div>
+            <div>Estimated Tokens Saved: <strong id="devTokensSaved" style="color: #34d399;">0</strong></div>
             <div>Grounding Confidence: <strong id="devGrounding" style="color: #fff;">0.95</strong></div>
-            <div>Provider: <strong id="devProvider" style="color: var(--brand-purple);">Gemini 3.6 Flash</strong></div>
-            <div>Python RSS: <strong id="devPythonMem" style="color:#fff;">~200 MB</strong></div>
+            <div>Provider: <strong id="devProvider" style="color: #c084fc;">Gemini 3.6 Flash</strong></div>
         </div>
     </div>
 
     <script>
         let lastCount = 0;
-        let activeWorkingBubble = null;
+        let activeWorkingBlock = null;
+        let piiCount = 0;
 
-        function selectPrompt(text) {
-            document.getElementById('taskInput').value = text.replace(/^"|"$/g, '');
+        function usePrompt(text) {
+            document.getElementById('taskInput').value = text;
         }
 
-        function openPrivacyModal() {
-            document.getElementById('backdrop').style.display = 'block';
-            document.getElementById('privacyModal').style.display = 'block';
+        function togglePrivacyModal() {
+            const overlay = document.getElementById('modalOverlay');
+            const modal = document.getElementById('privacyModal');
+            const show = modal.style.display !== 'block';
+            overlay.style.display = show ? 'block' : 'none';
+            modal.style.display = show ? 'block' : 'none';
         }
 
         function closePrivacyModal() {
-            document.getElementById('backdrop').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
             document.getElementById('privacyModal').style.display = 'none';
         }
 
@@ -293,33 +416,34 @@
             d.style.display = d.style.display === 'block' ? 'none' : 'block';
         }
 
-        function submitTask() {
+        function sendTask() {
             const input = document.getElementById('taskInput');
-            const prompt = input.value.strip ? input.value.strip() : input.value.trim();
-            if (!prompt) return;
+            const text = input.value.trim();
+            if (!text) return;
 
-            // Append User Message to Chat Feed
-            const feed = document.getElementById('chatFeed');
+            const feed = document.getElementById('feed');
+
+            // User Chat Bubble
             const userMsg = document.createElement('div');
-            userMsg.className = 'msg user';
-            userMsg.textContent = prompt;
+            userMsg.className = 'chat-msg user';
+            userMsg.textContent = text;
             feed.appendChild(userMsg);
 
             input.value = '';
 
-            // Append Working State Banner
-            activeWorkingBubble = document.createElement('div');
-            activeWorkingBubble.className = 'msg assistant';
-            activeWorkingBubble.innerHTML = `
-                <div class="working-card">
+            // Assistant Working State
+            activeWorkingBlock = document.createElement('div');
+            activeWorkingBlock.className = 'chat-msg assistant';
+            activeWorkingBlock.innerHTML = `
+                <div class="working-block">
                     <div class="working-header">
-                        <span>WebVeil Working</span>
                         <div class="spinner"></div>
+                        <span>Working</span>
                     </div>
-                    <div class="working-status" id="workStatus">Observing browser state...</div>
+                    <div class="status-text" id="statusText">Understanding your request...</div>
                 </div>
             `;
-            feed.appendChild(activeWorkingBubble);
+            feed.appendChild(activeWorkingBlock);
             feed.scrollTop = feed.scrollHeight;
         }
 
@@ -345,58 +469,56 @@
             const { type, data } = ev;
 
             if (type === 'stage_change') {
-                const statusEl = document.getElementById('workStatus');
+                const statusEl = document.getElementById('statusText');
                 if (statusEl) {
-                    if (data.stage === 'UNDERSTAND') statusEl.textContent = 'Understanding request...';
-                    else if (data.stage === 'PERCEIVE') statusEl.textContent = 'Observing page structure...';
-                    else if (data.stage === 'REASON') statusEl.textContent = 'Reasoning next action...';
-                    else if (data.stage === 'GROUND') statusEl.textContent = 'Grounding interactive elements...';
-                    else if (data.stage === 'ACT') statusEl.textContent = `Executing ${data.data && data.data.action ? data.data.action : 'action'}...`;
-                    else if (data.stage === 'VERIFY') statusEl.textContent = 'Verifying page result...';
+                    if (data.stage === 'UNDERSTAND') statusEl.textContent = 'Understanding your request...';
+                    else if (data.stage === 'PERCEIVE') statusEl.textContent = 'Looking at the page...';
+                    else if (data.stage === 'REASON') statusEl.textContent = 'Deciding next action...';
+                    else if (data.stage === 'GROUND') statusEl.textContent = 'Finding the right option...';
+                    else if (data.stage === 'ACT') statusEl.textContent = 'Taking action...';
+                    else if (data.stage === 'VERIFY') statusEl.textContent = 'Checking the result...';
                 }
             } else if (type === 'observation') {
-                document.getElementById('currentUrl').textContent = data.url || 'https://www.google.com';
-                document.getElementById('mPiiDetected').textContent = data.pii_count || 0;
+                piiCount = data.pii_count || 0;
+                document.getElementById('piiStatsText').textContent = `${piiCount} sensitive values protected · 0 transmitted`;
 
-                // Developer View Updates
+                // Dev view updates
                 document.getElementById('devRawNodes').textContent = data.raw_dom_nodes || data.dom_nodes || '—';
                 document.getElementById('devFilteredNodes').textContent = data.dom_nodes || '—';
                 document.getElementById('devCompression').textContent = `${data.compression_ratio || 0}%`;
                 document.getElementById('devTokensSaved').textContent = `~${data.tokens_saved || 0}`;
 
                 if (data.screenshot_b64) {
-                    document.getElementById('viewport').innerHTML = `<img src="data:image/png;base64,${data.screenshot_b64}">`;
+                    const viewport = document.getElementById('browserViewport');
+                    viewport.innerHTML = `<img src="data:image/png;base64,${data.screenshot_b64}">`;
                 }
             } else if (type === 'reasoning') {
                 if (data.provider) {
                     document.getElementById('devProvider').textContent = data.provider;
                 }
             } else if (type === 'action_execute') {
-                const statusEl = document.getElementById('workStatus');
+                const statusEl = document.getElementById('statusText');
                 if (statusEl) {
-                    statusEl.textContent = `Dispatched ${data.action} ${data.node_id != null ? `on element [${data.node_id}]` : ''}`;
+                    statusEl.textContent = `Performing ${data.action.toLowerCase()}...`;
                 }
                 if (data.confidence) {
                     document.getElementById('devGrounding').textContent = data.confidence;
                 }
             } else if (type === 'task_complete') {
-                const feed = document.getElementById('chatFeed');
-                if (activeWorkingBubble && activeWorkingBubble.parentNode) {
-                    feed.removeChild(activeWorkingBubble);
+                const feed = document.getElementById('feed');
+                if (activeWorkingBlock && activeWorkingBlock.parentNode) {
+                    feed.removeChild(activeWorkingBlock);
                 }
 
-                // Render Clean Completed Outcome Bubble
-                const outcome = document.createElement('div');
-                outcome.className = 'msg assistant';
-                outcome.innerHTML = `
-                    <div class="outcome-card">
-                        <div class="outcome-title">✓ Task Complete</div>
-                        <div style="font-size: 13px; color: var(--text-main); line-height: 1.5;">
-                            ${document.getElementById('workStatus') ? document.getElementById('workStatus').textContent : 'Finished browser task.'}
-                        </div>
+                const doneMsg = document.createElement('div');
+                doneMsg.className = 'chat-msg assistant';
+                doneMsg.innerHTML = `
+                    <div class="outcome-block">
+                        <div class="outcome-title">✓ Done</div>
+                        <div>Task completed successfully.</div>
                     </div>
                 `;
-                feed.appendChild(outcome);
+                feed.appendChild(doneMsg);
                 feed.scrollTop = feed.scrollHeight;
             }
         }

@@ -12,7 +12,9 @@ from typing import List
 
 logger = logging.getLogger("WebVeilDashboard")
 
-DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+VITE_DIST_DIR = os.path.join(PROJECT_ROOT, "frontend", "dist")
+DASHBOARD_DIR = VITE_DIST_DIR if os.path.exists(VITE_DIST_DIR) else os.path.dirname(os.path.abspath(__file__))
 
 
 class DashboardHTTPHandler(http.server.SimpleHTTPRequestHandler):
