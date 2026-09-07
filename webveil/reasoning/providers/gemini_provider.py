@@ -19,7 +19,7 @@ logger = logging.getLogger("WebVeilGemini")
 class GeminiProvider:
     """Gemini reasoning provider using google-genai SDK."""
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-2.0-flash"):
+    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-3.6-flash"):
         self._token_usage = TokenUsage()
         self._model_name = model
 
