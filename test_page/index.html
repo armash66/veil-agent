@@ -10,10 +10,14 @@
         h2 { color: #38bdf8; margin-top: 0; }
         .form-group { margin-bottom: 16px; }
         label { display: block; margin-bottom: 6px; font-weight: 600; color: #94a3b8; }
-        input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; box-sizing: border-box; }
+        input, select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; box-sizing: border-box; }
+        select { appearance: auto; }
         button { width: 100%; background: #0284c7; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 12px; }
         button:hover { background: #0369a1; }
         .badge { display: inline-block; background: #0369a1; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 16px; }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; }
+        .checkbox-group input { width: auto; }
+        #successMsg { display: none; background: #064e3b; border: 1px solid #10b981; padding: 12px; border-radius: 8px; margin-top: 16px; color: #10b981; text-align: center; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -21,7 +25,7 @@
         <span class="badge">SIH Prototype Verification Harness</span>
         <h2>KYC Verification Form</h2>
         <p>Complete your identity verification without sharing raw credentials.</p>
-        <form id="kycForm" onsubmit="event.preventDefault(); alert('Form submitted!');">
+        <form id="kycForm" onsubmit="event.preventDefault(); document.getElementById('successMsg').style.display='block';">
             <div class="form-group">
                 <label for="fullName">Full Name</label>
                 <input type="text" id="fullName" name="fullName" placeholder="Enter full name" value="Armash Test User">
@@ -42,8 +46,27 @@
                 <label for="password">Account Password</label>
                 <input type="password" id="password" name="password" placeholder="Password" value="CANARY_PASSWORD_001">
             </div>
+            <div class="form-group">
+                <label for="idType">ID Document Type</label>
+                <select id="idType" name="idType">
+                    <option value="">Select document type</option>
+                    <option value="aadhaar">Aadhaar Card</option>
+                    <option value="pan">PAN Card</option>
+                    <option value="passport">Passport</option>
+                    <option value="voter">Voter ID</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="dob">Date of Birth</label>
+                <input type="date" id="dob" name="dob" value="2000-01-15">
+            </div>
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="consent" name="consent">
+                <label for="consent" style="margin-bottom: 0;">I consent to privacy-preserving identity verification</label>
+            </div>
             <button type="submit" id="submitBtn">Submit KYC Form</button>
         </form>
+        <div id="successMsg">✓ KYC Form submitted successfully! All data processed through WebVeil privacy pipeline.</div>
     </div>
 </body>
 </html>

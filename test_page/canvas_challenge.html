@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebVeil Visual Perception Challenge</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 40px; margin: 0; }
+        .container { max-width: 700px; margin: 0 auto; }
+        .badge { display: inline-block; background: #7c3aed; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; margin-bottom: 16px; }
+        h2 { color: #a78bfa; margin-top: 0; }
+        p { color: #94a3b8; margin-bottom: 20px; }
+        canvas { border: 2px solid #334155; border-radius: 12px; display: block; margin: 20px auto; background: #1e293b; cursor: pointer; }
+        .buttons { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+        button { padding: 12px 24px; border-radius: 8px; border: 2px solid #334155; background: #1e293b; color: #f8fafc; font-weight: bold; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        button:hover { border-color: #7c3aed; background: #2d1b69; }
+        button.correct { border-color: #10b981; background: #064e3b; }
+        button.wrong { border-color: #ef4444; background: #7f1d1d; }
+        #result { text-align: center; margin-top: 20px; font-size: 18px; font-weight: bold; min-height: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <span class="badge">Visual Perception Challenge</span>
+        <h2>Canvas-Based Interaction Test</h2>
+        <p>The instruction below is rendered on a <strong>canvas element</strong> — it has <strong>no DOM text representation</strong>. The agent must use local OCR to read the visual content and then click the correct button.</p>
+
+        <canvas id="challengeCanvas" width="640" height="200"></canvas>
+
+        <div class="buttons">
+            <button id="btnAlpha" onclick="checkAnswer('alpha')">Alpha</button>
+            <button id="btnBeta" onclick="checkAnswer('beta')">Beta</button>
+            <button id="btnGamma" onclick="checkAnswer('gamma')">Gamma</button>
+            <button id="btnDelta" onclick="checkAnswer('delta')">Delta</button>
+        </div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // The correct answer — this text ONLY exists on the canvas, not in the DOM
+        const correctAnswer = 'gamma';
+        const instruction = 'Click the button labeled: GAMMA';
+        const subtitle = 'This text is rendered visually — DOM extraction cannot read it.';
+
+        const canvas = document.getElementById('challengeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Draw the visual instruction on canvas
+        function drawChallenge() {
+            // Background gradient
+            const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            grad.addColorStop(0, '#1e1b4b');
+            grad.addColorStop(1, '#312e81');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Main instruction text
+            ctx.fillStyle = '#e0e7ff';
+            ctx.font = 'bold 28px Segoe UI, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(instruction, canvas.width / 2, 90);
+
+            // Subtitle
+            ctx.fillStyle = '#818cf8';
+            ctx.font = '14px Segoe UI, sans-serif';
+            ctx.fillText(subtitle, canvas.width / 2, 130);
+
+            // Decorative border
+            ctx.strokeStyle = '#6366f1';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+        }
+
+        function checkAnswer(answer) {
+            const resultEl = document.getElementById('result');
+            const buttons = document.querySelectorAll('button');
+
+            buttons.forEach(btn => {
+                btn.classList.remove('correct', 'wrong');
+            });
+
+            if (answer === correctAnswer) {
+                document.getElementById('btnGamma').classList.add('correct');
+                resultEl.style.color = '#10b981';
+                resultEl.textContent = '✓ Correct! The agent successfully read the canvas via OCR.';
+            } else {
+                document.getElementById('btn' + answer.charAt(0).toUpperCase() + answer.slice(1)).classList.add('wrong');
+                document.getElementById('btnGamma').classList.add('correct');
+                resultEl.style.color = '#ef4444';
+                resultEl.textContent = '✗ Incorrect. The correct answer was GAMMA (visible only on canvas).';
+            }
+        }
+
+        drawChallenge();
+    </script>
+</body>
+</html>

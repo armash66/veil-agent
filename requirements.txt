@@ -1,0 +1,25 @@
+# WebVeil V1 — Dependencies
+# Core browser automation
+playwright>=1.40.0
+
+# Image processing (screenshot redaction)
+Pillow>=10.0.0
+
+# Resource monitoring (SIH metrics)
+psutil>=5.9.0
+
+# Reasoning providers (all optional — system degrades gracefully)
+google-genai>=1.0.0
+openai>=1.30.0
+
+# Local OCR (optional — install tesseract-ocr system package separately)
+pytesseract>=0.3.10
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Dashboard WebSocket
+websockets>=12.0
+
+# Rich terminal output (debugging/logging)
+rich>=13.0.0

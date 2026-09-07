@@ -22,7 +22,7 @@ class ActionFirewall:
     Firewall inspecting server action proposals, validating node freshness, and resolving vault placeholders locally.
     """
 
-    ALLOWED_ACTIONS = {ActionType.NAVIGATE, ActionType.CLICK, ActionType.TYPE, ActionType.SCROLL, ActionType.KEYPRESS, ActionType.WAIT, ActionType.DONE}
+    ALLOWED_ACTIONS = {ActionType.NAVIGATE, ActionType.CLICK, ActionType.TYPE, ActionType.SCROLL, ActionType.KEYPRESS, ActionType.SELECT, ActionType.WAIT, ActionType.DONE}
 
     def __init__(self, vault: ClientVault, browser: BaseBrowserAdapter):
         self.vault = vault
@@ -97,5 +97,10 @@ class ActionFirewall:
 
             logger.info(f"[Agent Step] Typing into node [{target_node.node_id}] (Secret restored locally)")
             return self.browser.type_text(target_node.node_id, text_to_type)
+
+        # 5. Action Type Handling: SELECT
+        if action.action == ActionType.SELECT:
+            logger.info(f"[Agent Step] Selecting option '{action.value}' in node [{target_node.node_id}]")
+            return self.browser.select_option(target_node.node_id, action.value or "")
 
         return False

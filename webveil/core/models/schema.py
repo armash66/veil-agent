@@ -1,11 +1,14 @@
 """
 Core Data Schemas for WebVeil Agent & Privacy Pipeline.
+V1: Extended with LocalWorldModel, ActionPlan, and provider abstractions.
 """
 
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Any
 
+
+# ─── PII & Privacy Types (V0, unchanged) ────────────────────────────────
 
 class PIICategory(str, Enum):
     EMAIL = "EMAIL"
@@ -40,6 +43,8 @@ class VaultEntry:
     element_name: Optional[str] = None
 
 
+# ─── DOM Types (V0, unchanged) ──────────────────────────────────────────
+
 @dataclass
 class DOMNode:
     node_id: int
@@ -56,8 +61,58 @@ class DOMNode:
     placeholder_assigned: Optional[str] = None
 
 
+# ─── Observation Types (V1, new) ────────────────────────────────────────
+
+@dataclass
+class TextRegion:
+    """Text detected by OCR that may not exist in the DOM."""
+    text: str
+    bounding_box: Dict[str, float]  # {x, y, width, height}
+    confidence: float = 0.0
+    source: str = "ocr"  # "ocr" | "canvas" | "svg"
+
+
+@dataclass
+class LocalWorldModel:
+    """
+    Unified local observation merging DOM + Accessibility + Visual layers.
+    This is the raw local state BEFORE privacy processing.
+    """
+    url: str
+    title: str
+    dom_nodes: List[DOMNode]
+    formatted_dom: str
+    a11y_tree: Optional[Dict[str, Any]] = None
+    a11y_summary: str = ""
+    ocr_regions: List[TextRegion] = field(default_factory=list)
+    screenshot_b64: str = ""
+    page_text: str = ""
+    timestamp: float = 0.0
+
+
+@dataclass
+class SanitizedWorldModel:
+    """
+    Privacy-processed world model. All PII replaced with placeholders.
+    This is the ONLY representation that may leave the device.
+    """
+    url: str
+    sanitized_url: str
+    title: str
+    sanitized_dom: List[DOMNode]
+    formatted_dom: str
+    a11y_summary: str = ""
+    ocr_summary: str = ""
+    redacted_screenshot_b64: Optional[str] = None
+    detected_pii_count: int = 0
+    pii_categories_found: List[str] = field(default_factory=list)
+
+
+# ─── Legacy Observation Type (V0 compatibility) ────────────────────────
+
 @dataclass
 class SanitizedObservation:
+    """V0 compatibility wrapper. Used by existing egress gate and tests."""
     url: str
     sanitized_url: str
     title: str
@@ -68,12 +123,15 @@ class SanitizedObservation:
     pii_categories_found: List[str] = field(default_factory=list)
 
 
+# ─── Action Types (V1, extended) ────────────────────────────────────────
+
 class ActionType(str, Enum):
     NAVIGATE = "navigate"
     CLICK = "click"
     TYPE = "type"
     SCROLL = "scroll"
     KEYPRESS = "keypress"
+    SELECT = "select"
     WAIT = "wait"
     DONE = "done"
 
@@ -87,8 +145,32 @@ class BrowserAction:
     url: Optional[str] = None
     direction: Optional[str] = "down"
     amount: Optional[int] = 300
+    value: Optional[str] = None  # For SELECT action
+    thought: Optional[str] = None  # LLM reasoning transparency
     placeholder_restored: bool = False
 
+
+@dataclass
+class ActionResult:
+    """Result of executing a single action."""
+    action: BrowserAction
+    success: bool
+    error: Optional[str] = None
+    step_index: int = 0
+
+
+@dataclass
+class ActionPlan:
+    """
+    1-N proposed actions from the reasoning engine.
+    The local firewall validates each action individually before execution.
+    """
+    actions: List[BrowserAction]
+    thought: str = ""  # Overall reasoning for this plan
+    confidence: float = 0.0
+
+
+# ─── Egress Types (V0, unchanged) ──────────────────────────────────────
 
 @dataclass
 class EgressPayload:
@@ -96,6 +178,27 @@ class EgressPayload:
     observation: SanitizedObservation
     action_history: List[Dict[str, Any]]
 
+
+# ─── Provider Types (V1, new) ──────────────────────────────────────────
+
+@dataclass
+class TokenUsage:
+    """Tracks LLM token consumption for SIH resource metrics."""
+    input_tokens: int = 0
+    output_tokens: int = 0
+    total_calls: int = 0
+
+    def add(self, input_tokens: int, output_tokens: int):
+        self.input_tokens += input_tokens
+        self.output_tokens += output_tokens
+        self.total_calls += 1
+
+    @property
+    def total_tokens(self) -> int:
+        return self.input_tokens + self.output_tokens
+
+
+# ─── Metrics Types (V0, unchanged) ─────────────────────────────────────
 
 @dataclass
 class StageLatencies:
@@ -106,6 +209,9 @@ class StageLatencies:
     server_reasoning_ms: float = 0.0
     firewall_execution_ms: float = 0.0
     verification_ms: float = 0.0
+    a11y_extraction_ms: float = 0.0
+    ocr_extraction_ms: float = 0.0
+    world_model_build_ms: float = 0.0
 
 
 @dataclass
@@ -128,3 +234,4 @@ class SIHMetrics:
     end_to_end_latency_ms: float = 0.0
     stage_latencies: StageLatencies = field(default_factory=StageLatencies)
     llm_call_count: int = 0
+    llm_total_tokens: int = 0

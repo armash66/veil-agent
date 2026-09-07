@@ -57,3 +57,11 @@ class BaseBrowserAdapter(ABC):
     @abstractmethod
     def scroll_page(self, direction: str = "down", amount: int = 300) -> bool:
         pass
+
+    @abstractmethod
+    def select_option(self, node_id: int, value: str) -> bool:
+        pass
+
+    @abstractmethod
+    def click_coordinates(self, x: int, y: int) -> bool:
+        pass
