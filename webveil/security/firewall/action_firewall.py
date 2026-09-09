@@ -31,15 +31,18 @@ class ActionFirewall:
         self.min_action_interval_sec = min_action_interval_sec
         self.step_counter = 0
         self.last_action_timestamp = 0.0
+        from webveil.security.injection.firewall_rule import PromptInjectionFirewallRule, PromptInjectionViolation
+        self.injection_guard = PromptInjectionFirewallRule()
 
     def reset_session(self):
         """Reset step count and rate limit timers for a new session."""
         self.step_counter = 0
         self.last_action_timestamp = 0.0
+        self.injection_guard.taint_tracker.clear()
 
     def validate_action_schema(self, action: BrowserAction):
         """
-        Validates action against allowed white-list schema.
+        Validates action against allowed white-list schema and prompt injection defense.
         """
         if action.action not in self.ALLOWED_ACTIONS:
             logger.critical(f"[FIREWALL REJECT] Unauthorized action attempted: '{action.action}'")
@@ -55,12 +58,22 @@ class ActionFirewall:
         if action.action == ActionType.NAVIGATE and not action.url:
             raise ActionSecurityViolation("Action 'navigate' requires valid url")
 
+        # Prompt injection taint verification
+        try:
+            self.injection_guard.validate_proposed_action(action)
+        except Exception as e:
+            raise ActionSecurityViolation(f"Blocked by Prompt Injection Defense: {e}")
+
     def execute_validated_action(self, action: BrowserAction, current_dom_nodes: List[DOMNode], current_origin: str) -> bool:
         """
         Validates action, checks step caps, rate limits, node freshness, resolves vault secrets, and dispatches to browser.
         """
         import time
         now = time.time()
+
+        # Update taint provenance from current page nodes
+        if current_dom_nodes:
+            self.injection_guard.update_taint_from_nodes(current_dom_nodes)
 
         # 1. Step Cap Enforcer
         if action.action not in (ActionType.DONE, ActionType.WAIT):
@@ -76,7 +89,7 @@ class ActionFirewall:
 
             self.last_action_timestamp = time.time()
 
-        # 3. Schema Validation
+        # 3. Schema & Prompt Injection Validation
         self.validate_action_schema(action)
 
         if action.action == ActionType.DONE:
