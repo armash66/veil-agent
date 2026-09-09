@@ -19,6 +19,7 @@ class LocalPIIDetector:
     PHONE_REGEX = re.compile(r'(?:\+91[\-\s]?|0)?[6-9]\d{9}|\b\d{3}[\-\s]\d{3}[\-\s]\d{4}\b')
     AADHAAR_REGEX = re.compile(r'\b[1-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}\b')
     CREDIT_CARD_REGEX = re.compile(r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b')
+    SSN_REGEX = re.compile(r'\b\d{3}-\d{2}-\d{4}\b')
     CANARY_REGEX = re.compile(r'CANARY_[A-Z0-9_]+', re.IGNORECASE)
 
     def __init__(self):
@@ -131,6 +132,20 @@ class LocalPIIDetector:
                     source_node_id=node.node_id,
                     bounding_box=node.bounding_box,
                     context="Card Pattern"
+                ))
+
+        # 7. SSN Match
+        for m in self.SSN_REGEX.finditer(text_to_scan):
+            raw = m.group(0)
+            if not any(m.raw_value == raw for m in matches):
+                ph = self._generate_placeholder(PIICategory.SSN)
+                matches.append(PIIMatch(
+                    category=PIICategory.SSN,
+                    raw_value=raw,
+                    placeholder=ph,
+                    source_node_id=node.node_id,
+                    bounding_box=node.bounding_box,
+                    context="SSN Pattern"
                 ))
 
         # 7. Metadata attribute check (autocomplete="email", name="phone", etc.)

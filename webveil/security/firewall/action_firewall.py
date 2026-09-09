@@ -24,9 +24,18 @@ class ActionFirewall:
 
     ALLOWED_ACTIONS = {ActionType.NAVIGATE, ActionType.CLICK, ActionType.TYPE, ActionType.SCROLL, ActionType.KEYPRESS, ActionType.SELECT, ActionType.WAIT, ActionType.DONE}
 
-    def __init__(self, vault: ClientVault, browser: BaseBrowserAdapter):
+    def __init__(self, vault: ClientVault, browser: BaseBrowserAdapter, max_step_cap: int = 15, min_action_interval_sec: float = 0.5):
         self.vault = vault
         self.browser = browser
+        self.max_step_cap = max_step_cap
+        self.min_action_interval_sec = min_action_interval_sec
+        self.step_counter = 0
+        self.last_action_timestamp = 0.0
+
+    def reset_session(self):
+        """Reset step count and rate limit timers for a new session."""
+        self.step_counter = 0
+        self.last_action_timestamp = 0.0
 
     def validate_action_schema(self, action: BrowserAction):
         """
@@ -48,9 +57,26 @@ class ActionFirewall:
 
     def execute_validated_action(self, action: BrowserAction, current_dom_nodes: List[DOMNode], current_origin: str) -> bool:
         """
-        Validates action, checks node freshness, resolves vault secrets if needed, and dispatches to browser.
+        Validates action, checks step caps, rate limits, node freshness, resolves vault secrets, and dispatches to browser.
         """
-        # 1. Schema Validation
+        import time
+        now = time.time()
+
+        # 1. Step Cap Enforcer
+        if action.action not in (ActionType.DONE, ActionType.WAIT):
+            self.step_counter += 1
+            if self.step_counter > self.max_step_cap:
+                logger.critical(f"[FIREWALL REJECT] Step limit cap exceeded: {self.step_counter} > {self.max_step_cap}")
+                raise ActionSecurityViolation(f"Execution cap exceeded: Maximum {self.max_step_cap} steps per session allowed.")
+
+            # 2. Action Throttling / Rate Limiter (Max 2 actions/sec)
+            elapsed = now - self.last_action_timestamp
+            if self.last_action_timestamp > 0 and elapsed < self.min_action_interval_sec:
+                time.sleep(self.min_action_interval_sec - elapsed)
+
+            self.last_action_timestamp = time.time()
+
+        # 3. Schema Validation
         self.validate_action_schema(action)
 
         if action.action == ActionType.DONE:
@@ -74,31 +100,35 @@ class ActionFirewall:
             logger.info(f"[Agent Step] Pressing key {action.key}")
             return self.browser.press_key(action.key or "Enter")
 
-        # 2. Node Freshness & Identity Check
+        # 4. Universal Pre-Execution Freshness & Visibility Check for Target Nodes
         target_node = next((n for n in current_dom_nodes if n.node_id == action.node_id), None)
         if not target_node:
             logger.error(f"[FIREWALL REJECT] Node {action.node_id} is stale or no longer attached to DOM")
             raise ActionSecurityViolation(f"Node {action.node_id} not found in active DOM observation")
 
-        # 3. Action Type Handling: CLICK
+        if not target_node.is_visible:
+            logger.error(f"[FIREWALL REJECT] Target node [{target_node.node_id}] is non-visible or hidden")
+            raise ActionSecurityViolation(f"Cannot perform action '{action.action.value}' on non-visible DOM node {target_node.node_id}")
+
+        # 5. Action Type Handling: CLICK
         if action.action == ActionType.CLICK:
             logger.info(f"[Agent Step] Clicking node [{target_node.node_id}] <{target_node.tag_name}>")
             return self.browser.click_element(target_node.node_id)
 
-        # 4. Action Type Handling: TYPE & Vault Interception
+        # 6. Action Type Handling: TYPE & Vault Interception
         if action.action == ActionType.TYPE:
             text_to_type = action.text
             
             # Check if text is a vault placeholder token (e.g. "[PASSWORD_1]")
-            if text_to_type.startswith("[") and text_to_type.endswith("]"):
+            if text_to_type and text_to_type.startswith("[") and text_to_type.endswith("]"):
                 logger.info(f"[Firewall Interceptor] Token detected '{text_to_type}'. Restoring secret locally...")
                 text_to_type = self.vault.restore(text_to_type, target_node, current_origin)
                 action.placeholder_restored = True
 
             logger.info(f"[Agent Step] Typing into node [{target_node.node_id}] (Secret restored locally)")
-            return self.browser.type_text(target_node.node_id, text_to_type)
+            return self.browser.type_text(target_node.node_id, text_to_type or "")
 
-        # 5. Action Type Handling: SELECT
+        # 7. Action Type Handling: SELECT
         if action.action == ActionType.SELECT:
             logger.info(f"[Agent Step] Selecting option '{action.value}' in node [{target_node.node_id}]")
             return self.browser.select_option(target_node.node_id, action.value or "")

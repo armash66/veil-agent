@@ -53,8 +53,8 @@ class GeminiProvider:
             task, world_model, action_history, error_context
         )
 
-        max_retries = 5
-        base_delay = 3.0
+        max_retries = 3
+        base_delay = 2.0
 
         for attempt in range(max_retries + 1):
             try:
@@ -98,14 +98,41 @@ class GeminiProvider:
                     # Look for suggested retry delay from API error message (e.g. "Please retry in 16s")
                     suggested_match = re.search(r'retry in ([0-9]+(?:\.[0-9]+)?)s', err_str, re.IGNORECASE)
                     if suggested_match:
-                        delay = float(suggested_match.group(1)) + random.uniform(0.5, 1.5)
+                        raw_delay = float(suggested_match.group(1))
+                        delay = min(8.0, raw_delay) + random.uniform(0.2, 0.8)
                     else:
-                        delay = (base_delay * (2 ** attempt)) + random.uniform(0.5, 2.0)
+                        delay = min(8.0, (base_delay * (2 ** attempt))) + random.uniform(0.2, 0.8)
 
                     logger.warning(f"[Gemini] Transient rate limit ({err_str[:80]}). Waiting {delay:.1f}s (Attempt {attempt+1}/{max_retries})...")
                     time.sleep(delay)
                     continue
                 else:
+                    # If high demand / 503 persists on primary model, attempt automatic fallback to gemini-2.5-flash
+                    if is_transient and ("503" in err_str or "UNAVAILABLE" in err_str or "High Demand" in err_str):
+                        fallback_model = "gemini-2.5-flash" if self._model_name != "gemini-2.5-flash" else "gemini-3.6-flash"
+                        logger.warning(f"[Gemini] High demand on {self._model_name}. Attempting fallback to {fallback_model}...")
+                        try:
+                            fallback_res = self._client.models.generate_content(
+                                model=fallback_model,
+                                contents=[
+                                    self._types.Content(
+                                        role="user",
+                                        parts=[self._types.Part.from_text(text=SYSTEM_PROMPT + "\n\n" + user_message)]
+                                    )
+                                ],
+                                config=self._types.GenerateContentConfig(
+                                    response_mime_type="application/json",
+                                    temperature=0.2,
+                                    max_output_tokens=1024,
+                                ),
+                            )
+                            raw_text = fallback_res.text or ""
+                            if raw_text:
+                                logger.info(f"[Gemini] Fallback to {fallback_model} succeeded ({len(raw_text)} chars)")
+                                return parse_action_plan(raw_text)
+                        except Exception as fb_err:
+                            logger.warning(f"[Gemini] Fallback to {fallback_model} failed: {fb_err}")
+
                     logger.error(f"[Gemini] API call failed (permanent or max retries reached): {err_str[:200]}")
                     from webveil.core.models.schema import BrowserAction, ActionType
                     return ActionPlan(

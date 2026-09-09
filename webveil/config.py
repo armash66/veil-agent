@@ -31,7 +31,7 @@ class WebVeilConfig:
         self.openai_api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
         self.ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.1")
-        self.gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+        self.gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
         # Agent settings

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>WebVeil AI Agent</title>
+  <meta name="description" content="Privacy-preserving browser agent with on-device DOM observation and PII redaction.">
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW 1 — LANDING (session list + new task)
+       ═══════════════════════════════════════════════════════ -->
+  <div id="view-landing" class="wv-view active">
+
+    <!-- Header -->
+    <div class="wv-header">
+      <div class="wv-brand">
+        <div class="wv-brand-icon"></div>
+        <span>WebVeil</span>
+      </div>
+      <div class="wv-header-actions">
+        <div class="wv-server-badge offline" id="server-badge" title="Reasoning server connection status">
+          <span class="wv-badge-dot"></span>
+          <span class="wv-badge-text" id="server-badge-text">Offline</span>
+        </div>
+        <button id="landing-settings-btn" class="wv-icon-btn" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="wv-landing-body">
+      <!-- New Task Row -->
+      <div class="wv-new-task-row">
+        <button id="new-task-btn" class="wv-new-task-btn">+ New Task</button>
+        <button id="history-btn" class="wv-history-btn" title="Session History">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </div>
+
+      <!-- Session List -->
+      <ul id="session-list" class="wv-session-list"></ul>
+
+      <!-- Empty state -->
+      <div id="empty-state" class="wv-empty-state">
+        No previous sessions. Click "+ New Task" to start.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW 2 — ACTIVE CONVERSATION
+       ═══════════════════════════════════════════════════════ -->
+  <div id="view-conversation" class="wv-view">
+
+    <!-- Conversation Header -->
+    <div class="wv-conv-header">
+      <div class="wv-conv-header-left">
+        <button id="back-btn" class="wv-icon-btn" title="Back to sessions">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span id="conv-title" class="wv-conv-title">New Task</span>
+      </div>
+      <div class="wv-conv-header-right">
+        <div class="wv-server-badge offline" id="conv-server-badge" title="Reasoning server connection status">
+          <span class="wv-badge-dot"></span>
+          <span class="wv-badge-text" id="conv-server-badge-text">Offline</span>
+        </div>
+        <button id="conv-folder-btn" class="wv-icon-btn" title="Session History">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button id="conv-settings-btn" class="wv-icon-btn" title="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <button id="new-session-btn" class="wv-icon-btn" title="New session">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages Area -->
+    <div id="messages-area" class="wv-messages">
+      <!-- Hero prompt (shown when empty) -->
+      <div id="hero-prompt" class="wv-hero">
+        <div class="wv-hero-title">What can I do for you?</div>
+        <div class="wv-suggestions">
+          <button class="wv-suggestion-pill" data-task="Fill KYC form safely">Fill KYC form safely</button>
+          <button class="wv-suggestion-pill" data-task="Search Wikipedia for AI">Search Wikipedia for AI</button>
+          <button class="wv-suggestion-pill" data-task="Summarize this page">Summarize this page</button>
+        </div>
+        <div class="wv-hero-caption">
+          WebVeil scans DOM text for sensitive data. Always review actions.
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Strip -->
+    <div id="status-strip" class="wv-status-strip" style="display: none;">
+      <span id="status-strip-text">Ready</span>
+      <button id="status-strip-dismiss" class="dismiss" title="Dismiss">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="wv-input-bar">
+      <div class="wv-input-container">
+        <textarea id="task-input" class="wv-textarea" placeholder="Type a task..." rows="1"></textarea>
+        <div class="wv-input-meta">
+          <div class="wv-provider-info">
+            <span class="wv-provider-dot"></span>
+            <span id="provider-label">Gemini · DOM text scan</span>
+          </div>
+          <button id="send-btn" class="wv-send-btn" title="Send" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.405z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VIEW 3 — SETTINGS
+       ═══════════════════════════════════════════════════════ -->
+  <div id="view-settings" class="wv-view">
+    <div class="wv-conv-header">
+      <div class="wv-conv-header-left">
+        <button id="settings-back-btn" class="wv-icon-btn" title="Back">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="wv-conv-title">Settings</span>
+      </div>
+    </div>
+
+    <div class="wv-settings-body">
+      <!-- Card 1: Provider & Model -->
+      <div class="wv-settings-card">
+        <div class="wv-settings-card-title">AI Reasoning Provider</div>
+        <div class="wv-settings-readout">Gemini 1.5 Flash (via Thin Server)</div>
+        <div class="wv-settings-help-text">Runs on-device DOM observation with remote AI decision generation.</div>
+      </div>
+
+      <!-- Card 2: Reasoning Server Address -->
+      <div class="wv-settings-card">
+        <div class="wv-settings-card-title">Reasoning Server Address</div>
+        <input id="settings-server-url" type="text" class="wv-settings-input" value="http://127.0.0.1:8000" placeholder="http://127.0.0.1:8000" />
+        <div class="wv-settings-help-text">Local address for python -m webveil.api.reasoning_server.</div>
+      </div>
+
+      <!-- Card 3: Security & Verification -->
+      <div class="wv-settings-card">
+        <div class="wv-settings-card-title">Security & Verification</div>
+        <button id="run-security-verification-btn" class="wv-primary-btn">Run Security Verification</button>
+        <div class="wv-settings-help-text">Opens attack_demo.html in a new tab to test Isolated World vault & Action Firewall protection.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PAYLOAD MODAL — glass frame, flat JSON content
+       ═══════════════════════════════════════════════════════ -->
+  <div id="payload-modal" class="wv-modal-overlay">
+    <div class="wv-modal">
+      <div class="wv-modal-header">
+        <span>Sanitized Outgoing Payload</span>
+        <button id="modal-close-btn" class="wv-icon-btn" title="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="modal-json" class="wv-modal-body">{ "status": "No payload transmitted yet" }</div>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

@@ -18,12 +18,20 @@ _TESSERACT_AVAILABLE = False
 try:
     import pytesseract
     from PIL import Image
+    # Configure default Windows install path if not in PATH
+    import shutil
+    import os
+    if not shutil.which("tesseract"):
+        _win_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        if os.path.isfile(_win_path):
+            pytesseract.pytesseract.tesseract_cmd = _win_path
     # Quick check that the tesseract binary exists
     pytesseract.get_tesseract_version()
     _TESSERACT_AVAILABLE = True
     logger.info("[OCR] Tesseract OCR is available")
 except Exception:
     logger.info("[OCR] Tesseract not available — OCR layer disabled (graceful degradation)")
+
 
 
 class OCRObserver:

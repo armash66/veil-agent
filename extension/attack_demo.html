@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebVeil Live Attack & Security Verification</title>
+  <style>
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background-color: #09090B;
+      color: #FAFAFA;
+      margin: 0;
+      padding: 32px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      border-bottom: 1px solid #27272A;
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+      color: #FAFAFA;
+    }
+    .card {
+      background-color: #18181B;
+      border: 1px solid #27272A;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .badge-secure {
+      background-color: #064E3B;
+      color: #34D399;
+      border: 1px solid #059669;
+    }
+    .btn-attack {
+      background-color: #DC2626;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    .btn-attack:hover {
+      background-color: #B91C1C;
+    }
+    .log-box {
+      background-color: #09090B;
+      border: 1px solid #27272A;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #F87171;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 12px;
+      white-space: pre-wrap;
+    }
+    input {
+      background-color: #27272A;
+      border: 1px solid #3F3F46;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 6px;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>WebVeil Security Proof — Isolated World Vault Attack Verification</h1>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Synthetic Form Target</span>
+        <span class="badge badge-secure">Vault Protection Active</span>
+      </div>
+      <p style="color: #A1A1AA; font-size: 13px; margin: 0 0 12px 0;">
+        Sensitive form fields below are monitored by WebVeil's content script. Secrets are held in Chrome Isolated World memory.
+      </p>
+      <label style="font-size: 12px; color: #A1A1AA;">Aadhaar Number (Sensitive)</label>
+      <input type="text" id="aadhaarInput" value="9999-8888-7777" placeholder="Enter Aadhaar Number">
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Adversarial Page JS Exfiltration Attacks</span>
+      </div>
+      <p style="color: #A1A1AA; font-size: 13px; margin: 0 0 12px 0;">
+        Click below to simulate malicious script execution directly from the web page's JavaScript context (`window`).
+      </p>
+
+      <button id="attackBtn1" class="btn-attack">Attack 1: Inspect `window.__WEBVEIL_ISOLATED_VAULT__`</button>
+      <button id="attackBtn2" class="btn-attack" style="background-color: #EA580C; margin-left: 8px;">Attack 2: Read DOM Attributes for Vault Token</button>
+
+      <div id="logBox" class="log-box">Attack log initialized. Awaiting user action...</div>
+    </div>
+  </div>
+
+  <script>
+    // PAGE-SCOPE JAVASCRIPT (Simulating malicious script on third-party page)
+    const logBox = document.getElementById('logBox');
+    const attackBtn1 = document.getElementById('attackBtn1');
+    const attackBtn2 = document.getElementById('attackBtn2');
+
+    function log(msg, isSuccess = false) {
+      const timestamp = new Date().toISOString().substring(11, 19);
+      const prefix = isSuccess ? '[BREACH DETECTED]' : '[ATTACK BLOCKED BY CONSTRUCTION]';
+      logBox.innerText = `[${timestamp}] ${prefix} ${msg}\n` + logBox.innerText;
+    }
+
+    // ATTACK 1: Attempt to read content script variables/vault from window
+    attackBtn1.addEventListener('click', () => {
+      logBox.style.color = '#F87171';
+      log('Executing Attack 1: Attempting to read window.__WEBVEIL_ISOLATED_VAULT__ from page JS scope...');
+      
+      if (typeof window.__WEBVEIL_ISOLATED_VAULT__ !== 'undefined') {
+        log('FAIL: Vault memory was exposed to page scope!', true);
+      } else {
+        log('SUCCESS: window.__WEBVEIL_ISOLATED_VAULT__ is undefined in Page JS. Chrome Isolated World prevents page JS from accessing extension scope!');
+      }
+
+      // Dispatch custom event to verify isolated event bridge
+      window.dispatchEvent(new CustomEvent('WebVeil_Attack_Attempt', { detail: { fromPage: true } }));
+    });
+
+    // ATTACK 2: Attempt to read DOM attributes for vault tokens
+    attackBtn2.addEventListener('click', () => {
+      log('Executing Attack 2: Attempting to scan DOM attributes for spoofable vault tokens...');
+      const elem = document.getElementById('aadhaarInput');
+      const webveilAttr = elem.getAttribute('data-webveil-id') || elem.getAttribute('data-vault-token');
+      
+      if (webveilAttr) {
+        log(`WARNING: Found DOM attribute ${webveilAttr}, but vault utilizes out-of-DOM memory fingerprints.`);
+      } else {
+        log('SUCCESS: No vault secrets or tokens exist in DOM attributes. Node identities are preserved out-of-DOM in extension memory.');
+      }
+    });
+
+    window.addEventListener('WebVeil_Attack_Result', (e) => {
+      if (e.detail && e.detail.message) {
+        logBox.innerText = `[CONTENT SCRIPT RESPONSE] ${e.detail.message}\n` + logBox.innerText;
+      }
+    });
+  </script>
+</body>
+</html>

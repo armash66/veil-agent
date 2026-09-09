@@ -41,6 +41,7 @@ class VaultEntry:
     element_type: str = "input"
     element_id: Optional[str] = None
     element_name: Optional[str] = None
+    attributes: Dict[str, str] = field(default_factory=dict)
 
 
 # ─── DOM Types (V0, unchanged) ──────────────────────────────────────────
