@@ -26,8 +26,9 @@ from webveil.core.grounding.element_grounder import ElementGrounder
 from webveil.core.models.schema import (
     ActionPlan, ActionResult, ActionType, BrowserAction,
     SanitizedObservation, EgressPayload, LocalWorldModel, SanitizedWorldModel,
-    AgentStage, TaskRepresentation, DOMRankingMetrics, GroundingResult,
+    DOMRankingMetrics, GroundingResult, TaskRepresentation,
 )
+from webveil.core.models.state import AgentStage, AgentState, AgentEvent
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("WebVeilAgent")
@@ -98,6 +99,7 @@ class WebVeilAgent:
         self.action_history: List[ActionResult] = []
         self._consecutive_same_action = 0
         self._last_action_key = ""
+        self.state: Optional[AgentState] = None
 
     def _emit(self, event_type: str, data: dict):
         """Emit event to dashboard."""
@@ -121,17 +123,24 @@ class WebVeilAgent:
         self._consecutive_same_action = 0
 
         # Stage 1: UNDERSTAND
+        self.state = AgentState(task=task, max_steps=self.max_steps)
+        self.state.stage = AgentStage.UNDERSTAND
         task_rep: TaskRepresentation = self.task_analyzer.analyze_task(task)
+        self.state.task_representation = task_rep
+
+        understand_meta = {
+            "intent": task_rep.intent,
+            "entities": task_rep.entities,
+            "constraints": task_rep.constraints,
+            "count": task_rep.count,
+            "objective": task_rep.objective,
+            "confidence": task_rep.confidence,
+        }
+        self.state.emit_event(AgentStage.UNDERSTAND, "completed", understand_meta)
         self._emit("stage_change", {
             "stage": AgentStage.UNDERSTAND.value,
-            "data": {
-                "intent": task_rep.intent,
-                "entities": task_rep.entities,
-                "constraints": task_rep.constraints,
-                "count": task_rep.count,
-                "objective": task_rep.objective,
-                "confidence": task_rep.confidence,
-            }
+            "status": "completed",
+            "data": understand_meta,
         })
         self._emit("task_start", {"task": task, "url": start_url, "provider": self.provider.provider_name})
 
@@ -146,6 +155,7 @@ class WebVeilAgent:
 
             while step_count < self.max_steps:
                 step_count += 1
+                self.state.step_number = step_count
                 logger.info(f"\n{'='*60}")
                 logger.info(f"STEP {step_count}/{self.max_steps}")
                 logger.info(f"{'='*60}")
@@ -153,44 +163,81 @@ class WebVeilAgent:
                 self.metrics_evaluator.sample_resources()
                 self._emit("step_start", {"step": step_count, "max_steps": self.max_steps})
 
-                # ── STAGE 2: PERCEIVE (DOM + Ranking + PII + Vision) ───────
-                self._emit("stage_change", {"stage": AgentStage.PERCEIVE.value, "data": {"step": step_count}})
+                # ── STAGE 2: OBSERVE (Local Multimodal Perception) ─────────
+                self.state.stage = AgentStage.OBSERVE
                 t0 = time.time()
                 raw_dom_nodes, formatted_dom = self.browser.extract_dom()
                 screenshot_b64 = self.browser.capture_screenshot_b64()
                 current_url = self.browser.get_current_url()
                 title = self.browser.get_page_title()
+                self.state.current_url = current_url
                 self.metrics_evaluator.record_stage_latency(
                     "dom_extraction_ms", (time.time() - t0) * 1000
                 )
-
-                # Task-Aware DOM Ranking Compression
-                ranked_nodes, ranking_metrics = self.dom_ranker.rank_and_compress(raw_dom_nodes, task_rep)
 
                 # Build World Model
                 t0 = time.time()
                 local_model, obs_timings = self.world_model_builder.build_local_model(
                     page=self.browser.page,
-                    dom_nodes=ranked_nodes,
+                    dom_nodes=raw_dom_nodes,
                     formatted_dom=formatted_dom,
                     screenshot_b64=screenshot_b64,
                     url=current_url,
                     title=title,
                 )
+                self.state.observation = local_model
                 for key, val in obs_timings.items():
                     self.metrics_evaluator.record_stage_latency(key, val)
                 self.metrics_evaluator.record_stage_latency(
                     "world_model_build_ms", (time.time() - t0) * 1000
                 )
 
-                # Privacy Processing & Risk Fusion
+                observe_meta = {
+                    "url": current_url,
+                    "title": title,
+                    "raw_dom_nodes": len(raw_dom_nodes),
+                    "ocr_regions": len(local_model.ocr_regions),
+                    "has_a11y": local_model.a11y_tree is not None,
+                    "has_screenshot": bool(screenshot_b64),
+                }
+                self.state.emit_event(AgentStage.OBSERVE, "completed", observe_meta)
+                self._emit("stage_change", {"stage": AgentStage.OBSERVE.value, "status": "completed", "data": observe_meta})
+
+                # ── STAGE 3: FILTER (Task-Aware DOM Intelligence) ──────────
+                self.state.stage = AgentStage.FILTER
+                ranked_nodes, ranking_metrics = self.dom_ranker.rank_and_compress(raw_dom_nodes, task_rep)
+                self.state.selected_elements = ranked_nodes
+                filter_meta = {
+                    "raw_nodes": ranking_metrics.raw_nodes,
+                    "filtered_nodes": ranking_metrics.filtered_nodes,
+                    "compression_ratio": ranking_metrics.compression_ratio,
+                    "tokens_saved": ranking_metrics.estimated_tokens_saved,
+                }
+                self.state.emit_event(AgentStage.FILTER, "completed", filter_meta)
+                self._emit("stage_change", {"stage": AgentStage.FILTER.value, "status": "completed", "data": filter_meta})
+
+                # Attach filtered nodes to local model
+                local_model.dom_nodes = ranked_nodes
+
+                # ── STAGE 4: PROTECT (Privacy Engine & Risk Fusion) ────────
+                self.state.stage = AgentStage.PROTECT
                 current_origin = self._get_origin(current_url)
                 sanitized_model, pii_matches, privacy_timings = (
                     self.world_model_builder.sanitize(local_model, current_origin)
                 )
+                self.state.sanitized_observation = sanitized_model
+                self.state.privacy_results = pii_matches
                 latest_pii_matches = pii_matches
                 for key, val in privacy_timings.items():
                     self.metrics_evaluator.record_stage_latency(key, val)
+
+                protect_meta = {
+                    "pii_detected": len(pii_matches),
+                    "tokens_created": len(pii_matches),
+                    "categories": [m.category.name for m in pii_matches],
+                }
+                self.state.emit_event(AgentStage.PROTECT, "completed", protect_meta)
+                self._emit("stage_change", {"stage": AgentStage.PROTECT.value, "status": "completed", "data": protect_meta})
 
                 self._emit("observation", {
                     "url": current_url,
@@ -228,8 +275,8 @@ class WebVeilAgent:
                     "egress_audit_ms", (time.time() - t0) * 1000
                 )
 
-                # ── STAGE 3: REASON (LLM Action Proposal) ───────────────────
-                self._emit("stage_change", {"stage": AgentStage.REASON.value, "data": {"step": step_count}})
+                # ── STAGE 5: REASON (Remote LLM Action Proposal) ───────────
+                self.state.stage = AgentStage.REASON
                 t0 = time.time()
                 plan: ActionPlan = self.provider.reason(
                     task=task,
@@ -237,10 +284,20 @@ class WebVeilAgent:
                     action_history=self.action_history,
                     error_context=error_context,
                 )
+                self.state.reasoning_result = plan
+                self.state.proposed_actions = list(plan.actions)
                 self.metrics_evaluator.record_stage_latency(
                     "server_reasoning_ms", (time.time() - t0) * 1000
                 )
                 error_context = None  # Clear after re-plan
+
+                reason_meta = {
+                    "actions_proposed": len(plan.actions),
+                    "thought": plan.thought[:150] if plan.thought else "",
+                    "provider": self.provider.provider_name,
+                }
+                self.state.emit_event(AgentStage.REASON, "completed", reason_meta)
+                self._emit("stage_change", {"stage": AgentStage.REASON.value, "status": "completed", "data": reason_meta})
 
                 self._emit("reasoning", {
                     "thought": plan.thought,
@@ -258,7 +315,10 @@ class WebVeilAgent:
 
                 if plan.actions and plan.actions[0].action == ActionType.DONE:
                     logger.info("Task completed!")
-                    self._emit("task_complete", {"step": step_count})
+                    self.state.stage = AgentStage.DONE
+                    self.state.termination_reason = "SUCCESS"
+                    self.state.emit_event(AgentStage.DONE, "completed", {"step": step_count, "reason": "SUCCESS"})
+                    self._emit("task_complete", {"step": step_count, "reason": "SUCCESS"})
 
                     sih_report = self._build_sih_report(
                         latest_pii_matches, raw_dom_nodes, step_count
@@ -271,6 +331,9 @@ class WebVeilAgent:
                     self._consecutive_same_action += 1
                     if self._consecutive_same_action >= 3:
                         logger.warning("Loop detected — same plan proposed 3 times. Terminating.")
+                        self.state.stage = AgentStage.DONE
+                        self.state.termination_reason = "LOOP_DETECTED"
+                        self.state.emit_event(AgentStage.DONE, "completed", {"step": step_count, "reason": "LOOP_DETECTED"})
                         self._emit("task_complete", {"step": step_count, "reason": "loop_detected"})
                         sih_report = self._build_sih_report(
                             latest_pii_matches, raw_dom_nodes, step_count
@@ -280,35 +343,73 @@ class WebVeilAgent:
                     self._consecutive_same_action = 0
                 self._last_action_key = action_key
 
-                # Execute each action with Grounding + Firewall
+                # Execute actions: GROUND → AUTHORIZE → ACT → VERIFY
                 t0 = time.time()
-                plan_broken = False
                 for action_idx, proposed_action in enumerate(plan.actions):
                     if proposed_action.action == ActionType.DONE:
                         logger.info("Task completed (mid-plan)!")
-                        self._emit("task_complete", {"step": step_count})
+                        self.state.stage = AgentStage.DONE
+                        self.state.termination_reason = "SUCCESS"
+                        self.state.emit_event(AgentStage.DONE, "completed", {"step": step_count, "reason": "SUCCESS"})
+                        self._emit("task_complete", {"step": step_count, "reason": "SUCCESS"})
                         sih_report = self._build_sih_report(
                             latest_pii_matches, raw_dom_nodes, step_count
                         )
                         return self._build_result("SUCCESS", step_count, pii_matches, sih_report)
 
-                    # Re-extract DOM for freshness check on actions after the first
                     if action_idx > 0:
                         raw_dom_nodes, formatted_dom = self.browser.extract_dom()
 
-                    # ── STAGE 4: GROUND (Element Grounding Engine) ─────────
-                    self._emit("stage_change", {"stage": AgentStage.GROUND.value, "data": {"node_id": proposed_action.node_id}})
+                    # ── STAGE 6: GROUND (Element Grounding Engine) ─────────
+                    self.state.stage = AgentStage.GROUND
                     grounding: GroundingResult = self.grounder.ground_action(proposed_action, raw_dom_nodes)
+                    ground_meta = {
+                        "action": proposed_action.action.value,
+                        "node_id": proposed_action.node_id,
+                        "confidence": grounding.confidence,
+                        "threshold_action": grounding.threshold_action,
+                    }
+                    self.state.emit_event(
+                        AgentStage.GROUND,
+                        "completed" if grounding.threshold_action != "REPLAN" else "failed",
+                        ground_meta
+                    )
+                    self._emit("stage_change", {"stage": AgentStage.GROUND.value, "status": "completed", "data": ground_meta})
 
                     if grounding.threshold_action == "REPLAN":
                         logger.warning(f"[Grounding REJECT] Low confidence ({grounding.confidence}). Requesting REPLAN.")
+                        self.state.stage = AgentStage.REPLAN
+                        self.state.emit_event(AgentStage.REPLAN, "started", {"reason": grounding.reasoning})
                         self._emit("stage_change", {"stage": AgentStage.REPLAN.value, "data": {"reason": grounding.reasoning}})
                         error_context = f"Grounding failed: {grounding.reasoning}"
-                        plan_broken = True
                         break
 
-                    # ── STAGE 5: ACT (Action Firewall Execution) ───────────
-                    self._emit("stage_change", {"stage": AgentStage.ACT.value, "data": {"action": proposed_action.action.value}})
+                    # ── STAGE 7: AUTHORIZE (Action Schema & Policy Validation) ──
+                    self.state.stage = AgentStage.AUTHORIZE
+                    try:
+                        self.firewall.validate_action_schema(proposed_action)
+                        auth_meta = {"action": proposed_action.action.value, "node_id": proposed_action.node_id}
+                        self.state.emit_event(AgentStage.AUTHORIZE, "completed", auth_meta)
+                        self._emit("stage_change", {"stage": AgentStage.AUTHORIZE.value, "status": "completed", "data": auth_meta})
+                    except Exception as auth_err:
+                        auth_err_msg = str(auth_err)[:200]
+                        logger.warning(f"[Authorization Reject] {auth_err_msg}")
+                        self.state.emit_event(AgentStage.AUTHORIZE, "blocked", {"error": auth_err_msg})
+                        fail_result = ActionResult(
+                            action=proposed_action,
+                            success=False,
+                            error=auth_err_msg,
+                            step_index=step_count,
+                        )
+                        self.state.failed_actions.append(fail_result)
+                        self.action_history.append(fail_result)
+                        error_context = f"Action {proposed_action.action.value} authorization blocked: {auth_err_msg}"
+                        break
+
+                    # ── STAGE 8: ACT (Action Execution & Secret Restoration) ───
+                    self.state.stage = AgentStage.ACT
+                    act_meta = {"action": proposed_action.action.value, "node_id": proposed_action.node_id}
+                    self._emit("stage_change", {"stage": AgentStage.ACT.value, "data": act_meta})
                     try:
                         success = self.firewall.execute_validated_action(
                             proposed_action, raw_dom_nodes, current_origin
@@ -319,7 +420,17 @@ class WebVeilAgent:
                             success=success,
                             step_index=step_count,
                         )
+                        if success:
+                            self.state.executed_actions.append(result)
+                        else:
+                            self.state.failed_actions.append(result)
                         self.action_history.append(result)
+
+                        self.state.emit_event(AgentStage.ACT, "completed" if success else "failed", {
+                            "action": proposed_action.action.value,
+                            "node_id": proposed_action.node_id,
+                            "success": success,
+                        })
 
                         self._emit("action_execute", {
                             "action": proposed_action.action.value,
@@ -332,7 +443,6 @@ class WebVeilAgent:
 
                         if not success:
                             error_context = f"Action {proposed_action.action.value} on node {proposed_action.node_id} returned False"
-                            plan_broken = True
                             break
 
                     except (ActionSecurityViolation, Exception) as e:
@@ -344,19 +454,24 @@ class WebVeilAgent:
                             error=error_msg,
                             step_index=step_count,
                         )
+                        self.state.failed_actions.append(result)
                         self.action_history.append(result)
+                        self.state.emit_event(AgentStage.ACT, "failed", {
+                            "action": proposed_action.action.value,
+                            "error": error_msg,
+                        })
                         error_context = f"Action {proposed_action.action.value} rejected by firewall: {error_msg}"
-                        plan_broken = True
                         break
 
                 self.metrics_evaluator.record_stage_latency(
                     "firewall_execution_ms", (time.time() - t0) * 1000
                 )
 
-                # ── STAGE 6: VERIFY (Local Action Verifier) ────────────────
-                self._emit("stage_change", {"stage": AgentStage.VERIFY.value, "data": {"step": step_count}})
+                # ── STAGE 9: VERIFY (Local Post-Action Verification) ───────
+                self.state.stage = AgentStage.VERIFY
                 t0 = time.time()
                 post_nodes, _ = self.browser.extract_dom()
+                verified = True
                 if self.action_history:
                     last = self.action_history[-1]
                     verified = self.verifier.verify_action_execution(
@@ -364,9 +479,23 @@ class WebVeilAgent:
                     )
                     if not verified:
                         logger.warning("[Verifier] Action verification flagged anomaly.")
+                self.state.verification_result = verified
+                self.state.emit_event(AgentStage.VERIFY, "completed" if verified else "failed", {"verified": verified})
+                self._emit("stage_change", {"stage": AgentStage.VERIFY.value, "data": {"step": step_count, "verified": verified}})
                 self.metrics_evaluator.record_stage_latency(
                     "verification_ms", (time.time() - t0) * 1000
                 )
+
+                # ── STAGE 10: UPDATE_STATE (State Synchronization) ────────
+                self.state.stage = AgentStage.UPDATE_STATE
+                state_update_meta = {
+                    "step": step_count,
+                    "executed_actions": len(self.state.executed_actions),
+                    "failed_actions": len(self.state.failed_actions),
+                    "pii_total": len(latest_pii_matches),
+                }
+                self.state.emit_event(AgentStage.UPDATE_STATE, "completed", state_update_meta)
+                self._emit("stage_change", {"stage": AgentStage.UPDATE_STATE.value, "data": state_update_meta})
 
                 self._emit("metrics", {
                     "step": step_count,
@@ -381,7 +510,10 @@ class WebVeilAgent:
 
             # Max steps reached
             logger.warning("Reached maximum step limit.")
-            sih_report = self._build_sih_report(latest_pii_matches, dom_nodes, step_count)
+            self.state.stage = AgentStage.DONE
+            self.state.termination_reason = "MAX_STEPS_REACHED"
+            self.state.emit_event(AgentStage.DONE, "completed", {"step": step_count, "reason": "MAX_STEPS_REACHED"})
+            sih_report = self._build_sih_report(latest_pii_matches, self.state.selected_elements or raw_dom_nodes, step_count)
             return self._build_result("MAX_STEPS_REACHED", step_count, latest_pii_matches, sih_report)
 
         finally:
@@ -412,10 +544,14 @@ class WebVeilAgent:
 
     def _build_result(self, status, steps, pii_matches, sih_report):
         """Build result dictionary."""
+        if hasattr(self, "state") and self.state:
+            self.state.termination_reason = status
         return {
             "status": status,
             "steps": steps,
             "pii_detected_count": len(pii_matches),
+            "state": self.state,
+            "events": [e.to_dict() for e in self.state.events] if (hasattr(self, "state") and self.state) else [],
             "action_history": [
                 {
                     "step": r.step_index,

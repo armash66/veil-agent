@@ -240,15 +240,6 @@ class SIHMetrics:
 
 # ─── Phase 3 Intelligence & Stage Types (V1.5, new) ────────────────────
 
-class AgentStage(str, Enum):
-    UNDERSTAND = "UNDERSTAND"
-    PERCEIVE = "PERCEIVE"
-    REASON = "REASON"
-    GROUND = "GROUND"
-    ACT = "ACT"
-    VERIFY = "VERIFY"
-    REPLAN = "REPLAN"
-
 
 @dataclass
 class TaskRepresentation:
@@ -296,11 +287,7 @@ class GroundingResult:
     reasoning: str = ""
 
 
-@dataclass
-class AgentEvent:
-    """Structured state/event envelope emitted by the WebVeil agent loop."""
-    event_type: str
-    stage: AgentStage
-    data: Dict[str, Any]
-    timestamp: float = 0.0
+
+# Re-export state machine abstractions
+from webveil.core.models.state import AgentStage, AgentState, AgentEvent
 
