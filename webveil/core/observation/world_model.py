@@ -31,8 +31,10 @@ class WorldModelBuilder:
     """
 
     def __init__(self, redactor: LocalRedactor, ocr_enabled: bool = True):
-        self.a11y_observer = A11yObserver()
-        self.ocr_observer = OCRObserver(enabled=ocr_enabled)
+        from webveil.core.perception.pipeline import MultimodalPerceptionPipeline
+        self.perception_pipeline = MultimodalPerceptionPipeline(ocr_enabled=ocr_enabled)
+        self.a11y_observer = self.perception_pipeline.a11y_extractor
+        self.ocr_observer = self.perception_pipeline.ocr_engine
         self.redactor = redactor
         self.detector = redactor.detector
 
@@ -46,45 +48,24 @@ class WorldModelBuilder:
         title: str,
     ) -> Tuple[LocalWorldModel, dict]:
         """
-        Build LocalWorldModel by merging all three observation layers.
+        Build LocalWorldModel by executing the multimodal perception pipeline
+        (DOM + A11y + Screenshot + OCR + Spatial Fusion).
         Returns (model, timing_dict) for SIH latency tracking.
         """
-        timings = {}
-
-        # Layer 2: Accessibility tree
-        t0 = time.time()
-        a11y_tree, a11y_summary = self.a11y_observer.extract(page)
-        timings["a11y_extraction_ms"] = (time.time() - t0) * 1000
-
-        # Layer 3: OCR (optional)
-        t0 = time.time()
-        ocr_regions = self.ocr_observer.extract(screenshot_b64)
-        timings["ocr_extraction_ms"] = (time.time() - t0) * 1000
-
-        # Extract visible page text
-        page_text = ""
-        try:
-            page_text = page.inner_text("body") if page else ""
-        except Exception:
-            pass
-
-        model = LocalWorldModel(
-            url=url,
-            title=title,
+        model, timings, fusion_res = self.perception_pipeline.process_observation(
+            page=page,
             dom_nodes=dom_nodes,
             formatted_dom=formatted_dom,
-            a11y_tree=a11y_tree,
-            a11y_summary=a11y_summary,
-            ocr_regions=ocr_regions,
             screenshot_b64=screenshot_b64,
-            page_text=page_text,
-            timestamp=time.time(),
+            url=url,
+            title=title,
         )
 
         logger.info(
-            f"[WorldModel] Built: {len(dom_nodes)} DOM nodes, "
-            f"a11y={'yes' if a11y_tree else 'no'}, "
-            f"OCR={len(ocr_regions)} regions"
+            f"[WorldModel] Built: {len(model.dom_nodes)} DOM nodes, "
+            f"a11y={'yes' if model.a11y_tree else 'no'}, "
+            f"OCR={len(model.ocr_regions)} regions, "
+            f"enriched={fusion_res.enriched_node_count} nodes"
         )
         return model, timings
 
