@@ -309,7 +309,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (file && instructionsBtn && instructionsBtnLabel && instructionsClearBtn) {
       instructionsBtn.classList.add('active');
-      instructionsBtnLabel.textContent = file.name.length > 14 ? file.name.slice(0, 12) + '…' : file.name;
+      const shortName = file.name.length > 16 ? file.name.slice(0, 14) + '…' : file.name;
+      instructionsBtnLabel.textContent = `Instructions · ${shortName}`;
       instructionsBtn.title = `Attached instructions: ${file.name}`;
       instructionsClearBtn.style.display = 'inline-flex';
     } else if (instructionsBtn && instructionsBtnLabel && instructionsClearBtn) {
@@ -1772,11 +1773,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   taskInput.addEventListener('input', () => {
     sendBtn.disabled = !taskInput.value.trim() || isRunning;
-    taskInput.style.height = '36px';
+    taskInput.style.height = '22px';
     taskInput.style.height = Math.min(taskInput.scrollHeight, 100) + 'px';
   });
 
   // ── Model Selector Dropdown ──
+  function getDisplayModelName(name) {
+    if (!name) return 'Model';
+    if (name.includes('OpenRouter')) return 'OpenRouter';
+    if (name.includes('Gemini')) return 'Gemini';
+    if (name.includes('Local')) return 'Local';
+    return name;
+  }
+
   if (modelSelectBtn && modelDropdownMenu) {
     modelSelectBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1798,7 +1807,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (modelSelectName && modelName) {
-          modelSelectName.textContent = modelName;
+          modelSelectName.textContent = getDisplayModelName(modelName);
+          if (modelSelectBtn) {
+            modelSelectBtn.title = `Active model: ${modelName}`;
+          }
         }
 
         // Clear active and checkmarks from all rows
@@ -1846,18 +1858,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
-  // ── Suggestion Pills ──
+  // ── Suggestion Pills (populate composer with realistic prompt) ──
   document.querySelectorAll('.wv-suggestion-pill').forEach(pill => {
     pill.addEventListener('click', () => {
-      const task = pill.getAttribute('data-task');
-      if (!task || isRunning) return;
+      const promptText = pill.getAttribute('data-prompt') || pill.getAttribute('data-task');
+      if (!promptText || isRunning) return;
 
-      let session = sessions.find(s => s.id === activeSessionId);
-      if (!session) {
-        session = createSession();
-        activeSessionId = session.id;
+      if (taskInput) {
+        taskInput.value = promptText;
+        taskInput.style.height = '22px';
+        taskInput.style.height = Math.min(taskInput.scrollHeight, 100) + 'px';
+        taskInput.focus();
+        if (sendBtn) sendBtn.disabled = false;
       }
-      runAgentPipeline(session, task);
     });
   });
 

@@ -326,10 +326,10 @@ body {
 }
 
 .wv-hero-title {
-  font-size: 21px;
+  font-size: 20px;
   font-weight: 600;
   color: #ffffff;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
   letter-spacing: -0.015em;
 }
 
@@ -337,7 +337,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
 }
 
@@ -345,10 +345,10 @@ body {
   background-color: #1a1a1f;
   color: #f4f4f5;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 11px 26px;
+  padding: 10px 22px;
   border-radius: var(--radius-pill);
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
   transition: all 160ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -365,11 +365,12 @@ body {
 }
 
 .wv-hero-caption {
-  margin-top: 26px;
+  margin-top: 20px;
   font-size: 12px;
   color: #71717a;
   line-height: 1.5;
   text-align: center;
+  letter-spacing: 0.01em;
 }
 
 /* ── Chat Messages ── */
@@ -1143,11 +1144,11 @@ body {
 .wv-input-container {
   background-color: #121215;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 22px;
-  padding: 12px 14px 10px 14px;
+  border-radius: 18px;
+  padding: 9px 12px 8px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -1164,11 +1165,13 @@ body {
   outline: none;
   color: #ffffff;
   font-family: var(--font);
-  font-size: 14px;
+  font-size: 13.5px;
   resize: none;
-  min-height: 28px;
+  min-height: 22px;
+  height: 22px;
   max-height: 120px;
-  line-height: 1.45;
+  line-height: 1.4;
+  padding: 0;
 }
 
 .wv-textarea::placeholder {
@@ -1179,13 +1182,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 2px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  margin-top: 1px;
+  min-height: 26px;
 }
 
 .wv-input-left-tools {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 /* Model Selector Pill */
@@ -1194,19 +1202,26 @@ body {
 }
 
 .wv-model-pill {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 9999px;
-  padding: 5px 10px;
+  padding: 0 7px;
+  height: 24px;
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: #d4d4d8;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all 0.15s ease;
+}
+
+.wv-model-pill svg {
+  flex-shrink: 0;
 }
 
 .wv-model-pill:hover {
@@ -1416,20 +1431,27 @@ body {
 }
 
 .wv-instructions-pill {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 9999px;
-  padding: 5px 10px;
+  padding: 0 8px;
+  height: 24px;
   font-family: var(--font);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: #d4d4d8;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 220px;
   transition: all 0.15s ease;
-  max-width: 150px;
+}
+
+.wv-instructions-pill svg {
+  flex-shrink: 0;
 }
 
 .wv-instructions-pill:hover {
@@ -1448,6 +1470,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 145px;
 }
 
 .wv-pill-clear {
@@ -1631,20 +1654,24 @@ body {
 .wv-input-right-tools {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .wv-action-icon-btn {
   background: transparent;
   border: none;
   color: #71717a;
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
   transition: color 0.15s ease, background-color 0.15s ease;
 }
 
@@ -1653,20 +1680,29 @@ body {
   background-color: rgba(255, 255, 255, 0.07);
 }
 
+.wv-action-icon-btn svg {
+  display: block;
+}
+
 .wv-send-circle-btn {
-  width: 30px;
-  height: 30px;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
   background-color: #27272a;
   color: #71717a;
   border: none;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: not-allowed;
+  padding: 0;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   margin-left: 2px;
   flex-shrink: 0;
+}
+
+.wv-send-circle-btn svg {
+  display: block;
 }
 
 .wv-send-circle-btn:not(:disabled) {

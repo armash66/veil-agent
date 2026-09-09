@@ -83,12 +83,13 @@
       <div id="hero-prompt" class="wv-hero">
         <h1 class="wv-hero-title">What can I do for you?</h1>
         <div class="wv-suggestions">
-          <button class="wv-suggestion-pill" data-task="Create a slideshow">Create a slideshow</button>
-          <button class="wv-suggestion-pill" data-task="Summarize a YouTube video">Summarize a YouTube video</button>
-          <button class="wv-suggestion-pill" data-task="Send an email">Send an email</button>
+          <button class="wv-suggestion-pill" data-prompt="Open the ISRO website and find the missions page.">Open the ISRO website</button>
+          <button class="wv-suggestion-pill" data-prompt="Research India's upcoming space missions and summarize them.">Research & summarize</button>
+          <button class="wv-suggestion-pill" data-prompt="Find three options and compare them.">Find & compare</button>
+          <button class="wv-suggestion-pill" data-prompt="Complete this form while keeping my sensitive information local.">Complete a task privately</button>
         </div>
         <div class="wv-hero-caption">
-          AI can make mistakes. Always supervise Do Browser.
+          See locally. Think remotely. Act locally.
         </div>
       </div>
     </div>
@@ -111,9 +112,9 @@
             <!-- Model selector pill -->
             <div class="wv-model-dropdown-container">
               <button id="model-select-btn" class="wv-model-pill" title="Switch Model">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
-                <span id="model-select-name">OpenRouter Free</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                <span id="model-select-name">OpenRouter</span>
+                <svg class="wv-chevron-down" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
               <div id="model-dropdown-menu" class="wv-model-menu">
                 <div class="wv-model-section-header">
@@ -143,17 +144,6 @@
                     </div>
                     <div class="wv-model-badge-right"></div>
                   </div>
-                </div>
-
-                <div class="wv-model-divider"></div>
-
-                <!-- Footer: Connect more providers -->
-                <div id="connect-providers-btn" class="wv-model-footer-action" title="Configure reasoning providers in Settings">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="wv-footer-gear-icon">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83-2.83l-.06-.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                  </svg>
-                  <span>Connect more providers</span>
                 </div>
               </div>
             </div>
