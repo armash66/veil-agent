@@ -4,41 +4,48 @@ Verifies browser execution results locally without sending raw DOM to server.
 """
 
 import logging
-from typing import List
+from typing import List, Optional
 from webveil.core.models.schema import BrowserAction, ActionType, DOMNode
+from webveil.core.verification.intelligent_verifier import IntelligentVerifier, VerificationResult, VerificationStatus
 
 logger = logging.getLogger("WebVeilLocalVerifier")
 
 
 class LocalVerifier:
     """
-    On-device post-action verification engine.
+    On-device post-action verification engine backed by IntelligentVerifier.
     """
 
-    def verify_action_execution(self, action: BrowserAction, previous_nodes: List[DOMNode], current_nodes: List[DOMNode]) -> bool:
+    def __init__(self):
+        self.intelligent_verifier = IntelligentVerifier()
+
+    def verify_action_execution(
+        self,
+        action: BrowserAction,
+        previous_nodes: List[DOMNode],
+        current_nodes: List[DOMNode],
+        previous_url: str = "about:blank",
+        current_url: str = "about:blank",
+        user_task: str = "",
+    ) -> bool:
         """
         Verifies if proposed action successfully transformed DOM state as expected.
+        Returns True if verified or acceptable, False if hard error detected or failure.
         """
-        if action.action == ActionType.DONE:
-            return True
+        result = self.intelligent_verifier.verify_action_execution(
+            action=action,
+            previous_nodes=previous_nodes,
+            current_nodes=current_nodes,
+            previous_url=previous_url,
+            current_url=current_url,
+            user_task=user_task,
+        )
+        if result.status == VerificationStatus.NEGATIVE_ERROR_DETECTED:
+            logger.warning(f"[LocalVerifier REJECT] Negative error indicators detected: {result.detected_errors}")
+            return False
 
-        if action.action == ActionType.NAVIGATE:
-            logger.info("[Verifier] Navigation action completed.")
-            return True
-
-        if action.action in (ActionType.CLICK, ActionType.TYPE):
-            target_node = next((n for n in current_nodes if n.node_id == action.node_id), None)
-            if not target_node:
-                logger.info(f"[Verifier] Node {action.node_id} no longer exists in DOM or form submitted successfully.")
-                return True
-
-            if action.action == ActionType.TYPE and action.text:
-                if target_node.value or target_node.attributes.get("value"):
-                    logger.info(f"[Verifier SUCCESS] Input field node {action.node_id} successfully updated value locally.")
-                    return True
-
-            if action.action == ActionType.CLICK:
-                logger.info(f"[Verifier SUCCESS] Click action dispatched to node {action.node_id}.")
-                return True
+        if result.status == VerificationStatus.FAILURE:
+            logger.warning(f"[LocalVerifier FAIL] Action outcome failed verification: {result.reasons}")
+            return False
 
         return True
