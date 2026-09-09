@@ -28,6 +28,9 @@ class PlaywrightAdapter(BaseBrowserAdapter):
         self.context: Optional[BrowserContext] = None
         self.page: Optional[Page] = None
         self._node_map: Dict[int, Any] = {}  # node_id -> Playwright ElementHandle / Selector
+        from webveil.browser.pointer import RealisticPointer
+        self.pointer = RealisticPointer()
+        self.realistic_simulation = False
 
     def start(self, headless: bool = True):
         logger.info("[Playwright] Starting browser engine...")
@@ -195,10 +198,16 @@ class PlaywrightAdapter(BaseBrowserAdapter):
         
         try:
             if selector and self.page.query_selector(selector):
+                if self.realistic_simulation and node.bounding_box:
+                    x = node.bounding_box["x"] + node.bounding_box["width"] / 2
+                    y = node.bounding_box["y"] + node.bounding_box["height"] / 2
+                    self.pointer.move_to(self.page, x, y)
                 self.page.click(selector, timeout=5000)
             elif node.bounding_box:
                 x = node.bounding_box["x"] + node.bounding_box["width"] / 2
                 y = node.bounding_box["y"] + node.bounding_box["height"] / 2
+                if self.realistic_simulation:
+                    self.pointer.move_to(self.page, x, y)
                 self.page.mouse.click(x, y)
             else:
                 return False
@@ -217,12 +226,23 @@ class PlaywrightAdapter(BaseBrowserAdapter):
 
         try:
             if selector and self.page.query_selector(selector):
-                self.page.fill(selector, text)
+                if self.realistic_simulation:
+                    from webveil.browser.pointer import HumanizedTyping
+                    self.page.click(selector)
+                    HumanizedTyping.type_with_cadence(self.page, text, simulate_realistic_delay=False)
+                else:
+                    self.page.fill(selector, text)
             elif node.bounding_box:
                 x = node.bounding_box["x"] + node.bounding_box["width"] / 2
                 y = node.bounding_box["y"] + node.bounding_box["height"] / 2
-                self.page.mouse.click(x, y)
-                self.page.keyboard.type(text)
+                if self.realistic_simulation:
+                    from webveil.browser.pointer import HumanizedTyping
+                    self.pointer.move_to(self.page, x, y)
+                    self.page.mouse.click(x, y)
+                    HumanizedTyping.type_with_cadence(self.page, text, simulate_realistic_delay=False)
+                else:
+                    self.page.mouse.click(x, y)
+                    self.page.keyboard.type(text)
             else:
                 return False
             return True
