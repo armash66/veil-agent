@@ -85,6 +85,31 @@ class ClientVault:
         logger.info(f"[Vault] Stored token {match.placeholder} for category {match.category.name} on origin {origin}")
         return match.placeholder
 
+    def store_secret(self, secret: str, label: str = "secret", origin: Optional[str] = None) -> str:
+        """
+        Store an arbitrary secret directly in the vault (e.g. from user input or MCP tool)
+        and return its synthetic token placeholder.
+        """
+        import uuid
+        token_id = uuid.uuid4().hex[:8].upper()
+        placeholder = f"{{{{VAULT_TOKEN_{label.upper()}_{token_id}}}}}"
+        entry = VaultEntry(
+            token=placeholder,
+            secret=secret,
+            origin=origin or self.current_origin,
+            category=PIICategory.SECRET,
+            source_node_id=None,
+            element_type="text",
+        )
+        self._entries[placeholder] = entry
+        logger.info(f"[Vault] Stored custom secret {placeholder} on origin {origin or self.current_origin}")
+        return placeholder
+
+    def get_secret_unverified(self, token: str) -> Optional[str]:
+        """Direct retrieval for test or internal verification."""
+        entry = self._entries.get(token)
+        return entry.secret if entry else None
+
     def restore(self, token: str, target_node: DOMNode, current_origin: str) -> str:
         """
         Restores raw secret for local Playwright execution after strict verification.
