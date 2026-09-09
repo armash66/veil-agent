@@ -125,6 +125,7 @@ class SanitizedWorldModel:
     redacted_screenshot_b64: Optional[str] = None
     detected_pii_count: int = 0
     pii_categories_found: List[str] = field(default_factory=list)
+    instruction_context: Optional[str] = None
 
 
 # ─── Legacy Observation Type (V0 compatibility) ────────────────────────

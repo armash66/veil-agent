@@ -101,6 +101,11 @@ def build_reasoning_context(
     parts.append(f"CURRENT URL: {world_model.url}")
     parts.append(f"PAGE TITLE: {world_model.title}")
 
+    # Custom instruction context (from local instruction file)
+    instruction_ctx = getattr(world_model, "instruction_context", None)
+    if instruction_ctx:
+        parts.append(f"\nUSER INSTRUCTIONS & CONSTRAINTS (from local instruction file):\n{instruction_ctx}")
+
     # Sanitized DOM (primary reasoning input)
     parts.append(f"\nSANITIZED DOM (interactive elements):\n{world_model.formatted_dom}")
 
@@ -233,6 +238,9 @@ def create_provider(provider_name: str, **kwargs) -> ReasoningProvider:
     if provider_name == "gemini":
         from webveil.reasoning.providers.gemini_provider import GeminiProvider
         return GeminiProvider(**kwargs)
+    elif provider_name == "openrouter":
+        from webveil.reasoning.providers.openrouter_provider import OpenRouterProvider
+        return OpenRouterProvider(**kwargs)
     elif provider_name == "openai":
         from webveil.reasoning.providers.openai_provider import OpenAIProvider
         return OpenAIProvider(**kwargs)

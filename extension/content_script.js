@@ -117,12 +117,10 @@
   // Expose ONLY inside content script scope for verification testing
   window.__WEBVEIL_ISOLATED_VAULT__ = vault;
 
-  // ═══════════════════════════════════════════════════════════
-  // 2. DETERMINISTIC DOM OBSERVER & PRUNER
-  // ═══════════════════════════════════════════════════════════
+  const DOM_OBSERVER_SELECTORS = 'input, button, a, select, textarea, label, h1, h2, h3, h4, form, p, span, td, th, li, img[alt]';
+
   function extractAndPruneDOM() {
-    const SELECTORS = 'input, button, a, select, textarea, label, h1, h2, h3, h4, form, p, span, td, th, li, img[alt]';
-    const allElements = Array.from(document.querySelectorAll(SELECTORS));
+    const allElements = Array.from(document.querySelectorAll(DOM_OBSERVER_SELECTORS));
     const prunedNodes = [];
 
     allElements.forEach((el, idx) => {
@@ -137,6 +135,12 @@
       const isInteractive = ['input', 'button', 'a', 'select', 'textarea'].includes(tag);
 
       if (isInteractive || ['h1', 'h2', 'h3', 'h4', 'form', 'label'].includes(tag) || (text && text.length > 3)) {
+        const isAvatar = (tag === 'img' && (
+          (el.className && typeof el.className === 'string' && (el.className.toLowerCase().includes('avatar') || el.className.toLowerCase().includes('profile'))) ||
+          (el.src && (el.src.toLowerCase().includes('avatar') || el.src.toLowerCase().includes('profile'))) ||
+          (el.alt && (el.alt.toLowerCase().includes('avatar') || el.alt.toLowerCase().includes('profile')))
+        )) || (el.className && typeof el.className === 'string' && (el.className.toLowerCase().includes('avatar') || el.className.toLowerCase().includes('profile-pic')));
+
         const node = {
           node_id: idx,
           tag_name: tag,
@@ -149,6 +153,7 @@
           autocomplete: el.autocomplete || '',
           aria_label: el.getAttribute('aria-label') || '',
           is_interactive: isInteractive,
+          is_avatar: !!isAvatar,
           bounding_box: {
             x: Math.round(rect.x),
             y: Math.round(rect.y),
@@ -201,8 +206,7 @@
   function highlightMatchedElement(nodeId, delayMs) {
     setTimeout(() => {
       try {
-        const SELECTORS = 'input, button, a, select, textarea, label, h1, h2, h3, h4, form, p, span, td, th, li';
-        const elements = Array.from(document.querySelectorAll(SELECTORS));
+        const elements = Array.from(document.querySelectorAll(DOM_OBSERVER_SELECTORS));
         const el = elements[nodeId];
         if (!el) return;
 
@@ -227,14 +231,73 @@
     }, delayMs);
   }
 
+  // ── Face & Profile Avatar Region Extractor (DOM Heuristic & Vision Anchor) ──
+  function extractFaceAndAvatarRegions() {
+    const avatarSelectors = [
+      'img[src*="avatar" i]',
+      'img[src*="profile" i]',
+      'img[alt*="avatar" i]',
+      'img[alt*="profile" i]',
+      'img[class*="avatar" i]',
+      'img[class*="profile" i]',
+      'img[id*="avatar" i]',
+      'img[id*="profile" i]',
+      '[class*="avatar" i]',
+      '[class*="user-avatar" i]',
+      '[class*="profile-pic" i]',
+      '[class*="profile-img" i]',
+      '[class*="author-image" i]',
+      '.avatar',
+      '.profile-avatar',
+      '.user-avatar'
+    ].join(', ');
+
+    const faceRegions = [];
+    const elements = Array.from(document.querySelectorAll(avatarSelectors));
+    const seenBoxes = new Set();
+
+    elements.forEach(el => {
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      const isVisible = rect.width >= 10 && rect.height >= 10 && style.display !== 'none' && style.visibility !== 'hidden';
+      if (!isVisible) return;
+
+      const x = Math.max(0, Math.round(rect.x));
+      const y = Math.max(0, Math.round(rect.y));
+      const w = Math.round(rect.width);
+      const h = Math.round(rect.height);
+
+      const key = `${x}:${y}:${w}:${h}`;
+      if (seenBoxes.has(key)) return;
+      seenBoxes.add(key);
+
+      faceRegions.push({
+        type: 'face',
+        label: '[BLURRED_AVATAR]',
+        bbox: [x, y, w, h],
+      });
+    });
+
+    return faceRegions;
+  }
+
   function detectPII(nodes) {
     resetPiiCounters();
     const tokens = [];
     const replacements = []; // {original, replacement, category}
     const seenValues = new Set();
+    const passwordRegions = [];
+    const piiRegions = [];
     let matchIndex = 0;
 
     nodes.forEach(node => {
+      const nodeBbox = node.bounding_box ? [
+        node.bounding_box.x,
+        node.bounding_box.y,
+        node.bounding_box.width,
+        node.bounding_box.height
+      ] : null;
+
       // Password input detection
       if (node.element_type === 'password' || (node.tag_name === 'input' && node.element_type === 'password')) {
         const val = node.value || 'REDACTED_PASSWORD';
@@ -243,6 +306,13 @@
           const token = generatePiiToken('PASSWORD');
           tokens.push({ original: val, replacement: token, category: 'PASSWORD', nodeId: node.node_id });
           replacements.push({ original: val, replacement: token });
+          if (nodeBbox) {
+            passwordRegions.push({
+              type: 'PASSWORD',
+              label: token,
+              bbox: nodeBbox
+            });
+          }
           highlightMatchedElement(node.node_id, matchIndex * 80);
           matchIndex++;
         }
@@ -253,6 +323,7 @@
       const textToScan = `${node.text_content || ''} ${node.value || ''} ${node.placeholder || ''}`;
 
       // Scan each regex category
+      let matchedInNode = false;
       Object.entries(PII_PATTERNS).forEach(([category, pattern]) => {
         // Reset regex lastIndex for each scan
         pattern.lastIndex = 0;
@@ -265,6 +336,15 @@
           const token = generatePiiToken(category);
           tokens.push({ original: raw, replacement: token, category, nodeId: node.node_id });
           replacements.push({ original: raw, replacement: token });
+          if (nodeBbox && !matchedInNode) {
+            piiRegions.push({
+              type: category,
+              label: token,
+              replacement: token,
+              bbox: nodeBbox
+            });
+            matchedInNode = true;
+          }
           highlightMatchedElement(node.node_id, matchIndex * 80);
           matchIndex++;
         }
@@ -279,6 +359,14 @@
           const token = generatePiiToken('EMAIL');
           tokens.push({ original: node.value, replacement: token, category: 'EMAIL', nodeId: node.node_id });
           replacements.push({ original: node.value, replacement: token });
+          if (nodeBbox && !matchedInNode) {
+            piiRegions.push({
+              type: 'EMAIL',
+              label: token,
+              replacement: token,
+              bbox: nodeBbox
+            });
+          }
           highlightMatchedElement(node.node_id, matchIndex * 80);
           matchIndex++;
         }
@@ -290,10 +378,20 @@
       vault.storeSecret(t.original, document.body, window.location.origin);
     });
 
+    const faceRegions = extractFaceAndAvatarRegions();
+
     return {
       tokens,
       replacements, // Sent back to sidepanel for sanitizing DOM text before server egress
       count: tokens.length,
+      passwordRegions,
+      piiRegions,
+      faceRegions,
+      viewport: {
+        width: window.innerWidth || document.documentElement?.clientWidth || 1280,
+        height: window.innerHeight || document.documentElement?.clientHeight || 800
+      },
+      devicePixelRatio: window.devicePixelRatio || 1
     };
   }
 
@@ -364,8 +462,7 @@
       return { valid: true };
     }
 
-    const SELECTORS = 'input, button, a, select, textarea, label, h1, h2, h3, h4, form, p, span, td, th, li';
-    const freshElements = Array.from(document.querySelectorAll(SELECTORS));
+    const freshElements = Array.from(document.querySelectorAll(DOM_OBSERVER_SELECTORS));
 
     if (action.node_id == null || action.node_id < 0 || action.node_id >= freshElements.length) {
       return { valid: false, detail: `FIREWALL REJECT: node_id ${action.node_id} is stale or out of range (DOM has ${freshElements.length} elements)` };
@@ -510,8 +607,7 @@
     }
 
     // ── 6. Target-node resolution (fresh DOM query at execution time) ──
-    const SELECTORS = 'input, button, a, select, textarea, label, h1, h2, h3, h4, form, p, span, td, th, li';
-    const freshElements = Array.from(document.querySelectorAll(SELECTORS));
+    const freshElements = Array.from(document.querySelectorAll(DOM_OBSERVER_SELECTORS));
 
     if (browserAction.node_id == null || browserAction.node_id < 0 || browserAction.node_id >= freshElements.length) {
       return { success: false, detail: `FIREWALL REJECT: node_id ${browserAction.node_id} is stale or out of range (DOM has ${freshElements.length} elements)` };
@@ -639,6 +735,7 @@
       bypassRateLimiter: () => { firewallLastActionTime = 0; },
       detectPII,
       extractAndPruneDOM,
+      extractFaceAndAvatarRegions,
     };
   }
 

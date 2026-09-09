@@ -26,13 +26,15 @@ class WebVeilConfig:
 
     def __init__(self):
         # Reasoning provider
-        self.provider: str = os.getenv("WEBVEIL_PROVIDER", "mock")
+        self.provider: str = os.getenv("REASONING_PROVIDER") or os.getenv("WEBVEIL_PROVIDER", "mock")
         self.gemini_api_key: Optional[str] = os.getenv("GEMINI_API_KEY")
         self.openai_api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
+        self.openrouter_api_key: Optional[str] = os.getenv("OPENROUTER_API_KEY")
         self.ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
         self.ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.1")
         self.gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        self.openrouter_model: str = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 
         # Agent settings
         self.max_steps: int = int(os.getenv("WEBVEIL_MAX_STEPS", "20"))
@@ -49,12 +51,34 @@ class WebVeilConfig:
         """Returns list of warnings about configuration issues."""
         warnings = []
         if self.provider == "gemini" and not self.gemini_api_key:
-            warnings.append("WEBVEIL_PROVIDER=gemini but GEMINI_API_KEY is not set. Falling back to mock provider.")
-            self.provider = "mock"
-        if self.provider == "openai" and not self.openai_api_key:
-            warnings.append("WEBVEIL_PROVIDER=openai but OPENAI_API_KEY is not set. Falling back to mock provider.")
+            if self.openrouter_api_key:
+                warnings.append("GEMINI_API_KEY is not set; falling back to openrouter provider.")
+                self.provider = "openrouter"
+            else:
+                warnings.append("GEMINI_API_KEY is not set; falling back to mock provider.")
+                self.provider = "mock"
+        elif self.provider == "openrouter" and not self.openrouter_api_key:
+            if self.gemini_api_key:
+                warnings.append("OPENROUTER_API_KEY is not set; falling back to gemini provider.")
+                self.provider = "gemini"
+            else:
+                warnings.append("OPENROUTER_API_KEY is not set; falling back to mock provider.")
+                self.provider = "mock"
+        elif self.provider == "openai" and not self.openai_api_key:
+            warnings.append("OPENAI_API_KEY is not set. Falling back to mock provider.")
             self.provider = "mock"
         return warnings
+
+    def reload(self):
+        """Reload configuration from .env file and environment variables."""
+        try:
+            from dotenv import load_dotenv
+            env_file = Path(__file__).parent.parent / ".env"
+            if env_file.exists():
+                load_dotenv(env_file, override=True)
+        except Exception:
+            pass
+        self.__init__()
 
 
 # Global singleton

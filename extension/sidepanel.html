@@ -51,47 +51,44 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════
-       VIEW 2 — ACTIVE CONVERSATION
+       VIEW 2 — ACTIVE CONVERSATION (New Chat)
        ═══════════════════════════════════════════════════════ -->
   <div id="view-conversation" class="wv-view">
 
     <!-- Conversation Header -->
     <div class="wv-conv-header">
       <div class="wv-conv-header-left">
-        <button id="back-btn" class="wv-icon-btn" title="Back to sessions">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        <button id="back-btn" class="wv-icon-btn" title="Back to history">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
         </button>
-        <span id="conv-title" class="wv-conv-title">New Task</span>
+        <span id="conv-title" class="wv-conv-title">New Chat</span>
       </div>
       <div class="wv-conv-header-right">
-        <div class="wv-server-badge offline" id="conv-server-badge" title="Reasoning server connection status">
+        <div class="wv-server-badge online" id="conv-server-badge" title="WebVeil Privacy Shield Active" style="display: none;">
           <span class="wv-badge-dot"></span>
-          <span class="wv-badge-text" id="conv-server-badge-text">Offline</span>
+          <span class="wv-badge-text" id="conv-server-badge-text">Vaulted</span>
         </div>
-        <button id="conv-folder-btn" class="wv-icon-btn" title="Session History">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-        </button>
         <button id="conv-settings-btn" class="wv-icon-btn" title="Settings">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
-        <button id="new-session-btn" class="wv-icon-btn" title="New session">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <button id="new-session-btn" class="wv-icon-btn" title="New Chat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       </div>
     </div>
 
     <!-- Messages Area -->
     <div id="messages-area" class="wv-messages">
-      <!-- Hero prompt (shown when empty) -->
+      <!-- Hero prompt (centered when empty) -->
       <div id="hero-prompt" class="wv-hero">
-        <div class="wv-hero-title">What can I do for you?</div>
+        <h1 class="wv-hero-title">What can I do for you?</h1>
         <div class="wv-suggestions">
-          <button class="wv-suggestion-pill" data-task="Fill KYC form safely">Fill KYC form safely</button>
-          <button class="wv-suggestion-pill" data-task="Search Wikipedia for AI">Search Wikipedia for AI</button>
-          <button class="wv-suggestion-pill" data-task="Summarize this page">Summarize this page</button>
+          <button class="wv-suggestion-pill" data-task="Create a slideshow">Create a slideshow</button>
+          <button class="wv-suggestion-pill" data-task="Summarize a YouTube video">Summarize a YouTube video</button>
+          <button class="wv-suggestion-pill" data-task="Send an email">Send an email</button>
         </div>
         <div class="wv-hero-caption">
-          WebVeil scans DOM text for sensitive data. Always review actions.
+          AI can make mistakes. Always supervise Do Browser.
         </div>
       </div>
     </div>
@@ -104,18 +101,109 @@
       </button>
     </div>
 
-    <!-- Input Bar -->
+    <!-- Floating Input Box -->
     <div class="wv-input-bar">
       <div class="wv-input-container">
-        <textarea id="task-input" class="wv-textarea" placeholder="Type a task..." rows="1"></textarea>
+        <textarea id="task-input" class="wv-textarea" placeholder="Type a message..." rows="1"></textarea>
+        
         <div class="wv-input-meta">
-          <div class="wv-provider-info">
-            <span class="wv-provider-dot"></span>
-            <span id="provider-label">Gemini · DOM text scan</span>
+          <div class="wv-input-left-tools">
+            <!-- Model selector pill -->
+            <div class="wv-model-dropdown-container">
+              <button id="model-select-btn" class="wv-model-pill" title="Switch Model">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                <span id="model-select-name">OpenRouter Free</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div id="model-dropdown-menu" class="wv-model-menu">
+                <div class="wv-model-section-header">
+                  <span>Models</span>
+                </div>
+
+                <div class="wv-model-list">
+                  <div class="wv-model-row active" data-model="OpenRouter Free">
+                    <div class="wv-model-info">
+                      <div class="wv-model-name">OpenRouter Free</div>
+                    </div>
+                    <div class="wv-model-badge-right">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="wv-check-icon"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                  </div>
+
+                  <div class="wv-model-row" data-model="Gemini 2.5 Flash">
+                    <div class="wv-model-info">
+                      <div class="wv-model-name">Gemini 2.5 Flash</div>
+                    </div>
+                    <div class="wv-model-badge-right"></div>
+                  </div>
+
+                  <div class="wv-model-row" data-model="WebVeil Local">
+                    <div class="wv-model-info">
+                      <div class="wv-model-name">WebVeil Local</div>
+                    </div>
+                    <div class="wv-model-badge-right"></div>
+                  </div>
+                </div>
+
+                <div class="wv-model-divider"></div>
+
+                <!-- Footer: Connect more providers -->
+                <div id="connect-providers-btn" class="wv-model-footer-action" title="Configure reasoning providers in Settings">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="wv-footer-gear-icon">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83-2.83l-.06-.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                  </svg>
+                  <span>Connect more providers</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Instructions Selector Pill -->
+            <div class="wv-instructions-dropdown-container">
+              <button id="instructions-btn" class="wv-instructions-pill" title="Attach Custom Instructions (.md, .txt)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span id="instructions-btn-label">Instructions</span>
+                <span id="instructions-clear-btn" class="wv-pill-clear" title="Clear instructions" style="display: none;">×</span>
+                <svg class="wv-chevron-down" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div id="instructions-dropdown-menu" class="wv-instructions-menu">
+                <div class="wv-instructions-header">
+                  <span>Instructions</span>
+                  <button id="import-instructions-header-btn" class="wv-section-icon-btn" title="Import .md or .txt file">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
+                </div>
+
+                <div id="instructions-list" class="wv-instructions-list">
+                  <!-- Dynamically populated options -->
+                </div>
+
+                <div class="wv-model-divider"></div>
+
+                <div id="import-instructions-row" class="wv-instructions-footer-action" title="Import local .md or .txt instruction file">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span>Import .md / .txt file</span>
+                </div>
+              </div>
+              <input type="file" id="instruction-file-input" accept=".md,.txt" style="display: none;" />
+            </div>
           </div>
-          <button id="send-btn" class="wv-send-btn" title="Send" disabled>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.405z"/></svg>
-          </button>
+
+          <div class="wv-input-right-tools">
+            <button id="attach-btn" class="wv-action-icon-btn" title="Attach file">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <button id="mic-btn" class="wv-action-icon-btn" title="Voice input">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+            </button>
+            <button id="send-btn" class="wv-send-circle-btn" title="Send" disabled>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -173,6 +261,9 @@
     </div>
   </div>
 
+  <script src="local_vision_engine.js"></script>
+  <script src="visual_privacy_engine.js"></script>
+  <script src="content_script.js"></script>
   <script src="sidepanel.js"></script>
 </body>
 </html>

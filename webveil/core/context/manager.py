@@ -49,6 +49,7 @@ class SelectedContextPayload:
     recent_failures: List[str]
     provenance_map: Dict[str, str]  # element/field -> source provenance
     compression_stats: ContextCompressionStats
+    instruction_context: Optional[str] = None
 
 
 class LocalContextManager:
@@ -68,6 +69,7 @@ class LocalContextManager:
         world_model: SanitizedWorldModel,
         working_memory: Optional[AgentWorkingMemory] = None,
         task_rep: Optional[TaskRepresentation] = None,
+        instruction_context: Optional[str] = None,
     ) -> SelectedContextPayload:
         """
         Build minimal, relevant context payload for remote reasoning.
@@ -75,6 +77,9 @@ class LocalContextManager:
         raw_nodes = world_model.sanitized_dom or []
         active_goal = task
         recent_failures_txt: List[str] = []
+
+        # Use explicitly passed instruction_context or fall back to world_model.instruction_context
+        effective_instructions = instruction_context or getattr(world_model, "instruction_context", None)
 
         if working_memory:
             goal_obj = working_memory.get_active_goal()
@@ -138,6 +143,9 @@ class LocalContextManager:
             f"({stats.compression_ratio_pct:.1f}% token reduction)"
         )
 
+        if effective_instructions:
+            provenance["instructions"] = "local_instruction_file"
+
         return SelectedContextPayload(
             task=task,
             active_goal=active_goal,
@@ -151,4 +159,5 @@ class LocalContextManager:
             recent_failures=recent_failures_txt,
             provenance_map=provenance,
             compression_stats=stats,
+            instruction_context=effective_instructions,
         )

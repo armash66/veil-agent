@@ -71,6 +71,12 @@ class ReasonRequest(BaseModel):
     url: str = ""
     title: str = ""
     redaction_summary: Optional[Dict[str, Any]] = None
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    instruction_context: Optional[str] = None
+    instructions: Optional[str] = None
+    sanitized_screenshot_b64: Optional[str] = None
+    visual_telemetry: Optional[Dict[str, Any]] = None
 
 class ActionResponse(BaseModel):
     action: str
@@ -83,31 +89,77 @@ class ReasonResponse(BaseModel):
     thought: str
     actions: List[ActionResponse]
 
-# ── Provider (initialized once) ──
-_provider = None
+# ── Provider Resolution & Caching ──
+_provider_cache: Dict[str, Any] = {}
 
-def get_provider():
-    global _provider
-    if _provider is None:
-        provider_name = config.provider
-        warnings = config.validate()
-        for w in warnings:
-            logger.warning(w)
-        provider_name = config.provider  # May have fallen back
+def get_provider(requested_provider: Optional[str] = None, requested_model: Optional[str] = None):
+    config.reload()
 
-        try:
-            kwargs = {}
-            if provider_name == "gemini":
-                kwargs = {"api_key": config.gemini_api_key, "model": config.gemini_model}
-            elif provider_name == "openai":
-                kwargs = {"api_key": config.openai_api_key, "model": config.openai_model}
-            _provider = create_provider(provider_name, **kwargs)
-            logger.info(f"Reasoning provider initialized: {provider_name}")
-        except Exception as e:
-            logger.warning(f"Provider '{provider_name}' init failed: {e}. Using mock.")
-            _provider = create_provider("mock")
+    req_p = (requested_provider or "").strip().lower()
+    req_m = (requested_model or "").strip()
 
-    return _provider
+    # Infer provider if not explicit
+    if not req_p and req_m:
+        m_lower = req_m.lower()
+        if "openrouter" in m_lower or "free" in m_lower:
+            req_p = "openrouter"
+        elif "gemini" in m_lower:
+            req_p = "gemini"
+        elif "local" in m_lower or "mock" in m_lower:
+            req_p = "mock"
+
+    if not req_p:
+        req_p = config.provider
+
+    # Validate provider credentials
+    if req_p == "openrouter":
+        if not config.openrouter_api_key:
+            logger.warning("[Server] OPENROUTER_API_KEY missing; falling back to mock")
+            req_p = "mock"
+        model = req_m or config.openrouter_model
+        api_key = config.openrouter_api_key
+    elif req_p == "gemini":
+        if not config.gemini_api_key:
+            logger.warning("[Server] GEMINI_API_KEY missing; falling back to openrouter or mock")
+            if config.openrouter_api_key:
+                req_p = "openrouter"
+                model = config.openrouter_model
+                api_key = config.openrouter_api_key
+            else:
+                req_p = "mock"
+                model = "mock"
+                api_key = None
+        else:
+            model = req_m or config.gemini_model
+            api_key = config.gemini_api_key
+    elif req_p == "openai":
+        model = req_m or config.openai_model
+        api_key = config.openai_api_key
+    else:
+        req_p = "mock"
+        model = "mock"
+        api_key = None
+
+    cache_key = f"{req_p}:{model}"
+    if cache_key in _provider_cache:
+        return _provider_cache[cache_key]
+
+    try:
+        kwargs = {}
+        if req_p == "gemini":
+            kwargs = {"api_key": api_key, "model": model}
+        elif req_p == "openrouter":
+            kwargs = {"api_key": api_key, "model": model}
+        elif req_p == "openai":
+            kwargs = {"api_key": api_key, "model": model}
+
+        provider_inst = create_provider(req_p, **kwargs)
+        _provider_cache[cache_key] = provider_inst
+        logger.info(f"Reasoning provider initialized: {req_p} (model: {model})")
+        return provider_inst
+    except Exception as e:
+        logger.warning(f"Provider '{req_p}' init failed: {e}. Using mock.")
+        return create_provider("mock")
 
 # ── Routes ──
 @app.get("/api/health")
@@ -126,9 +178,9 @@ async def reason(request: ReasonRequest):
     Accept sanitized (pre-redacted) DOM + task, return action plan.
     This endpoint does NOT inspect, detect, or redact PII — that's the extension's job.
     """
-    provider = get_provider()
+    provider = get_provider(request.provider, request.model)
     nodes = request.sanitized_dom or request.dom or []
-    logger.info(f"[Reason] Task: '{request.task}' | DOM nodes: {len(nodes)} | URL: {request.url}")
+    logger.info(f"[Reason] Using {provider.provider_name} | Task: '{request.task}' | DOM nodes: {len(nodes)} | URL: {request.url}")
 
     # Build formatted DOM text for prompt
     formatted_dom = _format_dom_for_prompt(nodes)
@@ -150,6 +202,15 @@ async def reason(request: ReasonRequest):
     if request.redaction_summary and isinstance(request.redaction_summary, dict):
         redacted_count = request.redaction_summary.get("total_redacted", 0)
 
+    visual_summary = ""
+    visual_count = 0
+    if request.visual_telemetry and isinstance(request.visual_telemetry, dict):
+        visual_count = request.visual_telemetry.get("regions_count", 0)
+        backend = request.visual_telemetry.get("backend", "local")
+        inf_ms = request.visual_telemetry.get("inference_ms", 0)
+        visual_summary = f"Local vision ({backend}): {visual_count} regions ({inf_ms}ms)"
+        logger.info(f"[Reason] Visual Telemetry: backend={backend} | latency={inf_ms}ms | regions={visual_count}")
+
     # Build SanitizedWorldModel directly for the provider
     sanitized_model = SanitizedWorldModel(
         url=request.url,
@@ -159,9 +220,12 @@ async def reason(request: ReasonRequest):
         formatted_dom=formatted_dom,
         a11y_summary="",
         ocr_summary="",
-        redacted_screenshot_b64=None,
+        visual_summary=visual_summary,
+        visual_regions_count=visual_count,
+        redacted_screenshot_b64=request.sanitized_screenshot_b64,
         detected_pii_count=redacted_count,
         pii_categories_found=[],
+        instruction_context=request.instruction_context or request.instructions,
     )
 
     # Build action history
@@ -176,6 +240,21 @@ async def reason(request: ReasonRequest):
             action_history=history,
             error_context=None,
         )
+
+        # If primary provider returned 429 quota exhaustion, seamlessly fallback to OpenRouter
+        if ("429" in (plan.thought or "") or "RESOURCE_EXHAUSTED" in (plan.thought or "")) and config.openrouter_api_key and "openrouter" not in provider.provider_name.lower():
+            logger.warning("[Reason] Primary provider returned 429 quota exhausted. Seamlessly falling back to OpenRouter...")
+            fb_provider = get_provider("openrouter", config.openrouter_model)
+            try:
+                plan = await asyncio.to_thread(
+                    fb_provider.reason,
+                    task=request.task,
+                    world_model=sanitized_model,
+                    action_history=history,
+                    error_context=None,
+                )
+            except Exception as fb_err:
+                logger.warning(f"[Reason] OpenRouter fallback failed: {fb_err}")
 
         return ReasonResponse(
             thought=plan.thought or "",

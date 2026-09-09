@@ -88,6 +88,8 @@ class WebVeilAgent:
             provider_kwargs = {}
             if provider_name == "gemini":
                 provider_kwargs = {"api_key": config.gemini_api_key, "model": config.gemini_model}
+            elif provider_name == "openrouter":
+                provider_kwargs = {"api_key": config.openrouter_api_key, "model": config.openrouter_model}
             elif provider_name == "openai":
                 provider_kwargs = {"api_key": config.openai_api_key, "model": config.openai_model}
             elif provider_name == "ollama":
