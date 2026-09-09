@@ -176,3 +176,108 @@ class LocalPIIDetector:
             all_matches.extend(matches)
             
         return all_matches
+
+    def scan_text(self, text: str, bounding_box: Optional[Dict[str, float]] = None) -> List[PIIMatch]:
+        """
+        Scan arbitrary text string (e.g. from OCR or accessibility text) for PII.
+        Attaches the optional bounding box for visual screenshot masking.
+        """
+        if not text:
+            return []
+
+        matches: List[PIIMatch] = []
+
+        # 1. Synthetic Canary
+        for m in self.CANARY_REGEX.finditer(text):
+            raw = m.group(0)
+            category = PIICategory.SECRET
+            if "EMAIL" in raw.upper():
+                category = PIICategory.EMAIL
+            elif "PHONE" in raw.upper():
+                category = PIICategory.PHONE
+            elif "AADHAAR" in raw.upper():
+                category = PIICategory.AADHAAR
+            elif "PASSWORD" in raw.upper():
+                category = PIICategory.PASSWORD
+
+            ph = self._generate_placeholder(category)
+            matches.append(PIIMatch(
+                category=category,
+                raw_value=raw,
+                placeholder=ph,
+                source_node_id=None,
+                bounding_box=bounding_box,
+                context="OCR Synthetic Canary"
+            ))
+
+        # 2. Aadhaar
+        for m in self.AADHAAR_REGEX.finditer(text):
+            raw = m.group(0)
+            if not any(x.raw_value == raw for x in matches):
+                ph = self._generate_placeholder(PIICategory.AADHAAR)
+                matches.append(PIIMatch(
+                    category=PIICategory.AADHAAR,
+                    raw_value=raw,
+                    placeholder=ph,
+                    source_node_id=None,
+                    bounding_box=bounding_box,
+                    context="OCR Aadhaar Pattern"
+                ))
+
+        # 3. Email
+        for m in self.EMAIL_REGEX.finditer(text):
+            raw = m.group(0)
+            if not any(x.raw_value == raw for x in matches):
+                ph = self._generate_placeholder(PIICategory.EMAIL)
+                matches.append(PIIMatch(
+                    category=PIICategory.EMAIL,
+                    raw_value=raw,
+                    placeholder=ph,
+                    source_node_id=None,
+                    bounding_box=bounding_box,
+                    context="OCR Email Pattern"
+                ))
+
+        # 4. Phone
+        for m in self.PHONE_REGEX.finditer(text):
+            raw = m.group(0)
+            if not any(x.raw_value == raw for x in matches):
+                ph = self._generate_placeholder(PIICategory.PHONE)
+                matches.append(PIIMatch(
+                    category=PIICategory.PHONE,
+                    raw_value=raw,
+                    placeholder=ph,
+                    source_node_id=None,
+                    bounding_box=bounding_box,
+                    context="OCR Phone Pattern"
+                ))
+
+        # 5. Credit Card
+        for m in self.CREDIT_CARD_REGEX.finditer(text):
+            raw = m.group(0)
+            if not any(x.raw_value == raw for x in matches):
+                ph = self._generate_placeholder(PIICategory.CREDIT_CARD)
+                matches.append(PIIMatch(
+                    category=PIICategory.CREDIT_CARD,
+                    raw_value=raw,
+                    placeholder=ph,
+                    source_node_id=None,
+                    bounding_box=bounding_box,
+                    context="OCR Credit Card Pattern"
+                ))
+
+        # 6. SSN
+        for m in self.SSN_REGEX.finditer(text):
+            raw = m.group(0)
+            if not any(x.raw_value == raw for x in matches):
+                ph = self._generate_placeholder(PIICategory.SSN)
+                matches.append(PIIMatch(
+                    category=PIICategory.SSN,
+                    raw_value=raw,
+                    placeholder=ph,
+                    source_node_id=None,
+                    bounding_box=bounding_box,
+                    context="OCR SSN Pattern"
+                ))
+
+        return matches

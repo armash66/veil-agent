@@ -80,30 +80,36 @@ class WorldModelBuilder:
         """
         timings = {}
 
-        # PII detection + DOM sanitization
+        # 1. DOM PII detection + sanitization
         t0 = time.time()
-        sanitized_nodes, pii_matches = self.redactor.sanitize_dom(model.dom_nodes, origin)
-        timings["pii_detection_ms"] = (time.time() - t0) * 1000
+        sanitized_nodes, dom_matches = self.redactor.sanitize_dom(model.dom_nodes, origin)
+        timings["pii_dom_detection_ms"] = (time.time() - t0) * 1000
 
-        # Screenshot redaction
+        # 2. OCR text PII detection + vault tokenization
+        t0 = time.time()
+        sanitized_ocr_regions, ocr_matches = self.redactor.sanitize_ocr_regions(model.ocr_regions, origin)
+        timings["pii_ocr_detection_ms"] = (time.time() - t0) * 1000
+
+        # Unified PII matches across DOM and OCR
+        all_pii_matches = dom_matches + ocr_matches
+        timings["pii_detection_ms"] = timings["pii_dom_detection_ms"] + timings["pii_ocr_detection_ms"]
+
+        # 3. Screenshot visual mask redaction (both DOM + OCR bounding boxes)
         t0 = time.time()
         redacted_screenshot = self.redactor.redact_screenshot_b64(
-            model.screenshot_b64, pii_matches
+            model.screenshot_b64, all_pii_matches
         )
         timings["redaction_ms"] = (time.time() - t0) * 1000
 
-        # Sanitize OCR text (scan for PII in OCR regions)
+        # 4. Build sanitized OCR summary
         ocr_summary = ""
-        if model.ocr_regions:
-            ocr_texts = [r.text for r in model.ocr_regions]
-            ocr_combined = " ".join(ocr_texts)
-            # Redact PII from OCR text using detector patterns
-            ocr_summary = self._sanitize_text(ocr_combined)
+        if sanitized_ocr_regions:
+            ocr_summary = " ".join([r.text for r in sanitized_ocr_regions])
 
-        # Sanitize accessibility summary
+        # 5. Sanitize accessibility summary
         sanitized_a11y = self._sanitize_text(model.a11y_summary) if model.a11y_summary else ""
 
-        # Build sanitized formatted DOM
+        # 6. Build sanitized formatted DOM
         sanitized_lines = []
         for n in sanitized_nodes:
             if n.is_interactive:
@@ -125,15 +131,16 @@ class WorldModelBuilder:
             a11y_summary=sanitized_a11y,
             ocr_summary=ocr_summary,
             redacted_screenshot_b64=redacted_screenshot,
-            detected_pii_count=len(pii_matches),
-            pii_categories_found=[m.category.name for m in pii_matches],
+            detected_pii_count=len(all_pii_matches),
+            pii_categories_found=[m.category.name for m in all_pii_matches],
         )
 
         logger.info(
-            f"[WorldModel] Sanitized: {len(pii_matches)} PII matches redacted, "
+            f"[WorldModel] Sanitized: {len(all_pii_matches)} PII matches redacted "
+            f"({len(dom_matches)} DOM, {len(ocr_matches)} OCR), "
             f"zero raw PII in output"
         )
-        return sanitized, pii_matches, timings
+        return sanitized, all_pii_matches, timings
 
     def to_legacy_observation(self, sanitized: SanitizedWorldModel) -> SanitizedObservation:
         """Convert to V0 SanitizedObservation for backward compatibility with egress gate."""

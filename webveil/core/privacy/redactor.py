@@ -7,7 +7,7 @@ import base64
 import io
 from typing import List, Tuple, Dict, Any, Optional
 from PIL import Image, ImageDraw, ImageFont
-from webveil.core.models.schema import DOMNode, PIIMatch, SanitizedObservation
+from webveil.core.models.schema import DOMNode, PIIMatch, SanitizedObservation, TextRegion
 from webveil.core.privacy.pii_detector import LocalPIIDetector
 from webveil.core.vault.client_vault import ClientVault
 
@@ -66,6 +66,36 @@ class LocalRedactor:
             sanitized_nodes.append(s_node)
 
         return sanitized_nodes, matches
+
+    def sanitize_ocr_regions(self, regions: List[TextRegion], origin: str) -> Tuple[List[TextRegion], List[PIIMatch]]:
+        """
+        Scan OCR text regions for sensitive PII, replace raw text with vault placeholders,
+        and store matches in ClientVault with their spatial bounding boxes.
+        """
+        if not regions:
+            return [], []
+
+        sanitized_regions: List[TextRegion] = []
+        all_ocr_matches: List[PIIMatch] = []
+
+        for region in regions:
+            matches = self.detector.scan_text(region.text, bounding_box=region.bounding_box)
+            clean_text = region.text
+
+            for m in matches:
+                ph = self.vault.store_match(m, origin, None)
+                m.placeholder = ph
+                clean_text = clean_text.replace(m.raw_value, ph)
+                all_ocr_matches.append(m)
+
+            sanitized_regions.append(TextRegion(
+                text=clean_text,
+                bounding_box=dict(region.bounding_box),
+                confidence=region.confidence,
+                source=region.source,
+            ))
+
+        return sanitized_regions, all_ocr_matches
 
     def redact_screenshot_b64(self, raw_b64: str, matches: List[PIIMatch]) -> str:
         """
