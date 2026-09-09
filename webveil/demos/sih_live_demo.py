@@ -175,6 +175,18 @@ class SIHLiveDemoRunner:
             print("================================================================\n")
 
         results["act_5_scorecard"] = sih_summary.to_dict()
+
+        # ─── ACT 6: Empirical Progressive Ablation Proof ───
+        from webveil.evaluation.reproducible_benchmark import ReproducibleBenchmark
+        benchmark = ReproducibleBenchmark()
+        ablation_results = benchmark.run_all_ablations()
+        if verbose:
+            print("\n[ACT 6] Empirical Pipeline Ablation Breakdown (8 Progressive Stages)")
+            print("================================================================")
+            print(benchmark.format_markdown_table(ablation_results))
+            print("================================================================\n")
+
+        results["act_6_ablation"] = [r.to_dict() for r in ablation_results]
         return results
 
 

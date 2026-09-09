@@ -49,3 +49,24 @@ class LocalVerifier:
             return False
 
         return True
+
+    def verify_action_result(
+        self,
+        action: BrowserAction,
+        previous_nodes: List[DOMNode],
+        current_nodes: List[DOMNode],
+        previous_url: str = "about:blank",
+        current_url: str = "about:blank",
+        user_task: str = "",
+    ) -> VerificationResult:
+        """
+        Comprehensive evaluation returning complete VerificationResult dataclass.
+        """
+        return self.intelligent_verifier.verify_action_execution(
+            action=action,
+            previous_nodes=previous_nodes,
+            current_nodes=current_nodes,
+            previous_url=previous_url,
+            current_url=current_url,
+            user_task=user_task,
+        )

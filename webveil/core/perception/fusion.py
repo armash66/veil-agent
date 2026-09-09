@@ -8,24 +8,27 @@ import logging
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Tuple
 
-from webveil.core.models.schema import DOMNode, TextRegion
+from webveil.core.models.schema import DOMNode, TextRegion, VisualRegion
 
 logger = logging.getLogger("WebVeilPerception.Fusion")
 
 
 @dataclass
 class FusedPerceptionResult:
-    """Result of multimodal spatial fusion across DOM, A11y, and OCR."""
+    """Result of multimodal spatial fusion across DOM, A11y, OCR, and Local Vision."""
     dom_nodes: List[DOMNode]
     matched_ocr_count: int = 0
     unmatched_ocr_regions: List[TextRegion] = field(default_factory=list)
+    matched_visual_count: int = 0
+    unmatched_visual_regions: List[VisualRegion] = field(default_factory=list)
+    dialogs_detected: List[VisualRegion] = field(default_factory=list)
     enriched_node_count: int = 0
     spatial_coverage_ratio: float = 0.0
 
 
 class MultimodalFusionEngine:
     """
-    Fuses DOM nodes, accessibility tree information, and OCR text
+    Fuses DOM nodes, accessibility tree information, OCR text, and local vision regions
     into a unified spatial world model.
     """
 
@@ -71,21 +74,27 @@ class MultimodalFusionEngine:
         dom_nodes: List[DOMNode],
         a11y_tree: Optional[Dict[str, Any]],
         ocr_regions: List[TextRegion],
+        visual_regions: Optional[List[VisualRegion]] = None,
     ) -> FusedPerceptionResult:
         """
-        Cross-reference OCR regions and A11y data with DOM nodes.
-        Enriches DOM nodes with missing visual text and semantic roles.
+        Cross-reference OCR regions, A11y semantics, and visual UI regions with DOM nodes.
+        Enriches DOM nodes with visual UI context, missing visual text, and semantic roles.
         """
         if not dom_nodes:
             return FusedPerceptionResult(
                 dom_nodes=[],
                 matched_ocr_count=0,
                 unmatched_ocr_regions=ocr_regions,
+                matched_visual_count=0,
+                unmatched_visual_regions=visual_regions or [],
                 enriched_node_count=0,
             )
 
         matched_ocr_indices = set()
+        matched_visual_indices = set()
+        dialogs: List[VisualRegion] = []
         enriched_count = 0
+        vis_list = visual_regions or []
 
         # Step 1: Spatial alignment between OCR and DOM nodes
         for node in dom_nodes:
@@ -111,6 +120,18 @@ class MultimodalFusionEngine:
                     node.attributes["visual_ocr_text"] = combined_ocr_text
                     enriched_count += 1
 
+            # Step 1b: Spatial correlation with Local Visual Regions
+            for v_idx, vis in enumerate(vis_list):
+                if vis.region_type == "dialog":
+                    if vis not in dialogs:
+                        dialogs.append(vis)
+                vis_box = vis.bounding_box
+                if self.is_contained(node_box, vis_box) or self.compute_iou(node_box, vis_box) > 0.35:
+                    node.attributes["visual_structure"] = vis.region_type
+                    node.attributes["visual_conf"] = f"{vis.confidence:.2f}"
+                    matched_visual_indices.add(v_idx)
+                    enriched_count += 1
+
         # Step 2: Semantic alignment with A11y flat tree
         if a11y_tree:
             from webveil.core.perception.accessibility import AccessibilityExtractor
@@ -132,12 +153,16 @@ class MultimodalFusionEngine:
                             enriched_count += 1
                         break
 
-        unmatched = [ocr for i, ocr in enumerate(ocr_regions) if i not in matched_ocr_indices]
+        unmatched_ocr = [ocr for i, ocr in enumerate(ocr_regions) if i not in matched_ocr_indices]
+        unmatched_vis = [vis for i, vis in enumerate(vis_list) if i not in matched_visual_indices]
 
         return FusedPerceptionResult(
             dom_nodes=dom_nodes,
             matched_ocr_count=len(matched_ocr_indices),
-            unmatched_ocr_regions=unmatched,
+            unmatched_ocr_regions=unmatched_ocr,
+            matched_visual_count=len(matched_visual_indices),
+            unmatched_visual_regions=unmatched_vis,
+            dialogs_detected=dialogs,
             enriched_node_count=enriched_count,
             spatial_coverage_ratio=round(len(matched_ocr_indices) / max(1, len(ocr_regions)), 3),
         )

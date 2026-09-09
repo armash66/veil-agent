@@ -98,6 +98,66 @@ class TestIntelligentVerification(unittest.TestCase):
         self.assertGreaterEqual(result.confidence, 0.88)
         self.assertFalse(result.should_replan)
 
+    def test_agent_verification_failure_triggers_replan_with_error_context(self):
+        """Verify that when verification fails in WebVeilAgent, it transitions to REPLAN with error context."""
+        from unittest.mock import MagicMock, patch
+        from webveil.agent_loop import WebVeilAgent
+        from webveil.core.models.state import AgentStage
+        from webveil.core.models.schema import ActionPlan
+
+        with patch("webveil.agent_loop.PlaywrightAdapter") as mock_playwright_cls:
+            mock_browser = MagicMock()
+            mock_playwright_cls.return_value = mock_browser
+
+            # Initial page
+            initial_node = DOMNode(node_id=1, tag_name="button", text_content="Submit", is_visible=True, is_interactive=True)
+            # Post page displays an error banner
+            error_node = DOMNode(node_id=2, tag_name="div", text_content="Error: Invalid credentials provided.", is_visible=True)
+
+            mock_browser.extract_dom.side_effect = [
+                ([initial_node], "<button>Submit</button>"),  # step 1 observe
+                ([initial_node, error_node], "<button>Submit</button><div>Error: Invalid credentials</div>"),  # step 1 post-verify
+                ([initial_node, error_node], "<button>Submit</button><div>Error: Invalid credentials</div>"),  # step 2 observe
+                ([initial_node, error_node], "<button>Submit</button><div>Error: Invalid credentials</div>"),  # step 2 post-verify
+            ]
+            mock_browser.capture_screenshot_b64.return_value = ""
+            mock_browser.get_current_url.return_value = "https://example.com/login"
+            mock_browser.get_page_title.return_value = "Login Page"
+
+            agent = WebVeilAgent(max_steps=2, headless=True, provider_name="mock")
+            agent.browser = mock_browser
+
+            observed_contexts = []
+            def mock_reason(task, world_model, action_history, error_context=None):
+                observed_contexts.append(error_context)
+                if len(observed_contexts) == 1:
+                    return ActionPlan(actions=[BrowserAction(action=ActionType.CLICK, node_id=1)], thought="Try login")
+                else:
+                    return ActionPlan(actions=[BrowserAction(action=ActionType.DONE)], thought="Stop on error")
+
+            mock_provider = MagicMock()
+            mock_provider.provider_name = "mock"
+            mock_provider.reason.side_effect = mock_reason
+            mock_provider.token_usage.input_tokens = 10
+            mock_provider.token_usage.output_tokens = 10
+            mock_provider.token_usage.total_calls = 2
+            agent.provider = mock_provider
+            agent.firewall.execute_validated_action = MagicMock(return_value=True)
+
+            res = agent.run_task("https://example.com/login", "Login to portal", initial_navigate=False)
+
+            self.assertEqual(res["status"], "SUCCESS")
+            # First call has None, second call has the verification error context!
+            self.assertIsNone(observed_contexts[0])
+            self.assertIsNotNone(observed_contexts[1])
+            self.assertIn("Verification failed", observed_contexts[1])
+            self.assertIn("Invalid credentials", observed_contexts[1])
+
+            # Verify REPLAN stage was emitted
+            replan_events = [e for e in agent.state.events if e.stage == AgentStage.REPLAN.value]
+            self.assertGreaterEqual(len(replan_events), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
+

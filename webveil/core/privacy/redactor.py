@@ -5,27 +5,39 @@ Sanitizes DOM trees and draws visual redaction bounding boxes over screenshots.
 
 import base64
 import io
+import logging
 from typing import List, Tuple, Dict, Any, Optional
 from PIL import Image, ImageDraw, ImageFont
 from webveil.core.models.schema import DOMNode, PIIMatch, SanitizedObservation, TextRegion
 from webveil.core.privacy.pii_detector import LocalPIIDetector
 from webveil.core.vault.client_vault import ClientVault
+from webveil.core.privacy.intelligence import ContextualPrivacyIntelligence, PrivacyAction
+
+logger = logging.getLogger("WebVeilPrivacy.Redactor")
 
 
 class LocalRedactor:
     """
     Sanitizes DOM trees and applies visual canvas mask redactions on screenshots.
+    Backed by ContextualPrivacyIntelligence for entity disambiguation.
     """
 
     def __init__(self, detector: LocalPIIDetector, vault: ClientVault):
         self.detector = detector
         self.vault = vault
+        self.intelligence = ContextualPrivacyIntelligence()
 
-    def sanitize_dom(self, nodes: List[DOMNode], origin: str) -> Tuple[List[DOMNode], List[PIIMatch]]:
+    def sanitize_dom(self, nodes: List[DOMNode], origin: str, user_task: str = "") -> Tuple[List[DOMNode], List[PIIMatch]]:
         """
-        Sanitize raw DOM tree nodes, replacing PII text with semantic placeholders.
+        Sanitize raw DOM tree nodes, replacing verified PII text with semantic placeholders.
         """
-        matches = self.detector.scan_dom_tree(nodes)
+        raw_matches = self.detector.scan_dom_tree(nodes)
+        matches, decisions = self.intelligence.filter_and_classify_matches(
+            candidates=raw_matches,
+            nodes=nodes,
+            domain=origin,
+            user_task=user_task,
+        )
         sanitized_nodes: List[DOMNode] = []
 
         for node in nodes:

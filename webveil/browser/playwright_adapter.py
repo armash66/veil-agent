@@ -115,6 +115,7 @@ class PlaywrightAdapter(BaseBrowserAdapter):
         () => {
             const elements = Array.from(document.querySelectorAll('input, button, a, textarea, select, label, h1, h2, h3, p, span, form'));
             return elements.map((el, idx) => {
+                el.setAttribute('data-webveil-id', String(idx));
                 const rect = el.getBoundingClientRect();
                 const isInteractive = ['INPUT', 'BUTTON', 'A', 'TEXTAREA', 'SELECT'].includes(el.tagName);
                 return {

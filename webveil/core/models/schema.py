@@ -74,9 +74,23 @@ class TextRegion:
 
 
 @dataclass
+class VisualRegion:
+    """UI structural region identified by local computer vision inference."""
+    region_id: str
+    region_type: str  # "control" | "card" | "dialog" | "input" | "banner" | "container" | "sensitive_candidate"
+    bounding_box: Dict[str, float]  # {x, y, width, height}
+    confidence: float = 0.0
+    label: Optional[str] = None
+    source: str = "local_cv"
+    modality: str = "vision"
+    provenance: str = "browser_local"
+    timestamp: float = 0.0
+
+
+@dataclass
 class LocalWorldModel:
     """
-    Unified local observation merging DOM + Accessibility + Visual layers.
+    Unified local observation merging DOM + Accessibility + OCR + Visual layers.
     This is the raw local state BEFORE privacy processing.
     """
     url: str
@@ -86,6 +100,8 @@ class LocalWorldModel:
     a11y_tree: Optional[Dict[str, Any]] = None
     a11y_summary: str = ""
     ocr_regions: List[TextRegion] = field(default_factory=list)
+    visual_regions: List[VisualRegion] = field(default_factory=list)
+    dialogs_detected: List[VisualRegion] = field(default_factory=list)
     screenshot_b64: str = ""
     page_text: str = ""
     timestamp: float = 0.0
@@ -104,6 +120,8 @@ class SanitizedWorldModel:
     formatted_dom: str
     a11y_summary: str = ""
     ocr_summary: str = ""
+    visual_summary: str = ""
+    visual_regions_count: int = 0
     redacted_screenshot_b64: Optional[str] = None
     detected_pii_count: int = 0
     pii_categories_found: List[str] = field(default_factory=list)

@@ -122,6 +122,15 @@ class WorldModelBuilder:
                 sanitized_lines.append(line)
         sanitized_formatted_dom = "\n".join(sanitized_lines)
 
+        # 7. Build sanitized visual structural summary
+        vis_summary_parts = []
+        if model.dialogs_detected:
+            vis_summary_parts.append(f"{len(model.dialogs_detected)} dialog container(s)")
+        card_count = sum(1 for v in model.visual_regions if v.region_type == "card")
+        if card_count > 0:
+            vis_summary_parts.append(f"{card_count} card cluster(s)")
+        vis_summary = ", ".join(vis_summary_parts) if vis_summary_parts else "Standard page layout"
+
         sanitized = SanitizedWorldModel(
             url=model.url,
             sanitized_url=model.url,
@@ -130,6 +139,8 @@ class WorldModelBuilder:
             formatted_dom=sanitized_formatted_dom,
             a11y_summary=sanitized_a11y,
             ocr_summary=ocr_summary,
+            visual_summary=vis_summary,
+            visual_regions_count=len(model.visual_regions),
             redacted_screenshot_b64=redacted_screenshot,
             detected_pii_count=len(all_pii_matches),
             pii_categories_found=[m.category.name for m in all_pii_matches],

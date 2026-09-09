@@ -105,6 +105,122 @@ class TestAgentMemory(unittest.TestCase):
         self.assertIsNotNone(retrieved)
         self.assertEqual(retrieved.common_path, "/cart/checkout")
 
+    def test_continuation_preserves_active_task_intent(self):
+        """
+        Regression Test (AWS -> ISRO Continuation):
+        TASK: 'Open ISRO website'
+        CURRENT PAGE: AWS Console (https://console.aws.amazon.com)
+        USER SAYS: 'ok do it'
+        EXPECTED: Continues active task to navigate to ISRO, NOT reinterpreting AWS Console as a new goal!
+        """
+        from unittest.mock import MagicMock, patch
+        from webveil.agent_loop import WebVeilAgent
+        from webveil.core.models.schema import DOMNode, BrowserAction, ActionType, ActionPlan
+        from webveil.core.memory.working_memory import AgentWorkingMemory
+
+        wm = AgentWorkingMemory()
+        # 1. Initial user task
+        wm.set_task("Open ISRO website")
+        self.assertEqual(wm.original_task, "Open ISRO website")
+
+        # 2. Page loads AWS Console
+        wm.update_environment_state(
+            url="https://eu-north-1.console.aws.amazon.com/console/home",
+            title="AWS Management Console",
+            dom_nodes_count=224,
+        )
+        self.assertEqual(wm.current_url, "https://eu-north-1.console.aws.amazon.com/console/home")
+
+        # 3. User says "ok do it"
+        wm.set_task("ok do it")
+        # Assert active persistent task intent is preserved
+        self.assertEqual(wm.original_task, "Open ISRO website")
+
+        # 4. End-to-end agent loop verification
+        with patch("webveil.agent_loop.PlaywrightAdapter") as mock_pw_cls:
+            mock_browser = MagicMock()
+            mock_pw_cls.return_value = mock_browser
+
+            aws_node = DOMNode(
+                node_id=1, tag_name="a", text_content="Sign In to AWS Console",
+                is_visible=True, is_interactive=True
+            )
+            mock_browser.extract_dom.return_value = ([aws_node], "<a>Sign In to AWS Console</a>")
+            mock_browser.capture_screenshot_b64.return_value = ""
+            mock_browser.get_current_url.return_value = "https://eu-north-1.console.aws.amazon.com/console/home"
+            mock_browser.get_page_title.return_value = "AWS Management Console"
+
+            agent = WebVeilAgent(max_steps=2, headless=True, provider_name="mock")
+            agent.browser = mock_browser
+
+            # First turn: set original task
+            agent.working_memory.set_task("Open ISRO website")
+
+            proposed_task_passed = None
+            def mock_reason(task, world_model, action_history, error_context=None):
+                nonlocal proposed_task_passed
+                proposed_task_passed = task
+                return ActionPlan(
+                    actions=[BrowserAction(action=ActionType.NAVIGATE, url="https://www.isro.gov.in")],
+                    thought="Navigating to ISRO website as requested"
+                )
+
+            mock_provider = MagicMock()
+            mock_provider.provider_name = "mock"
+            mock_provider.reason.side_effect = mock_reason
+            mock_provider.token_usage.input_tokens = 20
+            mock_provider.token_usage.output_tokens = 20
+            mock_provider.token_usage.total_calls = 1
+            agent.provider = mock_provider
+
+            # Execute continuation prompt
+            result = agent.run_task(
+                start_url="https://eu-north-1.console.aws.amazon.com/console/home",
+                task="ok do it",
+                initial_navigate=False,
+            )
+
+            # Confirm agent used the preserved ISRO task intent, not AWS sign-in
+            self.assertEqual(proposed_task_passed, "Open ISRO website")
+            self.assertEqual(agent.working_memory.original_task, "Open ISRO website")
+            self.assertEqual(agent.state.task, "Open ISRO website")
+
+    def test_working_memory_lifecycle_and_failures(self):
+        """Verify subgoal transitions, structured failure recording, and verification memory."""
+        from webveil.core.memory.working_memory import AgentWorkingMemory, FailureType, GoalStatus
+
+        wm = AgentWorkingMemory()
+        wm.set_task("Complete Multi-Step Checkout")
+
+        g1 = wm.add_subgoal("Enter delivery address", "Address verified")
+        g2 = wm.add_subgoal("Confirm payment", "Receipt generated")
+
+        self.assertEqual(wm.get_active_goal().goal_id, "goal_1")
+        wm.advance_goal_on_success()
+        self.assertEqual(wm.get_active_goal().goal_id, "goal_2")
+
+        # Record a structured failure
+        fail_rec = wm.record_failure(
+            failure_type=FailureType.STALE_TARGET,
+            step_index=2,
+            details="Node [15] detached during form submission",
+        )
+        self.assertEqual(fail_rec.failure_type, FailureType.STALE_TARGET)
+        self.assertEqual(len(wm.get_recent_failures()), 1)
+
+        # Record verification
+        wm.record_verification(
+            step_index=2,
+            expected_state="Order confirmed banner",
+            actual_state="Error banner: Card declined",
+            verified=False,
+            confidence=0.25,
+            reasons=["Card declined error"],
+        )
+        self.assertEqual(len(wm.verification_history), 1)
+        self.assertFalse(wm.verification_history[0].verified)
+
 
 if __name__ == "__main__":
     unittest.main()
+

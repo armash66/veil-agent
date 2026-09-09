@@ -29,6 +29,10 @@ from webveil.core.models.schema import (
     DOMRankingMetrics, GroundingResult, TaskRepresentation,
 )
 from webveil.core.models.state import AgentStage, AgentState, AgentEvent
+from webveil.core.memory.working_memory import AgentWorkingMemory, FailureType
+from webveil.core.context.manager import LocalContextManager
+from webveil.browser.scheduler import ExecutionScheduler
+from webveil.core.privacy.visual_privacy import VisualPrivacyEngine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("WebVeilAgent")
@@ -55,6 +59,10 @@ class WebVeilAgent:
         # Subsystems
         self.task_analyzer = TaskAnalyzer()
         self.dom_ranker = DOMRanker()
+        self.working_memory = AgentWorkingMemory()
+        self.context_manager = LocalContextManager(self.dom_ranker)
+        self.scheduler = ExecutionScheduler()
+        self.visual_privacy = VisualPrivacyEngine()
         self.browser = PlaywrightAdapter()
         self.detector = LocalPIIDetector()
         self.ner_engine = LocalPIINerEngine(self.detector)
@@ -126,6 +134,18 @@ class WebVeilAgent:
         self.state = AgentState(task=task, max_steps=self.max_steps)
         self.state.stage = AgentStage.UNDERSTAND
         task_rep: TaskRepresentation = self.task_analyzer.analyze_task(task)
+
+        # Working memory task registration & continuation preservation
+        self.working_memory.set_task(task, task_rep)
+        if self.working_memory.original_task and self.working_memory.original_task != task:
+            logger.info(
+                f"[AgentLoop] Preserving active persistent intent: '{self.working_memory.original_task}' "
+                f"over continuation prompt '{task}'"
+            )
+            task = self.working_memory.original_task
+            task_rep = self.working_memory.active_intent or task_rep
+
+        self.state.task = task
         self.state.task_representation = task_rep
 
         understand_meta = {
@@ -411,6 +431,13 @@ class WebVeilAgent:
                     act_meta = {"action": proposed_action.action.value, "node_id": proposed_action.node_id}
                     self._emit("stage_change", {"stage": AgentStage.ACT.value, "data": act_meta})
                     try:
+                        # ── Execution Readiness (ExecutionScheduler) ──
+                        readiness = self.scheduler.await_readiness(
+                            self.browser.page, proposed_action
+                        )
+                        if not readiness.is_ready:
+                            logger.warning(f"[Scheduler] Readiness warning: {readiness.reason}")
+
                         success = self.firewall.execute_validated_action(
                             proposed_action, raw_dom_nodes, current_origin
                         )
@@ -424,7 +451,18 @@ class WebVeilAgent:
                             self.state.executed_actions.append(result)
                         else:
                             self.state.failed_actions.append(result)
+                            self.working_memory.record_failure(
+                                FailureType.STALE_TARGET,
+                                step_count,
+                                f"Action {proposed_action.action.value} execution returned False",
+                                proposed_action
+                            )
                         self.action_history.append(result)
+                        self.working_memory.record_action(
+                            action=proposed_action,
+                            success=success,
+                            step_index=step_count,
+                        )
 
                         self.state.emit_event(AgentStage.ACT, "completed" if success else "failed", {
                             "action": proposed_action.action.value,
@@ -448,6 +486,8 @@ class WebVeilAgent:
                     except (ActionSecurityViolation, Exception) as e:
                         error_msg = str(e)[:200]
                         logger.warning(f"[Firewall] Action rejected: {error_msg}")
+                        fail_type = FailureType.FIREWALL_REJECTION if isinstance(e, ActionSecurityViolation) else FailureType.STALE_TARGET
+                        self.working_memory.record_failure(fail_type, step_count, error_msg, proposed_action)
                         result = ActionResult(
                             action=proposed_action,
                             success=False,
@@ -474,11 +514,42 @@ class WebVeilAgent:
                 verified = True
                 if self.action_history:
                     last = self.action_history[-1]
-                    verified = self.verifier.verify_action_execution(
-                        last.action, raw_dom_nodes, post_nodes
-                    )
-                    if not verified:
-                        logger.warning("[Verifier] Action verification flagged anomaly.")
+                    if hasattr(self.verifier, "verify_action_result"):
+                        v_res = self.verifier.verify_action_result(
+                            last.action, raw_dom_nodes, post_nodes,
+                            current_url=current_url, user_task=task
+                        )
+                        verified = (v_res.status.value == "SUCCESS")
+                        if not verified:
+                            all_reasons = list(v_res.reasons)
+                            if v_res.detected_errors:
+                                all_reasons.extend(v_res.detected_errors)
+                            reasons_str = "; ".join(all_reasons) or "State mutation anomaly"
+                            logger.warning(f"[Verifier] Action verification flagged anomaly: {reasons_str}")
+                            error_context = f"Verification failed for action {last.action.action.value}: {reasons_str}"
+                            self.state.stage = AgentStage.REPLAN
+                            self.state.emit_event(AgentStage.REPLAN, "started", {"reason": error_context})
+                            self._emit("stage_change", {"stage": AgentStage.REPLAN.value, "data": {"reason": error_context}})
+                    else:
+                        verified = self.verifier.verify_action_execution(
+                            last.action, raw_dom_nodes, post_nodes
+                        )
+                        if not verified:
+                            logger.warning("[Verifier] Action verification flagged anomaly.")
+                            error_context = f"Verification failed for action {last.action.action.value}"
+                            self.state.stage = AgentStage.REPLAN
+                            self.state.emit_event(AgentStage.REPLAN, "started", {"reason": error_context})
+                            self._emit("stage_change", {"stage": AgentStage.REPLAN.value, "data": {"reason": error_context}})
+
+                    if verified:
+                        self.working_memory.advance_goal_on_success()
+                    else:
+                        self.working_memory.record_failure(
+                            FailureType.VERIFICATION_FAILURE,
+                            step_count,
+                            error_context or "Verification anomaly",
+                            last.action if self.action_history else None,
+                        )
                 self.state.verification_result = verified
                 self.state.emit_event(AgentStage.VERIFY, "completed" if verified else "failed", {"verified": verified})
                 self._emit("stage_change", {"stage": AgentStage.VERIFY.value, "data": {"step": step_count, "verified": verified}})

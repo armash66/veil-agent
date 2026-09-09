@@ -71,9 +71,14 @@ class TaskAwareDOMRanker:
             # Objective / constraints
             if task.objective and task.objective.lower() in text_corpus:
                 relevance_hits += 1
-            for ck, cv in task.constraints.items():
-                if str(cv).lower() in text_corpus or ck.lower() in text_corpus:
-                    relevance_hits += 1
+            if isinstance(task.constraints, dict):
+                for ck, cv in task.constraints.items():
+                    if str(cv).lower() in text_corpus or ck.lower() in text_corpus:
+                        relevance_hits += 1
+            elif isinstance(task.constraints, list):
+                for c in task.constraints:
+                    if str(c).lower() in text_corpus:
+                        relevance_hits += 1
 
             features["task_relevance"] = min(1.0, relevance_hits * 0.3)
 
