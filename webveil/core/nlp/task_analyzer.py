@@ -41,9 +41,11 @@ class TaskAnalyzer:
             actions.extend(["search", "extract", "summarize"])
 
         # 2. Entity Extraction
-        entity_keywords = ["laptop", "phone", "tv", "camera", "aadhaar", "email", "password", "isro", "chandrayaan"]
+        entity_keywords = ["laptop", "phone", "tv", "camera", "aadhaar", "email", "password", "isro", "chandrayaan", "headphones", "shoes", "flight"]
         for ek in entity_keywords:
             if ek in lower:
+                if ek == "phone" and ("headphone" in lower or "earphone" in lower):
+                    continue
                 entities.append(ek)
 
         # 3. Numeric & Price Constraint Extraction (e.g., "under 80000", "under ₹80k", "16GB RAM")
