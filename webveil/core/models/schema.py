@@ -285,6 +285,8 @@ class GroundingResult:
     alternative_nodes: List[Dict[str, Any]] = field(default_factory=list)
     threshold_action: str = "EXECUTE"  # "EXECUTE" (>=0.85), "VERIFY" (0.60-0.84), "REPLAN" (<0.60)
     reasoning: str = ""
+    target_coordinates: Optional[Dict[str, float]] = None  # {x, y}
+    is_in_viewport: bool = True
 
 
 

@@ -101,17 +101,37 @@ class ElementGrounder:
         elif confidence < 0.85:
             threshold_action = "VERIFY"
 
+        # Compute physical click coordinates & verification
+        from webveil.core.grounding.coordinate_mapper import CoordinateMapper
+        from webveil.core.grounding.grounding_verifier import GroundingVerifier
+
+        target_coords = None
+        is_in_vp = True
+        if target_node.bounding_box:
+            click_point = CoordinateMapper.compute_safe_click_point(target_node.bounding_box)
+            target_coords = {"x": click_point["x"], "y": click_point["y"]}
+            is_in_vp = click_point["is_in_viewport"]
+
+        valid, verify_reason = GroundingVerifier.verify_target_interactable(target_node, target_coords)
+        reasoning = f"Node [{target_node.node_id}] <{target_node.tag_name}> grounded with {int(confidence*100)}% confidence."
+        if not valid:
+            threshold_action = "VERIFY"
+            reasoning += f" Pre-execution check: {verify_reason}"
+
         result = GroundingResult(
             action=action,
             selected_node_id=target_node.node_id,
             confidence=confidence,
             alternative_nodes=alternatives,
             threshold_action=threshold_action,
-            reasoning=f"Node [{target_node.node_id}] <{target_node.tag_name}> grounded with {int(confidence*100)}% confidence.",
+            reasoning=reasoning,
+            target_coordinates=target_coords,
+            is_in_viewport=is_in_vp,
         )
 
         logger.info(
             f"[Grounder] Action '{action.action.value}' -> Node [{target_node.node_id}] | "
-            f"Confidence: {confidence} | Decision: {threshold_action}"
+            f"Confidence: {confidence} | Decision: {threshold_action} | "
+            f"Coords: {target_coords}"
         )
         return result
