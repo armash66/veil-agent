@@ -183,12 +183,36 @@ def parse_action_plan(raw_response: str, max_actions: int = 5) -> ActionPlan:
                 try:
                     data = json.loads(cleaned)
                 except json.JSONDecodeError:
+                    # Try partial regex extraction before giving up
+                    thought_m = re.search(r'"thought"\s*:\s*"([^"]+)"', raw_response)
+                    action_m = re.search(r'"action"\s*:\s*"([a-zA-Z_]+)"', raw_response)
+                    if thought_m:
+                        th = thought_m.group(1)
+                        act_str = action_m.group(1) if action_m else "done"
+                        try:
+                            act_type = ActionType(act_str.lower())
+                        except ValueError:
+                            act_type = ActionType.DONE
+                        node_m = re.search(r'"node_id"\s*:\s*(\d+)', raw_response)
+                        nid = int(node_m.group(1)) if node_m else None
+                        return ActionPlan(
+                            actions=[BrowserAction(action=act_type, node_id=nid, thought=th)],
+                            thought=th,
+                        )
                     logger.error(f"[Reasoning] Failed to parse JSON candidate: {json_candidate[:200]}")
                     return ActionPlan(
                         actions=[BrowserAction(action=ActionType.WAIT, thought="Failed to parse LLM response")],
                         thought="Parse error — waiting for retry",
                     )
         else:
+            # Check if LLM answered in plain English thought without JSON wrapper
+            thought_m = re.search(r'"thought"\s*:\s*"([^"]+)"', raw_response)
+            if thought_m:
+                th = thought_m.group(1)
+                return ActionPlan(actions=[BrowserAction(action=ActionType.DONE, thought=th)], thought=th)
+            elif len(text) > 10 and not text.startswith("{"):
+                return ActionPlan(actions=[BrowserAction(action=ActionType.DONE, thought=text[:300])], thought=text[:300])
+
             logger.error(f"[Reasoning] No JSON structure found in response: {text[:200]}")
             return ActionPlan(
                 actions=[BrowserAction(action=ActionType.WAIT, thought="No JSON in LLM response")],
@@ -240,7 +264,10 @@ def _is_error_plan(plan: Optional[ActionPlan]) -> bool:
     if getattr(plan, "provider_used", "").endswith(": Error)"):
         return True
     thought = (plan.thought or "").lower()
-    error_keywords = ["api error", "quota exceeded", "resource_exhausted", "rate limit", "429", "unauthorized", "failed to parse"]
+    error_keywords = [
+        "api error", "quota exceeded", "resource_exhausted", "rate limit",
+        "429", "unauthorized", "failed to parse", "parse error", "no json in llm"
+    ]
     return any(k in thought for k in error_keywords)
 
 

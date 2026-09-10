@@ -326,18 +326,52 @@ async def reason(request: ReasonRequest):
         )
 
 
-def _format_dom_for_prompt(nodes: List[DOMNode]) -> str:
-    """Format sanitized DOM nodes into a text representation for LLM prompt."""
+def _format_dom_for_prompt(nodes: List[DOMNode], max_nodes: int = 180) -> str:
+    """Format sanitized DOM nodes into a text representation for LLM prompt.
+    Prioritizes interactive and structural elements, capping to stay well within token limits.
+    """
+    if not nodes:
+        return ""
+
+    interactive_nodes = []
+    structural_nodes = []
+    other_nodes = []
+
+    for n in nodes:
+        tag = (n.tag_name or "").lower()
+        if n.is_interactive or tag in ("input", "button", "select", "textarea", "a"):
+            interactive_nodes.append(n)
+        elif tag in ("h1", "h2", "h3", "h4", "form", "main", "nav", "article", "header", "table"):
+            structural_nodes.append(n)
+        else:
+            other_nodes.append(n)
+
+    # Combine with budget: all interactive first, then structural, then text content
+    selected = interactive_nodes[:max_nodes]
+    remaining_budget = max_nodes - len(selected)
+    if remaining_budget > 0:
+        selected.extend(structural_nodes[:remaining_budget])
+        remaining_budget = max_nodes - len(selected)
+    if remaining_budget > 0:
+        selected.extend(other_nodes[:remaining_budget])
+
+    # Sort back by original node_id so DOM layout order is preserved
+    selected.sort(key=lambda x: x.node_id)
+
     lines = []
-    for node in nodes:
+    for node in selected:
         parts = [f"[{node.node_id}]", f"<{node.tag_name}>"]
         if node.element_type:
             parts.append(f'type="{node.element_type}"')
         if node.text_content:
-            parts.append(f'"{node.text_content[:100]}"')
+            parts.append(f'"{node.text_content[:80]}"')
         if node.is_interactive:
             parts.append("[interactive]")
         lines.append(" ".join(parts))
+
+    if len(nodes) > len(selected):
+        lines.append(f"... ({len(nodes) - len(selected)} passive elements omitted to preserve token window)")
+
     return "\n".join(lines)
 
 
