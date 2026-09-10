@@ -26,7 +26,7 @@ class WebVeilConfig:
 
     def __init__(self):
         # Reasoning provider
-        self.provider: str = os.getenv("REASONING_PROVIDER") or os.getenv("WEBVEIL_PROVIDER", "mock")
+        self.provider: str = os.getenv("REASONING_PROVIDER") or os.getenv("WEBVEIL_PROVIDER", "cascade")
         self.gemini_api_key: Optional[str] = os.getenv("GEMINI_API_KEY")
         self.openai_api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
         self.openrouter_api_key: Optional[str] = os.getenv("OPENROUTER_API_KEY")
@@ -34,7 +34,7 @@ class WebVeilConfig:
         self.ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.1")
         self.gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-        self.openrouter_model: str = os.getenv("OPENROUTER_MODEL", "openrouter/free")
+        self.openrouter_model: str = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")
 
         # Agent settings
         self.max_steps: int = int(os.getenv("WEBVEIL_MAX_STEPS", "20"))
@@ -50,7 +50,11 @@ class WebVeilConfig:
     def validate(self) -> list[str]:
         """Returns list of warnings about configuration issues."""
         warnings = []
-        if self.provider == "gemini" and not self.gemini_api_key:
+        if self.provider == "cascade":
+            # Cascade gracefully handles missing keys across its 3 tiers
+            if not self.openrouter_api_key and not self.gemini_api_key:
+                warnings.append("No cloud fallback API keys set (OPENROUTER_API_KEY or GEMINI_API_KEY). Cascade will run local Ollama with mock safety net.")
+        elif self.provider == "gemini" and not self.gemini_api_key:
             if self.openrouter_api_key:
                 warnings.append("GEMINI_API_KEY is not set; falling back to openrouter provider.")
                 self.provider = "openrouter"

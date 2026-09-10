@@ -27,12 +27,13 @@ class OpenRouterProvider:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "openrouter/free",
+        model: Optional[str] = None,
         site_url: str = "https://github.com/armash66/veil-agent",
         site_name: str = "WebVeil",
     ):
+        from webveil.config import config
         self._token_usage = TokenUsage()
-        self._model_name = model
+        self._model_name = model or config.openrouter_model or "nvidia/nemotron-3-ultra-550b-a55b:free"
 
         try:
             from openai import OpenAI
@@ -82,7 +83,9 @@ class OpenRouterProvider:
                 max_tokens=1024,
             )
 
-            raw_text = response.choices[0].message.content or ""
+            choice = response.choices[0] if response.choices else None
+            msg = choice.message if choice else None
+            raw_text = (msg.content if msg else "") or ""
 
             # Track token usage
             if response.usage:
@@ -97,15 +100,19 @@ class OpenRouterProvider:
                 )
 
             logger.info(f"[OpenRouter] Response received ({len(raw_text)} chars)")
-            return parse_action_plan(raw_text)
+            plan = parse_action_plan(raw_text)
+            plan.provider_used = "Fallback (OpenRouter)"
+            return plan
 
         except Exception as e:
             err_str = str(e)
             logger.error(f"[OpenRouter] API call failed: {err_str[:200]}")
-            return ActionPlan(
+            plan = ActionPlan(
                 actions=[BrowserAction(action=ActionType.WAIT, thought=f"OpenRouter error: {err_str[:100]}")],
                 thought=f"OpenRouter API error: {err_str[:120]}",
             )
+            plan.provider_used = "Fallback (OpenRouter: Error)"
+            return plan
 
     @property
     def token_usage(self) -> TokenUsage:

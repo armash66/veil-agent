@@ -231,23 +231,210 @@ def parse_action_plan(raw_response: str, max_actions: int = 5) -> ActionPlan:
     return ActionPlan(actions=actions, thought=thought)
 
 
+
+# ─── 3-Tier Escalation Cascade ──────────────────────────────────────────
+
+def _is_error_plan(plan: Optional[ActionPlan]) -> bool:
+    if not plan:
+        return True
+    if getattr(plan, "provider_used", "").endswith(": Error)"):
+        return True
+    thought = (plan.thought or "").lower()
+    error_keywords = ["api error", "quota exceeded", "resource_exhausted", "rate limit", "429", "unauthorized", "failed to parse"]
+    return any(k in thought for k in error_keywords)
+
+
+class CascadeReasoningProvider:
+    """
+    3-Tier Escalation Cascade for Privacy-Preserving Browser Reasoning:
+
+    1. Tier 1 (Primary, Local, Always Tried First):
+       - Local Ollama daemon on http://localhost:11434 (model: llama3.1).
+       - Zero API keys required, zero reasoning network egress.
+
+    2. Tier 2 (Backup, Free Hosted Open-Weight):
+       - OpenRouter free tier (model: nvidia/nemotron-3-ultra:free or openrouter/free).
+       - Free API key, used if local Ollama times out, is offline, or errors.
+
+    3. Tier 3 (Final Backup, Google Free Tier):
+       - Google Gemini 2.5 Flash free tier (gemini-2.5-flash).
+       - Free API key, used only if Tier 1 and Tier 2 are unavailable or rate-limited.
+
+    Safety Net:
+       - Local deterministic mock if completely offline or without credentials.
+    """
+
+    def __init__(
+        self,
+        ollama_url: Optional[str] = None,
+        ollama_model: Optional[str] = None,
+        openrouter_key: Optional[str] = None,
+        openrouter_model: Optional[str] = None,
+        gemini_key: Optional[str] = None,
+        gemini_model: Optional[str] = None,
+    ):
+        from webveil.config import config
+
+        self._active_tier: str = "Local (Ollama)"
+        self._token_usage = TokenUsage()
+
+        # Initialize Tier 1: Local Ollama
+        try:
+            from webveil.reasoning.providers.ollama_provider import OllamaProvider
+            self._ollama: Optional[OllamaProvider] = OllamaProvider(
+                base_url=ollama_url or config.ollama_base_url,
+                model=ollama_model or config.ollama_model,
+                timeout=8.0,
+            )
+        except Exception as e:
+            logger.warning(f"[Cascade] Ollama provider init failed: {e}")
+            self._ollama = None
+
+        # Initialize Tier 2: OpenRouter Free
+        or_key = openrouter_key or config.openrouter_api_key
+        or_model = openrouter_model or config.openrouter_model or "nvidia/nemotron-3-ultra-550b-a55b:free"
+        if or_key:
+            try:
+                from webveil.reasoning.providers.openrouter_provider import OpenRouterProvider
+                self._openrouter: Optional[OpenRouterProvider] = OpenRouterProvider(
+                    api_key=or_key,
+                    model=or_model,
+                )
+            except Exception as e:
+                logger.warning(f"[Cascade] OpenRouter provider init failed: {e}")
+                self._openrouter = None
+        else:
+            self._openrouter = None
+
+        # Initialize Tier 3: Gemini Free Tier
+        gem_key = gemini_key or config.gemini_api_key
+        gem_model = gemini_model or config.gemini_model or "gemini-2.5-flash"
+        if gem_key:
+            try:
+                from webveil.reasoning.providers.gemini_provider import GeminiProvider
+                self._gemini: Optional[GeminiProvider] = GeminiProvider(
+                    api_key=gem_key,
+                    model=gem_model,
+                )
+            except Exception as e:
+                logger.warning(f"[Cascade] Gemini provider init failed: {e}")
+                self._gemini = None
+        else:
+            self._gemini = None
+
+        # Initialize Fallback Mock
+        from webveil.reasoning.providers.mock_provider import MockProvider
+        self._mock = MockProvider()
+
+        logger.info(
+            f"[Cascade] 3-Tier cascade initialized: "
+            f"Tier 1 (Local Ollama: {getattr(self._ollama, '_model_name', 'None')}) -> "
+            f"Tier 2 (OpenRouter: {or_model if self._openrouter else 'No Key'}) -> "
+            f"Tier 3 (Gemini: {gem_model if self._gemini else 'No Key'})"
+        )
+
+    @property
+    def provider_name(self) -> str:
+        return f"Cascade [{self._active_tier}]"
+
+    @property
+    def active_tier(self) -> str:
+        return self._active_tier
+
+    @property
+    def token_usage(self) -> TokenUsage:
+        tot = TokenUsage()
+        for p in [self._ollama, self._openrouter, self._gemini]:
+            if p and hasattr(p, "token_usage"):
+                tot.input_tokens += p.token_usage.input_tokens
+                tot.output_tokens += p.token_usage.output_tokens
+                tot.total_calls += p.token_usage.total_calls
+        return tot
+
+    def reason(
+        self,
+        task: str,
+        world_model: SanitizedWorldModel,
+        action_history: List[ActionResult],
+        error_context: Optional[str] = None,
+    ) -> ActionPlan:
+        """
+        Escalation order:
+        1. Local Ollama (Zero key, zero egress)
+        2. OpenRouter Free (Nemotron 3 Ultra)
+        3. Gemini 2.5 Flash Free Tier
+        4. Local Mock
+        """
+        # ── Tier 1: Local Ollama (Primary) ──
+        if self._ollama:
+            try:
+                logger.info("[Cascade] Trying Tier 1: Local Ollama (zero-network egress)...")
+                plan = self._ollama.reason(task, world_model, action_history, error_context)
+                if plan and not _is_error_plan(plan):
+                    plan.provider_used = "Local (Ollama)"
+                    self._active_tier = "Local (Ollama)"
+                    return plan
+                logger.warning(f"[Cascade] Tier 1 returned error or invalid plan: {plan.thought if plan else 'None'}. Escalating...")
+            except Exception as e:
+                logger.warning(f"[Cascade] Tier 1 (Ollama) unavailable: {e}. Escalating to Tier 2 (OpenRouter)...")
+
+        # ── Tier 2: OpenRouter Free (Backup) ──
+        if self._openrouter:
+            try:
+                logger.info("[Cascade] Trying Tier 2: OpenRouter (free open-weight model)...")
+                plan = self._openrouter.reason(task, world_model, action_history, error_context)
+                if plan and not _is_error_plan(plan):
+                    plan.provider_used = "Fallback (OpenRouter)"
+                    self._active_tier = "Fallback (OpenRouter)"
+                    return plan
+                logger.warning(f"[Cascade] Tier 2 returned error or rate limit: {plan.thought if plan else 'None'}. Escalating...")
+            except Exception as e:
+                logger.warning(f"[Cascade] Tier 2 (OpenRouter) failed: {e}. Escalating to Tier 3 (Gemini)...")
+
+        # ── Tier 3: Gemini 2.5 Flash Free Tier (Final Backup) ──
+        if self._gemini:
+            try:
+                logger.info("[Cascade] Trying Tier 3: Gemini 2.5 Flash Free Tier...")
+                plan = self._gemini.reason(task, world_model, action_history, error_context)
+                if plan and not _is_error_plan(plan):
+                    plan.provider_used = "Fallback (Gemini)"
+                    self._active_tier = "Fallback (Gemini)"
+                    return plan
+                logger.warning(f"[Cascade] Tier 3 returned error or rate limit: {plan.thought if plan else 'None'}.")
+            except Exception as e:
+                logger.warning(f"[Cascade] Tier 3 (Gemini) failed: {e}.")
+
+        # ── Safety Net: Local Mock ──
+        logger.warning("[Cascade] All reasoning tiers exhausted. Falling back to local deterministic mock.")
+        plan = self._mock.reason(task, world_model, action_history, error_context)
+        plan.provider_used = "Local (Mock Fallback)"
+        self._active_tier = "Local (Mock Fallback)"
+        return plan
+
+
 # ─── Provider Factory ──────────────────────────────────────────────────
 
 def create_provider(provider_name: str, **kwargs) -> ReasoningProvider:
     """Create a reasoning provider by name."""
-    if provider_name == "gemini":
+    p_name = (provider_name or "").strip().lower()
+    if p_name in ("cascade", "default", "local-first", "cascade-provider"):
+        return CascadeReasoningProvider(**kwargs)
+    elif p_name == "ollama":
+        from webveil.reasoning.providers.ollama_provider import OllamaProvider
+        return OllamaProvider(**kwargs)
+    elif p_name == "gemini":
         from webveil.reasoning.providers.gemini_provider import GeminiProvider
         return GeminiProvider(**kwargs)
-    elif provider_name == "openrouter":
+    elif p_name == "openrouter":
         from webveil.reasoning.providers.openrouter_provider import OpenRouterProvider
         return OpenRouterProvider(**kwargs)
-    elif provider_name == "openai":
+    elif p_name == "openai":
         from webveil.reasoning.providers.openai_provider import OpenAIProvider
         return OpenAIProvider(**kwargs)
-    elif provider_name == "mock":
+    elif p_name == "mock":
         from webveil.reasoning.providers.mock_provider import MockProvider
         return MockProvider()
     else:
-        logger.warning(f"Unknown provider '{provider_name}', falling back to mock")
-        from webveil.reasoning.providers.mock_provider import MockProvider
-        return MockProvider()
+        logger.warning(f"Unknown provider '{provider_name}', defaulting to 3-tier cascade")
+        return CascadeReasoningProvider(**kwargs)
+

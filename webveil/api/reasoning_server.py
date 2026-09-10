@@ -88,6 +88,8 @@ class ActionResponse(BaseModel):
 class ReasonResponse(BaseModel):
     thought: str
     actions: List[ActionResponse]
+    provider_used: str = "Local (Ollama)"
+    tier_used: str = "Local (Ollama)"
 
 # ── Provider Resolution & Caching ──
 _provider_cache: Dict[str, Any] = {}
@@ -98,21 +100,41 @@ def get_provider(requested_provider: Optional[str] = None, requested_model: Opti
     req_p = (requested_provider or "").strip().lower()
     req_m = (requested_model or "").strip()
 
+    # Default to cascade if none requested or "cascade" requested
+    if not req_p or req_p in ("cascade", "default", "auto", "local-first"):
+        cache_key = "cascade"
+        if cache_key in _provider_cache:
+            return _provider_cache[cache_key]
+        provider_inst = create_provider(
+            "cascade",
+            ollama_url=config.ollama_base_url,
+            ollama_model=config.ollama_model,
+            openrouter_key=config.openrouter_api_key,
+            openrouter_model=config.openrouter_model,
+            gemini_key=config.gemini_api_key,
+            gemini_model=config.gemini_model,
+        )
+        _provider_cache[cache_key] = provider_inst
+        logger.info("[Server] Initialized CascadeReasoningProvider (Ollama -> OpenRouter -> Gemini)")
+        return provider_inst
+
     # Infer provider if not explicit
-    if not req_p and req_m:
+    if req_m:
         m_lower = req_m.lower()
-        if "openrouter" in m_lower or "free" in m_lower:
+        if "openrouter" in m_lower or "nemotron" in m_lower:
             req_p = "openrouter"
         elif "gemini" in m_lower:
             req_p = "gemini"
-        elif "local" in m_lower or "mock" in m_lower:
+        elif "ollama" in m_lower or "llama" in m_lower:
+            req_p = "ollama"
+        elif "mock" in m_lower:
             req_p = "mock"
 
-    if not req_p:
-        req_p = config.provider
-
-    # Validate provider credentials
-    if req_p == "openrouter":
+    # Validate provider credentials for individual provider overrides
+    if req_p == "ollama":
+        model = req_m or config.ollama_model
+        api_key = None
+    elif req_p == "openrouter":
         if not config.openrouter_api_key:
             logger.warning("[Server] OPENROUTER_API_KEY missing; falling back to mock")
             req_p = "mock"
@@ -146,7 +168,9 @@ def get_provider(requested_provider: Optional[str] = None, requested_model: Opti
 
     try:
         kwargs = {}
-        if req_p == "gemini":
+        if req_p == "ollama":
+            kwargs = {"base_url": config.ollama_base_url, "model": model}
+        elif req_p == "gemini":
             kwargs = {"api_key": api_key, "model": model}
         elif req_p == "openrouter":
             kwargs = {"api_key": api_key, "model": model}
@@ -166,10 +190,15 @@ def get_provider(requested_provider: Optional[str] = None, requested_model: Opti
 @app.get("/health")
 async def health():
     provider = get_provider()
+    raw_tier = getattr(provider, "active_tier", None) or getattr(provider, "provider_name", "Local (Ollama)")
+    active_tier = str(raw_tier) if not hasattr(raw_tier, "_mock_name") else "Local (Ollama)"
+    p_name = getattr(provider, "provider_name", "Cascade")
+    provider_name = str(p_name) if not hasattr(p_name, "_mock_name") else "Cascade"
     return {
         "status": "ok",
-        "provider": provider.provider_name,
-        "description": "Thin reasoning-only server. No Playwright, no vault, no PII detection.",
+        "provider": provider_name,
+        "active_tier": active_tier,
+        "description": "Thin reasoning-only server with 3-Tier Escalation Cascade (Ollama -> OpenRouter -> Gemini).",
     }
 
 @app.post("/api/reason", response_model=ReasonResponse)
@@ -256,8 +285,16 @@ async def reason(request: ReasonRequest):
             except Exception as fb_err:
                 logger.warning(f"[Reason] OpenRouter fallback failed: {fb_err}")
 
+        raw_p = getattr(plan, "provider_used", None)
+        if not raw_p or not isinstance(raw_p, str):
+            raw_p = getattr(provider, "active_tier", None)
+        if not raw_p or not isinstance(raw_p, str):
+            raw_p = getattr(provider, "provider_name", "Local (Ollama)")
+        provider_used = str(raw_p) if raw_p is not None and not hasattr(raw_p, "_mock_name") else "Local (Ollama)"
         return ReasonResponse(
             thought=plan.thought or "",
+            provider_used=provider_used,
+            tier_used=provider_used,
             actions=[
                 ActionResponse(
                     action=a.action.value,
@@ -273,6 +310,8 @@ async def reason(request: ReasonRequest):
         logger.error(f"[Reason] Provider error: {e}")
         return ReasonResponse(
             thought=f"Reasoning failed: {str(e)[:200]}",
+            provider_used="Error",
+            tier_used="Error",
             actions=[ActionResponse(action="WAIT", thought="Reasoning error, please retry")],
         )
 

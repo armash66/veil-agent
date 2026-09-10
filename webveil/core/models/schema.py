@@ -188,6 +188,8 @@ class ActionPlan:
     actions: List[BrowserAction]
     thought: str = ""  # Overall reasoning for this plan
     confidence: float = 0.0
+    provider_used: str = ""  # e.g., "Local (Ollama)", "Fallback (OpenRouter)", "Fallback (Gemini)"
+
 
 
 # ─── Egress Types (V0, unchanged) ──────────────────────────────────────

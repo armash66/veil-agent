@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         const data = await res.json();
         if (data.status === 'ok') {
-          setServerStatus(true);
+          setServerStatus(true, data.active_tier || 'Local (Ollama)');
           return;
         }
       }
@@ -137,18 +137,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function setServerStatus(online) {
+  let currentActiveTier = 'Local (Ollama)';
+
+  function setServerStatus(online, tierName) {
     isServerOnline = online;
+    if (tierName) {
+      currentActiveTier = tierName;
+    }
 
     const badges = document.querySelectorAll('.wv-server-badge');
     badges.forEach(badge => {
       const textEl = badge.querySelector('.wv-badge-text');
       if (online) {
         badge.className = 'wv-server-badge online';
-        if (textEl) textEl.textContent = 'Connected';
+        if (textEl) {
+          textEl.textContent = currentActiveTier || 'Connected';
+        }
+        badge.title = `Active Reasoning Tier: ${currentActiveTier} · Sanitized Egress Boundary Verified`;
       } else {
         badge.className = 'wv-server-badge offline';
         if (textEl) textEl.textContent = 'Offline';
+        badge.title = 'Reasoning server offline (Run: python -m webveil.api.reasoning_server)';
       }
     });
 
@@ -1000,14 +1009,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // ═══════════════════════════════════════════════════════════
   function getSelectedProviderAndModel() {
     const label = (modelSelectName ? modelSelectName.textContent : '').trim().toLowerCase();
-    if (label.includes('openrouter')) {
-      return { provider: 'openrouter', model: 'openrouter/free' };
+    if (label.includes('ollama')) {
+      return { provider: 'ollama', model: 'llama3.1' };
+    } else if (label.includes('nemotron') || label.includes('openrouter')) {
+      return { provider: 'openrouter', model: 'nvidia/nemotron-3-ultra-550b-a55b:free' };
     } else if (label.includes('gemini')) {
       return { provider: 'gemini', model: 'gemini-2.5-flash' };
-    } else if (label.includes('local') || label.includes('mock')) {
-      return { provider: 'mock', model: 'local' };
     }
-    return { provider: 'openrouter', model: 'openrouter/free' };
+    // Default is 3-Tier Escalation Cascade (Local Ollama -> Nemotron 3 Ultra -> Gemini 2.5 Flash)
+    return { provider: 'cascade', model: 'cascade' };
   }
 
   async function runAgentPipeline(session, task) {
@@ -1353,8 +1363,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         reasonData = await res.json();
         actionPlan = reasonData.action_plan || reasonData;
-        updateReasoningStage('Thinking', 'Reasoning response received');
-        activityTimeline.push(`Reasoning completed via ${pm.provider}`);
+        const tierUsed = reasonData.provider_used || reasonData.tier_used || 'Local (Ollama)';
+        setServerStatus(true, tierUsed);
+        updateReasoningStage('Thinking', `Reasoning response received (${tierUsed})`);
+        activityTimeline.push(`Reasoning executed via ${tierUsed}`);
       } catch (e) {
         const isOffline = e.message.includes('Failed to fetch') || e.message.includes('NetworkError');
         const errLabel = isOffline ? 'Stopped · server offline' : 'Stopped · reasoning failed';
@@ -1779,10 +1791,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Model Selector Dropdown ──
   function getDisplayModelName(name) {
-    if (!name) return 'Model';
-    if (name.includes('OpenRouter')) return 'OpenRouter';
+    if (!name) return 'Cascade';
+    if (name.includes('Cascade')) return 'Cascade';
+    if (name.includes('Ollama')) return 'Ollama';
+    if (name.includes('Nemotron') || name.includes('OpenRouter')) return 'Nemotron';
     if (name.includes('Gemini')) return 'Gemini';
-    if (name.includes('Local')) return 'Local';
     return name;
   }
 

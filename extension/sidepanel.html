@@ -64,9 +64,9 @@
         <span id="conv-title" class="wv-conv-title">New Chat</span>
       </div>
       <div class="wv-conv-header-right">
-        <div class="wv-server-badge online" id="conv-server-badge" title="WebVeil Privacy Shield Active" style="display: none;">
+        <div class="wv-server-badge online" id="conv-server-badge" title="Active Reasoning Tier · Sanitized Egress Boundary">
           <span class="wv-badge-dot"></span>
-          <span class="wv-badge-text" id="conv-server-badge-text">Vaulted</span>
+          <span class="wv-badge-text" id="conv-server-badge-text">Local (Ollama)</span>
         </div>
         <button id="conv-settings-btn" class="wv-icon-btn" title="Settings">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -109,38 +109,49 @@
         
         <div class="wv-input-meta">
           <div class="wv-input-left-tools">
-            <!-- Model selector pill -->
+            <!-- Model selector / Cascade Resilience Pill -->
             <div class="wv-model-dropdown-container">
-              <button id="model-select-btn" class="wv-model-pill" title="Switch Model">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
-                <span id="model-select-name">OpenRouter</span>
+              <button id="model-select-btn" class="wv-model-pill" title="Resilient Reasoning Cascade: Local Ollama with Free Cloud Fallbacks">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span id="model-select-name">Cascade</span>
                 <svg class="wv-chevron-down" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
               <div id="model-dropdown-menu" class="wv-model-menu">
                 <div class="wv-model-section-header">
-                  <span>Models</span>
+                  <span>Resilience Cascade</span>
                 </div>
 
                 <div class="wv-model-list">
-                  <div class="wv-model-row active" data-model="OpenRouter Free">
+                  <div class="wv-model-row active" data-model="Auto-Cascade (Local First)">
                     <div class="wv-model-info">
-                      <div class="wv-model-name">OpenRouter Free</div>
+                      <div class="wv-model-name">Auto-Cascade (Local First)</div>
+                      <div class="wv-model-desc" style="font-size: 10px; color: var(--text-muted);">Local Ollama ➔ Nemotron 3 ➔ Gemini</div>
                     </div>
                     <div class="wv-model-badge-right">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="wv-check-icon"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
                   </div>
 
-                  <div class="wv-model-row" data-model="Gemini 2.5 Flash">
+                  <div class="wv-model-row" data-model="Local (Ollama)">
                     <div class="wv-model-info">
-                      <div class="wv-model-name">Gemini 2.5 Flash</div>
+                      <div class="wv-model-name">Tier 1: Local Ollama</div>
+                      <div class="wv-model-desc" style="font-size: 10px; color: var(--text-muted);">Zero keys, zero reasoning egress</div>
                     </div>
                     <div class="wv-model-badge-right"></div>
                   </div>
 
-                  <div class="wv-model-row" data-model="WebVeil Local">
+                  <div class="wv-model-row" data-model="Nemotron 3 Ultra (OpenRouter)">
                     <div class="wv-model-info">
-                      <div class="wv-model-name">WebVeil Local</div>
+                      <div class="wv-model-name">Tier 2: Nemotron 3 Ultra</div>
+                      <div class="wv-model-desc" style="font-size: 10px; color: var(--text-muted);">Free hosted backup (OpenRouter)</div>
+                    </div>
+                    <div class="wv-model-badge-right"></div>
+                  </div>
+
+                  <div class="wv-model-row" data-model="Gemini 2.5 Flash">
+                    <div class="wv-model-info">
+                      <div class="wv-model-name">Tier 3: Gemini 2.5 Flash</div>
+                      <div class="wv-model-desc" style="font-size: 10px; color: var(--text-muted);">Google free tier backup</div>
                     </div>
                     <div class="wv-model-badge-right"></div>
                   </div>

@@ -86,7 +86,9 @@ class GeminiProvider:
                     )
 
                 logger.info(f"[Gemini] Response received ({len(raw_text)} chars)")
-                return parse_action_plan(raw_text)
+                plan = parse_action_plan(raw_text)
+                plan.provider_used = "Fallback (Gemini)"
+                return plan
 
             except Exception as e:
                 err_str = str(e)
@@ -129,16 +131,20 @@ class GeminiProvider:
                             raw_text = fallback_res.text or ""
                             if raw_text:
                                 logger.info(f"[Gemini] Fallback to {fallback_model} succeeded ({len(raw_text)} chars)")
-                                return parse_action_plan(raw_text)
+                                fb_plan = parse_action_plan(raw_text)
+                                fb_plan.provider_used = "Fallback (Gemini)"
+                                return fb_plan
                         except Exception as fb_err:
                             logger.warning(f"[Gemini] Fallback to {fallback_model} failed: {fb_err}")
 
                     logger.error(f"[Gemini] API call failed (permanent or max retries reached): {err_str[:200]}")
                     from webveil.core.models.schema import BrowserAction, ActionType
-                    return ActionPlan(
+                    err_plan = ActionPlan(
                         actions=[BrowserAction(action=ActionType.WAIT, thought=f"Gemini API error: {err_str[:100]}")],
                         thought=f"API error ({'transient exhausted' if is_transient else 'permanent'}): {err_str[:100]}",
                     )
+                    err_plan.provider_used = "Fallback (Gemini: Error)"
+                    return err_plan
 
     @property
     def token_usage(self) -> TokenUsage:
