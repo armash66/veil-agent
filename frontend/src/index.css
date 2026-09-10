@@ -89,7 +89,7 @@
    2. The One Glass Recipe (Applied Everywhere)
 ───────────────────────────────────────────────────────────────────────────── */
 .wv-glass-panel {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -107,9 +107,9 @@
    3. Neumorphic Interactive Controls (Only on interactive controls)
 ───────────────────────────────────────────────────────────────────────────── */
 .neu-control {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 6px 6px 14px rgba(0, 0, 0, 0.38), -4px -4px 10px rgba(255, 255, 255, 0.04);
+  box-shadow: 5px 5px 12px rgba(0, 0, 0, 0.4), -3px -3px 8px rgba(255, 255, 255, 0.04);
   transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -124,21 +124,29 @@
 }
 
 .neu-control-primary {
-  background: rgba(99, 102, 241, 0.22);
+  background: rgba(99, 102, 241, 0.25);
   border: 1px solid rgba(129, 140, 248, 0.35);
-  box-shadow: 6px 6px 14px rgba(0, 0, 0, 0.4), -4px -4px 10px rgba(255, 255, 255, 0.04);
+  box-shadow: 5px 5px 12px rgba(0, 0, 0, 0.4), -3px -3px 8px rgba(255, 255, 255, 0.04);
   color: #ffffff;
   transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .neu-control-primary:hover {
-  background: rgba(99, 102, 241, 0.32);
+  background: rgba(99, 102, 241, 0.35);
   border-color: rgba(129, 140, 248, 0.55);
 }
 
 .neu-control-primary:active {
   box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -2px -2px 6px rgba(255, 255, 255, 0.08);
   transform: translateY(1px);
+}
+
+/* Sidebar Active Tab: Inset Neumorphic Toggle State (Matching Button :active) */
+.neu-tab-active {
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -2px -2px 6px rgba(255, 255, 255, 0.06);
+  color: #ffffff;
 }
 
 /* Neumorphic recessed well for status indicator */
