@@ -24,6 +24,10 @@
           <span class="wv-badge-dot"></span>
           <span class="wv-badge-text" id="server-badge-text">Offline</span>
         </div>
+        <button id="landing-theme-btn" class="wv-icon-btn wv-theme-toggle-btn" title="Toggle Light / Dark mode">
+          <svg class="wv-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="wv-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        </button>
         <button id="landing-settings-btn" class="wv-icon-btn" title="Settings">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
@@ -32,12 +36,9 @@
 
     <!-- Body -->
     <div class="wv-landing-body">
-      <!-- New Task Row -->
+      <!-- New Task Row (Clean single action) -->
       <div class="wv-new-task-row">
         <button id="new-task-btn" class="wv-new-task-btn">+ New Task</button>
-        <button id="history-btn" class="wv-history-btn" title="Session History">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-        </button>
       </div>
 
       <!-- Session List -->
@@ -68,6 +69,10 @@
           <span class="wv-badge-dot"></span>
           <span class="wv-badge-text" id="conv-server-badge-text">Local (Ollama)</span>
         </div>
+        <button id="conv-theme-btn" class="wv-icon-btn wv-theme-toggle-btn" title="Toggle Light / Dark mode">
+          <svg class="wv-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="wv-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        </button>
         <button id="conv-settings-btn" class="wv-icon-btn" title="Settings">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
@@ -102,7 +107,7 @@
       </button>
     </div>
 
-    <!-- Floating Input Box -->
+    <!-- Floating Input Box (Deliberately Sparse) -->
     <div class="wv-input-bar">
       <div class="wv-input-container">
         <textarea id="task-input" class="wv-textarea" placeholder="Type a message..." rows="1"></textarea>
@@ -112,7 +117,6 @@
             <!-- Model selector / Cascade Resilience Pill -->
             <div class="wv-model-dropdown-container">
               <button id="model-select-btn" class="wv-model-pill" title="Resilient Reasoning Cascade: Local Ollama with Free Cloud Fallbacks">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 <span id="model-select-name">Cascade</span>
                 <svg class="wv-chevron-down" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
@@ -125,7 +129,7 @@
                   <div class="wv-model-row active" data-model="Auto-Cascade (Local First)">
                     <div class="wv-model-info">
                       <div class="wv-model-name">Auto-Cascade (Local First)</div>
-                      <div class="wv-model-desc" style="font-size: 10px; color: var(--text-muted);">Local Ollama ➔ Nemotron 3 ➔ Gemini</div>
+                      <div class="wv-model-desc">Local Ollama ➔ Nemotron 3 ➔ Gemini</div>
                     </div>
                     <div class="wv-model-badge-right">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="wv-check-icon"><polyline points="20 6 9 17 4 12"/></svg>
@@ -135,7 +139,7 @@
                   <div class="wv-model-row" data-model="Local (Ollama)">
                     <div class="wv-model-info">
                       <div class="wv-model-name">Tier 1: Local Ollama</div>
-                      <div class="wv-model-desc" style="font-size: 10px; color: var(--text-muted);">Zero keys, zero reasoning egress</div>
+                      <div class="wv-model-desc">Zero keys, zero reasoning egress</div>
                     </div>
                     <div class="wv-model-badge-right"></div>
                   </div>
@@ -143,7 +147,7 @@
                   <div class="wv-model-row" data-model="Nemotron 3 Ultra (OpenRouter)">
                     <div class="wv-model-info">
                       <div class="wv-model-name">Tier 2: Nemotron 3 Ultra</div>
-                      <div class="wv-model-desc" style="font-size: 10px; color: var(--text-muted);">Free hosted backup (OpenRouter)</div>
+                      <div class="wv-model-desc">Free hosted backup (OpenRouter)</div>
                     </div>
                     <div class="wv-model-badge-right"></div>
                   </div>
@@ -151,46 +155,12 @@
                   <div class="wv-model-row" data-model="Gemini 2.5 Flash">
                     <div class="wv-model-info">
                       <div class="wv-model-name">Tier 3: Gemini 2.5 Flash</div>
-                      <div class="wv-model-desc" style="font-size: 10px; color: var(--text-muted);">Google free tier backup</div>
+                      <div class="wv-model-desc">Google free tier backup</div>
                     </div>
                     <div class="wv-model-badge-right"></div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            <!-- Instructions Selector Pill -->
-            <div class="wv-instructions-dropdown-container">
-              <button id="instructions-btn" class="wv-instructions-pill" title="Attach Custom Instructions (.md, .txt)">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                <span id="instructions-btn-label">Instructions</span>
-                <span id="instructions-clear-btn" class="wv-pill-clear" title="Clear instructions" style="display: none;">×</span>
-                <svg class="wv-chevron-down" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-              </button>
-              <div id="instructions-dropdown-menu" class="wv-instructions-menu">
-                <div class="wv-instructions-header">
-                  <span>Instructions</span>
-                  <button id="import-instructions-header-btn" class="wv-section-icon-btn" title="Import .md or .txt file">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  </button>
-                </div>
-
-                <div id="instructions-list" class="wv-instructions-list">
-                  <!-- Dynamically populated options -->
-                </div>
-
-                <div class="wv-model-divider"></div>
-
-                <div id="import-instructions-row" class="wv-instructions-footer-action" title="Import local .md or .txt instruction file">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                  <span>Import .md / .txt file</span>
-                </div>
-              </div>
-              <input type="file" id="instruction-file-input" accept=".md,.txt" style="display: none;" />
             </div>
           </div>
 
@@ -198,9 +168,7 @@
             <button id="attach-btn" class="wv-action-icon-btn" title="Attach file">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
             </button>
-            <button id="mic-btn" class="wv-action-icon-btn" title="Voice input">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-            </button>
+            <input type="file" id="attachment-file-input" style="display: none;" />
             <button id="send-btn" class="wv-send-circle-btn" title="Send" disabled>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
             </button>
@@ -211,7 +179,7 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════
-       VIEW 3 — SETTINGS
+       VIEW 3 — SETTINGS (Clean 3-Section Architecture)
        ═══════════════════════════════════════════════════════ -->
   <div id="view-settings" class="wv-view">
     <div class="wv-conv-header">
@@ -221,37 +189,100 @@
         </button>
         <span class="wv-conv-title">Settings</span>
       </div>
+      <div class="wv-conv-header-right">
+        <button id="settings-theme-btn" class="wv-icon-btn wv-theme-toggle-btn" title="Toggle Light / Dark mode">
+          <svg class="wv-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="wv-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        </button>
+      </div>
     </div>
 
     <div class="wv-settings-body">
-      <!-- Card 1: Provider & Model -->
-      <div class="wv-settings-card">
-        <div class="wv-settings-card-title">AI Reasoning Provider</div>
-        <div class="wv-settings-readout">Gemini 1.5 Flash (via Thin Server)</div>
-        <div class="wv-settings-help-text">Runs on-device DOM observation with remote AI decision generation.</div>
-      </div>
+      <!-- Section 1 — Reasoning -->
+      <div class="wv-settings-section">
+        <div class="wv-settings-section-title">Reasoning</div>
 
-      <!-- Card 2: Reasoning Server Address -->
-      <div class="wv-settings-card">
-        <div class="wv-settings-card-title">Reasoning Server Address</div>
-        <input id="settings-server-url" type="text" class="wv-settings-input" value="http://127.0.0.1:8000" placeholder="http://127.0.0.1:8000" />
-        <div class="wv-settings-help-text">Local address for python -m webveil.api.reasoning_server.</div>
-      </div>
-
-      <!-- Card 3: Security & Verification -->
-      <div class="wv-settings-card">
-        <div class="wv-settings-card-title">Isolated Client Vault & Security</div>
-        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-          <button id="open-vault-window-btn" class="wv-primary-btn" style="flex: 1; background: #0284c7;">Open Vault Window</button>
-          <button id="run-security-verification-btn" class="wv-primary-btn" style="flex: 1; background: #4f46e5;">Run Attack Demo</button>
+        <div class="wv-settings-card">
+          <div class="wv-settings-row">
+            <span class="wv-settings-label">Active Cascade Tier</span>
+            <span id="settings-active-tier-badge" class="wv-tier-badge">Local (Ollama)</span>
+          </div>
+          <div class="wv-settings-help-text">Automatic escalation order: Tier 1 Local Ollama (zero network egress) ➔ Tier 2 OpenRouter ➔ Tier 3 Gemini. Read-only status.</div>
         </div>
-        <div class="wv-settings-help-text">Inspect flagged user IDs, passwords, and Aadhaar identifiers held in Chrome Isolated World memory.</div>
+
+        <div class="wv-settings-card">
+          <label class="wv-settings-label" for="settings-server-url">Reasoning Server Endpoint</label>
+          <input id="settings-server-url" type="text" class="wv-settings-input" value="http://127.0.0.1:8000" placeholder="http://127.0.0.1:8000" />
+          <div class="wv-settings-help-text">Address of the local WebVeil reasoning server bridge and firewall.</div>
+        </div>
+
+        <div class="wv-settings-card">
+          <label class="wv-settings-label" for="settings-ollama-model">Local Tier Model Name</label>
+          <input id="settings-ollama-model" type="text" class="wv-settings-input" value="llama3.2:3b" placeholder="llama3.2:3b" />
+          <div class="wv-settings-help-text">Local model name in Ollama (default: llama3.2:3b). Completely on-device, zero API keys required.</div>
+        </div>
+      </div>
+
+      <!-- Section 2 — Privacy -->
+      <div class="wv-settings-section">
+        <div class="wv-settings-section-title">Privacy</div>
+
+        <div class="wv-settings-card">
+          <div class="wv-settings-row">
+            <span class="wv-settings-label">Protected Categories</span>
+            <span class="wv-counter-pill">6 Active</span>
+          </div>
+          <div class="wv-categories-grid">
+            <span class="wv-cat-tag">Passwords</span>
+            <span class="wv-cat-tag">Aadhaar (UIDAI)</span>
+            <span class="wv-cat-tag">Credit Cards</span>
+            <span class="wv-cat-tag">Email Addresses</span>
+            <span class="wv-cat-tag">Phone Numbers</span>
+            <span class="wv-cat-tag">SSN / Identifiers</span>
+          </div>
+          <div class="wv-settings-help-text">DOM scanner matches these patterns client-side. Real secrets are held in Chrome Isolated World memory only.</div>
+        </div>
+
+        <div class="wv-settings-card">
+          <div class="wv-settings-row">
+            <div>
+              <div class="wv-settings-label">Isolated Client Vault & Security</div>
+              <div class="wv-settings-help-text">Verify real-time DOM injection attack prevention and isolated key storage.</div>
+            </div>
+          </div>
+          <div class="wv-settings-actions-row">
+            <button id="open-vault-window-btn" class="wv-secondary-btn">Open Vault Window</button>
+            <button id="run-security-verification-btn" class="wv-primary-btn">Run Security Verification</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3 — Session Data -->
+      <div class="wv-settings-section">
+        <div class="wv-settings-section-title">Session Data</div>
+
+        <div class="wv-settings-card">
+          <div class="wv-settings-row">
+            <div>
+              <div class="wv-settings-label">Clear All Sessions</div>
+              <div class="wv-settings-help-text">Permanently wipe conversation history and stored action logs from local storage.</div>
+            </div>
+            <button id="clear-all-sessions-btn" class="wv-danger-btn">Clear All</button>
+          </div>
+          <div id="clear-confirm-row" class="wv-delete-confirm-box" style="display: none;">
+            <span>Delete all conversation history? This cannot be undone.</span>
+            <div style="display: flex; gap: 8px;">
+              <button id="confirm-clear-sessions-btn" class="wv-confirm-delete-btn">Yes, Delete</button>
+              <button id="cancel-clear-sessions-btn" class="wv-cancel-btn">Cancel</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════
-       PAYLOAD MODAL — glass frame, flat JSON content
+       PAYLOAD MODAL — hairline frame, flat JSON content
        ═══════════════════════════════════════════════════════ -->
   <div id="payload-modal" class="wv-modal-overlay">
     <div class="wv-modal">

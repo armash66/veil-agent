@@ -161,6 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    const settingsActiveTierBadge = document.getElementById('settings-active-tier-badge');
+    if (settingsActiveTierBadge) {
+      settingsActiveTierBadge.textContent = online ? (currentActiveTier || 'Local (Ollama)') : 'Server Offline';
+    }
+
     if (!isRunning) {
       taskInput.disabled = false;
       sendBtn.disabled = !taskInput.value.trim();
@@ -1756,7 +1761,93 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const openVaultWindowBtn = document.getElementById('open-vault-window-btn');
+  // ── Theme Management (Light / Dark Mode) ──
+  let currentTheme = 'light';
+  try {
+    const savedTheme = localStorage.getItem('webveil_theme');
+    if (savedTheme) {
+      currentTheme = savedTheme;
+    } else if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get('webveil_theme', (res) => {
+        if (res && res.webveil_theme) {
+          applyTheme(res.webveil_theme);
+        }
+      });
+    }
+  } catch (_) {}
+
+  function applyTheme(theme) {
+    currentTheme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('webveil_theme', theme);
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ webveil_theme: theme });
+      }
+    } catch (_) {}
+  }
+
+  function toggleTheme() {
+    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme);
+  }
+
+  applyTheme(currentTheme);
+
+  // Wire all theme toggle buttons across views
+  document.querySelectorAll('.wv-theme-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', toggleTheme);
+  });
+
+  // ── Settings: Ollama Model & Clear All Sessions ──
+  const settingsOllamaModel     = document.getElementById('settings-ollama-model');
+  const clearAllSessionsBtn     = document.getElementById('clear-all-sessions-btn');
+  const clearConfirmRow         = document.getElementById('clear-confirm-row');
+  const confirmClearSessionsBtn = document.getElementById('confirm-clear-sessions-btn');
+  const cancelClearSessionsBtn  = document.getElementById('cancel-clear-sessions-btn');
+
+  try {
+    const savedModel = localStorage.getItem('webveil_ollama_model');
+    if (savedModel && settingsOllamaModel) {
+      settingsOllamaModel.value = savedModel.trim();
+    }
+  } catch (_) {}
+
+  if (settingsOllamaModel) {
+    settingsOllamaModel.addEventListener('input', () => {
+      const val = settingsOllamaModel.value.trim();
+      if (val) {
+        try {
+          localStorage.setItem('webveil_ollama_model', val);
+          if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+            chrome.storage.local.set({ webveil_ollama_model: val });
+          }
+        } catch (_) {}
+      }
+    });
+  }
+
+  if (clearAllSessionsBtn && clearConfirmRow) {
+    clearAllSessionsBtn.addEventListener('click', () => {
+      clearConfirmRow.style.display = 'flex';
+    });
+  }
+
+  if (cancelClearSessionsBtn && clearConfirmRow) {
+    cancelClearSessionsBtn.addEventListener('click', () => {
+      clearConfirmRow.style.display = 'none';
+    });
+  }
+
+  if (confirmClearSessionsBtn && clearConfirmRow) {
+    confirmClearSessionsBtn.addEventListener('click', () => {
+      sessions = [];
+      saveSessions();
+      clearConfirmRow.style.display = 'none';
+      showLanding();
+    });
+  }
+
   if (openVaultWindowBtn) {
     openVaultWindowBtn.addEventListener('click', () => {
       try {

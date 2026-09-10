@@ -4,6 +4,7 @@ Defines the interface that all reasoning backends must implement.
 The provider proposes; the local client decides.
 """
 
+import os
 import logging
 from typing import Protocol, runtime_checkable, List, Dict, Any, Optional
 
@@ -311,7 +312,7 @@ class CascadeReasoningProvider:
             self._ollama: Optional[OllamaProvider] = OllamaProvider(
                 base_url=ollama_url or config.ollama_base_url,
                 model=ollama_model or config.ollama_model,
-                timeout=8.0,
+                timeout=float(os.getenv("OLLAMA_TIMEOUT", "25.0")),
             )
         except Exception as e:
             logger.warning(f"[Cascade] Ollama provider init failed: {e}")
