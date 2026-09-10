@@ -26,47 +26,13 @@ export function AgentPointer({
 }: AgentPointerProps) {
   const pointerRef = useRef<HTMLDivElement>(null);
   const posRef = useRef({ x: -100, y: -100 });
-  const targetRef = useRef({ x: -100, y: -100 });
   const rafId = useRef<number | null>(null);
 
   const prefersReducedMotion = useRef(
     window.matchMedia('(prefers-reduced-motion: reduce)').matches
   );
 
-  // Normal Cursor Follow Mode (Subtle companion pointer)
-  useEffect(() => {
-    if (isAgentActive) return;
-
-    const handlePointerMove = (e: PointerEvent) => {
-      targetRef.current = { x: e.clientX, y: e.clientY };
-    };
-
-    window.addEventListener('pointermove', handlePointerMove, { passive: true });
-
-    const updatePosition = () => {
-      if (prefersReducedMotion.current) {
-        posRef.current = targetRef.current;
-      } else {
-        posRef.current.x += (targetRef.current.x - posRef.current.x) * 0.25;
-        posRef.current.y += (targetRef.current.y - posRef.current.y) * 0.25;
-      }
-
-      if (pointerRef.current) {
-        pointerRef.current.style.transform = `translate3d(${posRef.current.x}px, ${posRef.current.y}px, 0)`;
-      }
-
-      rafId.current = requestAnimationFrame(updatePosition);
-    };
-
-    rafId.current = requestAnimationFrame(updatePosition);
-
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      if (rafId.current) cancelAnimationFrame(rafId.current);
-    };
-  }, [isAgentActive]);
-
-  // Agent Mode Target Navigation & Action Animations
+  // Agent Mode Target Navigation
   useEffect(() => {
     if (!isAgentActive || !targetPos) return;
 
@@ -76,15 +42,14 @@ export function AgentPointer({
         pointerRef.current.style.transform = `translate3d(${targetPos.x}px, ${targetPos.y}px, 0)`;
       }
     } else {
-      const startX = posRef.current.x;
-      const startY = posRef.current.y;
+      const startX = posRef.current.x < 0 ? targetPos.x : posRef.current.x;
+      const startY = posRef.current.y < 0 ? targetPos.y : posRef.current.y;
       const startTime = performance.now();
       const duration = 320; // 320ms smooth travel
 
       const animateMove = (now: number) => {
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        // Cubic-bezier(0.22, 1, 0.36, 1) easeOut
         const easeOut = 1 - Math.pow(1 - progress, 3);
 
         posRef.current.x = startX + (targetPos.x - startX) * easeOut;
@@ -106,6 +71,11 @@ export function AgentPointer({
       if (rafId.current) cancelAnimationFrame(rafId.current);
     };
   }, [isAgentActive, targetPos]);
+
+  // Only render when the agent is actively operating
+  if (!isAgentActive) {
+    return null;
+  }
 
   return (
     <div
@@ -164,7 +134,7 @@ export function AgentPointer({
       </svg>
 
       {/* Contextual Action Badge in Agent Mode */}
-      {isAgentActive && actionLabel && (
+      {actionLabel && (
         <span
           style={{
             backgroundColor: '#111111',

@@ -1,397 +1,231 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  html, body, #root {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    background-color: #07090e;
+    color: #f1f5f9;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
-html, body, #root {
-  width: 100vw;
-  height: 100vh;
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. Living Background: Ambient Drifting Mesh (Looping Animation #1)
+───────────────────────────────────────────────────────────────────────────── */
+.bg-mesh-container {
+  position: fixed;
+  inset: 0;
   overflow: hidden;
-  background-color: #FAFAFA !important;
-  color: #111111 !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-  font-size: 14px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+  pointer-events: none;
+  z-index: 0;
+  background-color: #07090e;
 }
 
-/* Bharpai-Inspired Application Shell Navigation (210px) */
-.wv-nav-sidebar {
-  width: 210px;
-  min-width: 210px;
-  max-width: 210px;
-  height: 100vh;
-  background-color: #F7F7F7;
-  border-right: 1px solid #EBEBEB;
-  padding: 20px 16px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  user-select: none;
-  flex-shrink: 0;
-}
-
-/* WebVeil Veil-Layer Logo */
-.wv-brand-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 4px;
-  cursor: pointer;
-}
-
-.wv-veil-mark {
-  width: 24px;
-  height: 24px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.wv-veil-layer-1 {
+.mesh-blob {
   position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  border: 2px solid #111111;
-  transform: rotate(-6deg);
+  border-radius: 9999px;
+  filter: blur(100px);
+  opacity: 0.16;
+  will-change: transform;
 }
 
-.wv-veil-layer-2 {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  background-color: #111111;
-  transform: rotate(6deg);
-  opacity: 0.85;
+.mesh-blob-1 {
+  top: -10%;
+  left: 15%;
+  width: 580px;
+  height: 580px;
+  background: radial-gradient(circle, #4f46e5 0%, rgba(79, 70, 229, 0) 70%);
+  animation: drift-mesh-1 26s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
 }
 
-.wv-brand-name {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  color: #111111;
+.mesh-blob-2 {
+  top: 35%;
+  right: 10%;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, #06b6d4 0%, rgba(6, 182, 212, 0) 70%);
+  animation: drift-mesh-2 30s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
 }
 
-/* Bharpai-Style Primary Action Button */
-.wv-btn-new-task {
-  width: 100%;
-  height: 42px;
-  border-radius: 10px;
-  background-color: #111111;
-  color: #FFFFFF;
-  font-size: 13.5px;
-  font-weight: 600;
-  border: 1px solid #111111;
+.mesh-blob-3 {
+  bottom: -15%;
+  left: 30%;
+  width: 650px;
+  height: 650px;
+  background: radial-gradient(circle, #7c3aed 0%, rgba(124, 58, 237, 0) 70%);
+  animation: drift-mesh-3 28s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+}
+
+@keyframes drift-mesh-1 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(60px, 80px, 0) scale(1.12); }
+  100% { transform: translate3d(-50px, 40px, 0) scale(0.92); }
+}
+
+@keyframes drift-mesh-2 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-70px, -60px, 0) scale(1.1); }
+  100% { transform: translate3d(40px, 90px, 0) scale(0.95); }
+}
+
+@keyframes drift-mesh-3 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-50px, -70px, 0) scale(1.08); }
+  100% { transform: translate3d(70px, -40px, 0) scale(0.96); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. The One Glass Recipe (Applied Everywhere)
+───────────────────────────────────────────────────────────────────────────── */
+.wv-glass-panel {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  transition: transform 250ms ease-out, border-color 250ms ease-out, box-shadow 250ms ease-out;
+}
+
+.wv-glass-interactive:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. Neumorphic Interactive Controls (Only on interactive controls)
+───────────────────────────────────────────────────────────────────────────── */
+.neu-control {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 6px 6px 14px rgba(0, 0, 0, 0.38), -4px -4px 10px rgba(255, 255, 255, 0.04);
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neu-control:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.neu-control:active {
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -2px -2px 6px rgba(255, 255, 255, 0.05);
+  transform: translateY(1px);
+}
+
+.neu-control-primary {
+  background: rgba(99, 102, 241, 0.22);
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  box-shadow: 6px 6px 14px rgba(0, 0, 0, 0.4), -4px -4px 10px rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.neu-control-primary:hover {
+  background: rgba(99, 102, 241, 0.32);
+  border-color: rgba(129, 140, 248, 0.55);
+}
+
+.neu-control-primary:active {
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -2px -2px 6px rgba(255, 255, 255, 0.08);
+  transform: translateY(1px);
+}
+
+/* Neumorphic recessed well for status indicator */
+.neu-status-well {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: rgba(8, 11, 18, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.65), inset -1px -1px 3px rgba(255, 255, 255, 0.04);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.06);
-  transition: all 180ms ease-out;
 }
 
-.wv-btn-new-task:hover {
-  background-color: #2A2A2A;
-  border-color: #2A2A2A;
-  transform: translateY(-1px);
+/* Status dots with breathing glow (Looping Animation #2) */
+.neu-status-dot-online {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.85);
+  animation: pulse-glow-emerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.wv-btn-new-task:active {
-  transform: translateY(0);
+.neu-status-dot-offline {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.85);
+  animation: pulse-glow-rose 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Navigation Items */
-.wv-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: 8px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #555555;
-  cursor: pointer;
-  transition: all 150ms ease-out;
+@keyframes pulse-glow-emerald {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.95), 0 0 14px rgba(16, 185, 129, 0.55);
+  }
+  50% {
+    opacity: 0.5;
+    box-shadow: 0 0 3px rgba(16, 185, 129, 0.4), 0 0 7px rgba(16, 185, 129, 0.2);
+  }
 }
 
-.wv-nav-item:hover {
-  background-color: #EBEBEB;
-  color: #111111;
+@keyframes pulse-glow-rose {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.95), 0 0 14px rgba(239, 68, 68, 0.55);
+  }
+  50% {
+    opacity: 0.5;
+    box-shadow: 0 0 3px rgba(239, 68, 68, 0.4), 0 0 7px rgba(239, 68, 68, 0.2);
+  }
 }
 
-.wv-nav-item.active {
-  background-color: #E0E0E0;
-  color: #111111;
-  font-weight: 600;
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. One Motion System: Staggered Fade + Slide Reveal
+   Curve: 600ms cubic-bezier(0.16, 1, 0.3, 1)
+───────────────────────────────────────────────────────────────────────────── */
+@keyframes revealUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Top Header Bar */
-.wv-header-bar {
-  height: 64px;
-  width: 100%;
-  background-color: #FAFAFA;
-  border-bottom: 1px solid #EBEBEB;
-  padding: 0 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
+.reveal-section {
+  animation: revealUp 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-
-
-/* Main Home Workspace (Centered with Bharpai Visual Rhythm) */
-.wv-main-home {
-  width: 100%;
-  max-width: 740px;
-  margin: 0 auto;
-  padding-top: 15vh;
-  padding-left: 20px;
-  padding-right: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.wv-home-heading {
-  font-size: 32px;
-  font-weight: 700;
-  color: #111111;
-  line-height: 1.2;
-  letter-spacing: -0.03em;
-  text-align: center;
-  margin-top: 24px;
-  margin-bottom: 10px;
-}
-
-.wv-home-subtitle {
-  font-size: 15px;
-  font-weight: 400;
-  color: #6B6B6B;
-  line-height: 1.5;
-  text-align: center;
-  max-width: 500px;
-  margin-bottom: 36px;
-}
-
-/* Prompt Composer Hero Box */
-.wv-hero-composer {
-  width: 100%;
-  max-width: 740px;
-  height: 124px;
-  background-color: #FFFFFF;
-  border: 1px solid #E0E0E0;
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.03);
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  transition: all 180ms ease-out;
-}
-
-.wv-hero-composer:focus-within {
-  border-color: #111111;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-}
-
-.wv-hero-textarea {
-  width: 100%;
-  height: 60px;
-  background: transparent;
-  border: none;
-  outline: none;
-  resize: none;
-  font-size: 15px;
-  line-height: 1.5;
-  color: #111111;
-  font-family: inherit;
-}
-
-.wv-hero-textarea::placeholder {
-  color: #A0A0A0;
-}
-
-.wv-composer-controls {
-  height: 36px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.wv-badge-mode {
-  font-size: 11px;
-  font-weight: 600;
-  color: #6B6B6B;
-  background-color: #F3F3F3;
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid #E0E0E0;
-}
-
-.wv-send-icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 150ms ease-out;
-}
-
-.wv-send-icon-btn.active {
-  background-color: #111111;
-  color: #FFFFFF;
-}
-
-.wv-send-icon-btn.active:hover {
-  background-color: #2A2A2A;
-  transform: scale(1.03);
-}
-
-.wv-send-icon-btn.disabled {
-  background-color: #EBEBEB;
-  color: #A0A0A0;
-  cursor: not-allowed;
-}
-
-/* Suggestion Pills */
-.wv-suggestion-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 36px;
-}
-
-.wv-suggestion-pill {
-  height: 36px;
-  padding: 0 16px;
-  border-radius: 18px;
-  background-color: #FFFFFF;
-  border: 1px solid #E0E0E0;
-  font-size: 13px;
-  font-weight: 500;
-  color: #555555;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: all 150ms ease-out;
-}
-
-.wv-suggestion-pill:hover {
-  background-color: #F3F3F3;
-  border-color: #C7C7C7;
-  color: #111111;
-  transform: translateY(-1px);
-}
-
-/* Quiet Privacy Note */
-.wv-privacy-footer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #888888;
-  text-align: center;
-  margin-top: 36px;
-}
-
-.wv-privacy-indicator {
+/* Custom Scrollbar */
+::-webkit-scrollbar {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
-  background-color: #111111;
 }
-
-/* Chat Conversation View */
-.wv-chat-layout {
-  flex: 1;
-  width: 100%;
-  max-width: 740px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 64px);
-  padding: 0 20px;
+::-webkit-scrollbar-track {
+  background: #07090e;
 }
-
-.wv-chat-history {
-  flex: 1;
-  overflow-y: auto;
-  padding-top: 28px;
-  padding-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
 }
-
-.wv-user-bubble {
-  align-self: flex-end;
-  max-width: 600px;
-  background-color: #EBEBEB;
-  color: #111111;
-  font-size: 14px;
-  line-height: 1.6;
-  border-radius: 16px;
-  padding: 12px 18px;
-}
-
-.wv-assistant-block {
-  align-self: flex-start;
-  max-width: 680px;
-  color: #2A2A2A;
-  font-size: 14px;
-  line-height: 1.65;
-}
-
-.wv-assistant-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: #111111;
-  margin-bottom: 6px;
-  letter-spacing: -0.01em;
-}
-
-.wv-product-card {
-  width: 100%;
-  background-color: #FFFFFF;
-  border: 1px solid #E0E0E0;
-  border-radius: 14px;
-  padding: 16px 20px;
-  color: #111111;
-  margin-top: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-}
-
-.wv-chat-composer-sticky {
-  padding: 18px 0;
-  background-color: #FAFAFA;
-  position: sticky;
-  bottom: 0;
-  border-top: 1px solid #EBEBEB;
-}
-
-.wv-chat-input-box {
-  width: 100%;
-  height: 64px;
-  background-color: #FFFFFF;
-  border: 1px solid #E0E0E0;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
 }

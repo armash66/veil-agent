@@ -139,7 +139,13 @@
 
   function extractAndPruneDOM() {
     const allElements = Array.from(document.querySelectorAll(DOM_OBSERVER_SELECTORS));
-    const prunedNodes = [];
+    const formControlNodes = [];
+    const inViewportLinks = [];
+    const offscreenLinks = [];
+    const structuralNodes = [];
+    const passiveNodes = [];
+
+    const viewportHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
 
     allElements.forEach((el, idx) => {
       const rect = el.getBoundingClientRect();
@@ -150,46 +156,92 @@
 
       const tag = el.tagName.toLowerCase();
       const text = (el.innerText || el.textContent || '').trim();
-      const isInteractive = ['input', 'button', 'a', 'select', 'textarea'].includes(tag);
+      const isFormControl = ['input', 'button', 'select', 'textarea', 'form'].includes(tag) ||
+                            el.getAttribute('role') === 'button' ||
+                            el.hasAttribute('onclick');
+      const isLink = tag === 'a';
+      const isStructural = ['h1', 'h2', 'h3', 'h4', 'label'].includes(tag);
 
-      if (isInteractive || ['h1', 'h2', 'h3', 'h4', 'form', 'label'].includes(tag) || (text && text.length > 3)) {
-        const isAvatar = (tag === 'img' && (
-          (el.className && typeof el.className === 'string' && (el.className.toLowerCase().includes('avatar') || el.className.toLowerCase().includes('profile'))) ||
-          (el.src && (el.src.toLowerCase().includes('avatar') || el.src.toLowerCase().includes('profile'))) ||
-          (el.alt && (el.alt.toLowerCase().includes('avatar') || el.alt.toLowerCase().includes('profile')))
-        )) || (el.className && typeof el.className === 'string' && (el.className.toLowerCase().includes('avatar') || el.className.toLowerCase().includes('profile-pic')));
+      // If not interactive, not structural, and has no meaningful text, skip
+      if (!isFormControl && !isLink && !isStructural && (!text || text.length <= 3)) {
+        return;
+      }
 
-        const node = {
-          node_id: idx,
-          tag_name: tag,
-          element_type: el.type || '',
-          element_name: el.name || '',
-          element_id: el.id || '',
-          text_content: text.substring(0, 200),
-          value: '',
-          placeholder: el.placeholder || '',
-          autocomplete: el.autocomplete || '',
-          aria_label: el.getAttribute('aria-label') || '',
-          is_interactive: isInteractive,
-          is_avatar: !!isAvatar,
-          bounding_box: {
-            x: Math.round(rect.x),
-            y: Math.round(rect.y),
-            width: Math.round(rect.width),
-            height: Math.round(rect.height),
-          },
-        };
+      const isAvatar = (tag === 'img' && (
+        (el.className && typeof el.className === 'string' && (el.className.toLowerCase().includes('avatar') || el.className.toLowerCase().includes('profile'))) ||
+        (el.src && (el.src.toLowerCase().includes('avatar') || el.src.toLowerCase().includes('profile'))) ||
+        (el.alt && (el.alt.toLowerCase().includes('avatar') || el.alt.toLowerCase().includes('profile')))
+      )) || (el.className && typeof el.className === 'string' && (el.className.toLowerCase().includes('avatar') || el.className.toLowerCase().includes('profile-pic')));
 
-        // Capture input values for PII scanning (stays in isolated world)
-        if (isInteractive && el.value) {
-          node.value = el.value;
+      const node = {
+        node_id: idx,
+        tag_name: tag,
+        element_type: el.type || '',
+        element_name: el.name || '',
+        element_id: el.id || '',
+        text_content: text.substring(0, 200),
+        value: '',
+        placeholder: el.placeholder || '',
+        autocomplete: el.autocomplete || '',
+        aria_label: el.getAttribute('aria-label') || '',
+        is_interactive: isFormControl || isLink,
+        is_avatar: !!isAvatar,
+        bounding_box: {
+          x: Math.round(rect.x),
+          y: Math.round(rect.y),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+        },
+      };
+
+      // Capture input values for PII scanning (stays in isolated world)
+      if (node.is_interactive && el.value) {
+        node.value = el.value;
+      }
+
+      const inViewport = (rect.top >= -200 && rect.bottom <= viewportHeight + 400);
+
+      if (isFormControl) {
+        // MANDATORY RULE: Form controls (inputs, buttons, submit) are NEVER dropped, regardless of count or position
+        formControlNodes.push(node);
+      } else if (isLink) {
+        if (inViewport) {
+          inViewportLinks.push(node);
+        } else {
+          offscreenLinks.push(node);
         }
-
-        prunedNodes.push(node);
+      } else if (isStructural) {
+        structuralNodes.push(node);
+      } else {
+        // Avoid duplicate passive nodes inside links or buttons
+        if (el.closest('a, button, select, textarea, label')) return;
+        passiveNodes.push(node);
       }
     });
 
-    return prunedNodes;
+    // ─── Priority Capping Rules ──────────────────────────────────────────
+    // 1. ALL form controls (every input, button, select, and submit) are 100% kept.
+    // 2. Viewport-active interactive links are preserved (up to 100 links).
+    // 3. Structural headings & labels provide high-level orientation (up to 40).
+    // 4. Passive text nodes (paragraphs, spans) are strictly capped (max 25).
+    const MAX_VIEWPORT_LINKS = 100;
+    const MAX_STRUCTURAL_NODES = 40;
+    const MAX_PASSIVE_NODES = 25;
+
+    const keptLinks = inViewportLinks.slice(0, MAX_VIEWPORT_LINKS);
+    if (keptLinks.length + formControlNodes.length < 40 && offscreenLinks.length > 0) {
+      keptLinks.push(...offscreenLinks.slice(0, 40 - (keptLinks.length + formControlNodes.length)));
+    }
+
+    const cappedStructural = structuralNodes.slice(0, MAX_STRUCTURAL_NODES);
+    const cappedPassive = passiveNodes.slice(0, MAX_PASSIVE_NODES);
+
+    const combinedNodes = [...formControlNodes, ...keptLinks, ...cappedStructural, ...cappedPassive];
+    combinedNodes.sort((a, b) => a.node_id - b.node_id);
+
+    console.log(`[WebVeil Pruner] Captured ${combinedNodes.length} nodes: ${formControlNodes.length} form controls (100% preserved), ${keptLinks.length} links, ${cappedStructural.length} structural, ${cappedPassive.length} passive text.`);
+
+    return combinedNodes;
   }
 
   // ═══════════════════════════════════════════════════════════
