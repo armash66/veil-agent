@@ -452,7 +452,8 @@
     }
 
     if (actionType === 'NAVIGATE') {
-      if (!action.text) {
+      const targetUrl = action.url || action.text;
+      if (!targetUrl) {
         return { valid: false, detail: 'FIREWALL REJECT: NAVIGATE requires a URL' };
       }
       return { valid: true };
@@ -592,11 +593,12 @@
     }
 
     if (actionType === 'NAVIGATE') {
-      if (!browserAction.text) {
+      const targetUrl = browserAction.url || browserAction.text;
+      if (!targetUrl) {
         return { success: false, detail: 'FIREWALL REJECT: NAVIGATE requires a URL' };
       }
-      window.location.href = browserAction.text;
-      return { success: true, detail: `Navigating to ${browserAction.text}` };
+      window.location.href = targetUrl;
+      return { success: true, detail: `Navigating to ${targetUrl}` };
     }
 
     if (actionType === 'KEYPRESS') {

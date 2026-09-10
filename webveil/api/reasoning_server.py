@@ -82,6 +82,11 @@ class ActionResponse(BaseModel):
     action: str
     node_id: Optional[int] = None
     text: Optional[str] = None
+    url: Optional[str] = None
+    key: Optional[str] = None
+    direction: Optional[str] = None
+    amount: Optional[int] = None
+    value: Optional[str] = None
     thought: str = ""
     rationale: str = ""
 
@@ -299,7 +304,12 @@ async def reason(request: ReasonRequest):
                 ActionResponse(
                     action=a.action.value,
                     node_id=a.node_id,
-                    text=a.text,
+                    text=a.text or a.url,
+                    url=a.url or a.text,
+                    key=a.key,
+                    direction=a.direction,
+                    amount=a.amount,
+                    value=a.value,
                     thought=a.thought or "",
                     rationale=a.thought or f"I'll execute {a.action.value} on node #{a.node_id if a.node_id is not None else 'N/A'}",
                 )
