@@ -206,6 +206,16 @@ async def health():
         "description": "Thin reasoning-only server with 3-Tier Escalation Cascade (Ollama -> OpenRouter -> Gemini).",
     }
 
+@app.get("/api/evaluate")
+async def evaluate():
+    """Run full SIH evaluation suite across the 5 official criteria and return executive scorecard."""
+    from webveil.evaluation.sih_evaluator import SIHEvaluationEngine
+    engine = SIHEvaluationEngine()
+    summary = await asyncio.to_thread(engine.run_full_evaluation)
+    res = summary.to_dict()
+    res["markdown_report"] = summary.generate_markdown_report()
+    return res
+
 @app.post("/api/reason", response_model=ReasonResponse)
 async def reason(request: ReasonRequest):
     """

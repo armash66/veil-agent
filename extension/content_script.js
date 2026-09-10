@@ -30,10 +30,10 @@
       return `[${category.toUpperCase()}_${this._tokenCounter}]`;
     }
 
-    storeSecret(rawSecret, node, origin) {
+    storeSecret(rawSecret, node, origin, specificToken = null) {
       if (!rawSecret || !node) return null;
 
-      const token = this.generateToken(node.type || node.name || 'SECRET');
+      const token = specificToken || this.generateToken(node.type || node.name || 'SECRET');
       const fingerprint = this._computeFingerprint(node);
 
       this._vaultMap.set(token, {
@@ -46,6 +46,24 @@
 
       this._nodeFingerprints.set(token, fingerprint);
       return token;
+    }
+
+    getEntries() {
+      const entries = [];
+      for (const [token, data] of this._vaultMap.entries()) {
+        const liveNode = data.nodeRef ? data.nodeRef.deref() : null;
+        entries.push({
+          token,
+          origin: data.origin,
+          extractedAt: data.extractedAt,
+          fingerprint: data.fingerprint,
+          fieldId: liveNode ? (liveNode.id || liveNode.name || liveNode.tagName.toLowerCase()) : 'DOM Node',
+          category: token.replace(/[\[\]0-9_]/g, ''),
+          rawSecret: data.rawSecret,
+          length: data.rawSecret ? data.rawSecret.length : 0,
+        });
+      }
+      return entries;
     }
 
     _computeFingerprint(node) {
@@ -195,6 +213,7 @@
   function resetPiiCounters() {
     Object.keys(PII_PATTERNS).forEach(cat => { piiCounters[cat] = 0; });
     piiCounters['PASSWORD'] = 0;
+    piiCounters['USER_ID'] = 0;
   }
 
   function generatePiiToken(category) {
@@ -319,6 +338,30 @@
         return; // Don't further scan password fields
       }
 
+      // User ID / Username / Name input detection
+      const fieldIdName = `${node.element_name || ''} ${node.element_id || ''} ${node.autocomplete || ''}`.toLowerCase();
+      const isUserIdField = node.tag_name === 'input' && (
+        fieldIdName.includes('username') || fieldIdName.includes('userid') || 
+        fieldIdName.includes('login') || fieldIdName.includes('fullname') ||
+        node.autocomplete === 'username'
+      );
+      if (isUserIdField && node.value && !seenValues.has(node.value) && node.element_type !== 'password' && node.element_type !== 'checkbox' && node.element_type !== 'submit') {
+        seenValues.add(node.value);
+        const token = generatePiiToken('USER_ID');
+        tokens.push({ original: node.value, replacement: token, category: 'USER_ID', nodeId: node.node_id });
+        replacements.push({ original: node.value, replacement: token });
+        if (nodeBbox) {
+          piiRegions.push({
+            type: 'USER_ID',
+            label: token,
+            replacement: token,
+            bbox: nodeBbox
+          });
+        }
+        highlightMatchedElement(node.node_id, matchIndex * 80);
+        matchIndex++;
+      }
+
       // Build text to scan: content + value + placeholder
       const textToScan = `${node.text_content || ''} ${node.value || ''} ${node.placeholder || ''}`;
 
@@ -374,8 +417,12 @@
     });
 
     // Store all originals in vault (raw values never leave this script)
+    const freshElements = Array.from(document.querySelectorAll(DOM_OBSERVER_SELECTORS));
     tokens.forEach(t => {
-      vault.storeSecret(t.original, document.body, window.location.origin);
+      const targetNode = (t.nodeId != null && t.nodeId >= 0 && t.nodeId < freshElements.length)
+        ? freshElements[t.nodeId]
+        : document.body;
+      vault.storeSecret(t.original, targetNode, window.location.origin, t.replacement);
     });
 
     const faceRegions = extractFaceAndAvatarRegions();
@@ -766,6 +813,15 @@
         resetFirewall();
         vault.clear();
         sendResponse({ success: true, detail: 'Firewall and vault reset for new session' });
+
+      } else if (request.action === 'GET_VAULT_ENTRIES') {
+        sendResponse({
+          success: true,
+          entries: vault.getEntries(),
+          realm: 'Chrome Isolated World (Extension Window Context)',
+          origin: window.location.origin,
+          url: window.location.href,
+        });
 
       } else if (request.action === 'CHECK_NANO') {
         checkGeminiNanoAvailability().then((available) => sendResponse({ available }));

@@ -701,6 +701,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'matched 12-digit Aadhaar pattern';
       case 'CREDIT_CARD':
         return 'matched credit card pattern';
+      case 'USER_ID':
+        return 'flagged user identifier / name';
       case 'PHONE':
         return 'matched phone pattern';
       case 'SSN':
@@ -857,7 +859,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
 
     const tokensSectionHtml = tokens.length > 0 ? `
-      <div class="wv-saw-tokens-header">Protected Placeholders</div>
+      <div class="wv-saw-tokens-header" style="display:flex; align-items:center; justify-content:space-between;">
+        <span>Protected Placeholders</span>
+        <button class="wv-btn-vault-open" title="Open Isolated Client Vault Window" style="background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); color:#38bdf8; border-radius:4px; font-size:10px; font-weight:600; padding:2px 8px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Open Vault Window
+        </button>
+      </div>
       <div class="wv-saw-tokens-list">
         ${tokensListHtml}
       </div>
@@ -995,6 +1003,19 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         modalJson.textContent = JSON.stringify(latestPayload, null, 2);
         payloadModal.classList.add('visible');
+      });
+    }
+
+    // Wire open vault window button
+    const vaultBtn = card.querySelector('.wv-btn-vault-open');
+    if (vaultBtn) {
+      vaultBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        try {
+          chrome.runtime.sendMessage({ action: 'OPEN_VAULT_WINDOW' });
+        } catch (_) {
+          window.open('vault_window.html', '_blank', 'width=740,height=580');
+        }
       });
     }
 
@@ -1741,6 +1762,17 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         } catch (_) {}
         checkServerHealth();
+      }
+    });
+  }
+
+  const openVaultWindowBtn = document.getElementById('open-vault-window-btn');
+  if (openVaultWindowBtn) {
+    openVaultWindowBtn.addEventListener('click', () => {
+      try {
+        chrome.runtime.sendMessage({ action: 'OPEN_VAULT_WINDOW' });
+      } catch (_) {
+        window.open('vault_window.html', '_blank', 'width=740,height=580');
       }
     });
   }
