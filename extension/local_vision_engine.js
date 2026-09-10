@@ -149,42 +149,7 @@ class ONNXLocalVisionEngine extends LocalVisionEngine {
     const regions = [];
     const domElements = context.domElements || [];
 
-    // 1. Multimodal fusion with DOM elements when available
-    if (domElements && domElements.length > 0) {
-      domElements.forEach(el => {
-        if (!el.bounding_box) return;
-        const b = el.bounding_box;
-        const bbox = [b.x || 0, b.y || 0, b.width || b.w || 0, b.height || b.h || 0];
-        if (bbox[2] <= 0 || bbox[3] <= 0) return;
-
-        let type = 'text';
-        const tag = (el.tag_name || '').toLowerCase();
-        const elType = (el.element_type || '').toLowerCase();
-
-        if (tag === 'button' || elType === 'button' || elType === 'submit') {
-          type = 'button';
-        } else if (tag === 'input' || tag === 'textarea' || tag === 'select') {
-          type = 'input';
-        } else if (el.is_avatar || tag === 'img') {
-          type = el.is_avatar ? 'face' : 'image';
-        } else if (tag === 'canvas') {
-          type = 'canvas';
-        } else if (tag === 'nav' || tag === 'menu') {
-          type = 'menu';
-        }
-
-        regions.push(new VisualRegion({
-          type,
-          bbox,
-          confidence: el.is_interactive ? 0.98 : 0.92,
-          textHint: el.text_content || '',
-          interactive: !!el.is_interactive,
-          source: this.backend
-        }));
-      });
-    }
-
-    // 2. Learned ONNX model inference if session is active
+    // 1. Learned ONNX model inference if session is active
     if (this.session && typeof ort !== 'undefined') {
       try {
         const patchCanvas = document.createElement('canvas');
@@ -231,26 +196,19 @@ class ONNXLocalVisionEngine extends LocalVisionEngine {
         console.warn('[WebVeil Vision] ONNX inference warning:', onnxErr);
       }
     } else {
-      // 3. Perform On-Device Visual Gradient & Salience Detection (Local CV CPU fallback)
+      // 2. Perform On-Device Visual Gradient & Salience Detection (Local CV CPU fallback)
       try {
         const ctx = canvas.getContext('2d');
         if (ctx) {
           const visualSalienceRegions = this._detectSalientRegions(ctx, width, height);
           visualSalienceRegions.forEach(sr => {
-            const isDuplicate = regions.some(r => {
-              const dx = Math.abs(r.bbox[0] - sr.bbox[0]);
-              const dy = Math.abs(r.bbox[1] - sr.bbox[1]);
-              return dx < 20 && dy < 20;
-            });
-            if (!isDuplicate) {
-              regions.push(new VisualRegion({
-                type: sr.type,
-                bbox: sr.bbox,
-                confidence: sr.confidence,
-                interactive: sr.interactive,
-                source: this.backend
-              }));
-            }
+            regions.push(new VisualRegion({
+              type: sr.type,
+              bbox: sr.bbox,
+              confidence: sr.confidence,
+              interactive: sr.interactive,
+              source: this.backend
+            }));
           });
         }
       } catch (_) {}
@@ -268,6 +226,7 @@ class ONNXLocalVisionEngine extends LocalVisionEngine {
 
     return {
       regions,
+      domCount: domElements.length,
       inferenceMs,
       backend: this.backend,
       backendLabel: this.backendLabel,

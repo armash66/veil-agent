@@ -787,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // AGENT ACTIVITY CARD BUILDER (Redesigned Task Summary)
+  // AGENT ACTIVITY CARD BUILDER (Refined Calm Register)
   // ═══════════════════════════════════════════════════════════
   function buildActivityCard(data, sessionId, msgIdx) {
     const card = document.createElement('div');
@@ -796,35 +796,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const protectedCount = data.protectedCount || (data.tokens ? data.tokens.length : 0);
     const isError = data.status === 'error';
     const isActive = data.status === 'active';
-    const statusLabel = isError ? 'Task Stopped' : (isActive ? 'Agent Working' : (data.title || 'Task Completed'));
+    const statusLabel = isError ? 'Task stopped' : (isActive ? 'Agent working' : (data.title || 'Task completed'));
 
-    // Subtle privacy status badge (no raw telemetry numbers)
-    const privacyBadgeHtml = `
-      <div class="wv-privacy-status-badge">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-        <span>Privacy protected · ${protectedCount} ${protectedCount === 1 ? 'field' : 'fields'}</span>
-      </div>
-    `;
-
+    // Header row: status dot + "Task completed" + small gray fields count right-aligned
     const headerHtml = `
       <div class="wv-activity-header">
         <div class="wv-activity-status-group">
-          <div class="wv-activity-status-dot ${isActive ? 'active' : ''}"></div>
-          <div class="wv-activity-title">${escapeHtml(statusLabel)}</div>
+          <span class="wv-activity-status-dot ${isActive ? 'active' : ''}"></span>
+          <span class="wv-activity-title">${escapeHtml(statusLabel)}</span>
         </div>
-        ${privacyBadgeHtml}
+        <span class="wv-activity-meta-count">Privacy protected · ${protectedCount} ${protectedCount === 1 ? 'field' : 'fields'}</span>
       </div>
     `;
 
-    // Concise summary text
+    // Concise summary text with generous line-height
     const summaryText = data.summary || (data.actions ? `Executed ${data.actions} browser actions while protecting page privacy.` : 'Processed request with privacy protections.');
     const summaryHtml = `
       <div class="wv-activity-summary-text">${escapeHtml(summaryText)}</div>
     `;
 
-    // Chronological activity timeline
+    // Chronological activity timeline: plain ordered list, small gray numerals, no chip badges
     let timelineHtml = '';
     const timeline = data.timeline || [];
     if (timeline.length > 0) {
@@ -832,20 +823,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const stepText = typeof step === 'string' ? step : (step.text || '');
         const isCurrent = idx === timeline.length - 1 && isActive;
         return `
-          <div class="wv-activity-step ${isCurrent ? 'current' : ''}">
-            <span class="wv-activity-step-num">${idx + 1}</span>
-            <span>${escapeHtml(stepText)}</span>
-          </div>
+          <li class="wv-activity-step ${isCurrent ? 'current' : ''}">
+            <span class="wv-step-num">${idx + 1}.</span>
+            <span class="wv-step-text">${escapeHtml(stepText)}</span>
+          </li>
         `;
       }).join('');
       timelineHtml = `
-        <div class="wv-activity-timeline">
+        <ol class="wv-activity-timeline">
           ${stepsHtml}
-        </div>
+        </ol>
       `;
     }
 
-    // Collapsible "What WebVeil saw" section (displaying sanitized page/element info and protected-token placeholders, never actual secrets/PII)
+    // Collapsible "What WebVeil saw" section
     const tokens = data.tokens || [];
     const tokensListHtml = tokens.map(t => {
       const tok = typeof t === 'string' ? t : (t.replacement || t.token);
@@ -861,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tokensSectionHtml = tokens.length > 0 ? `
       <div class="wv-saw-tokens-header" style="display:flex; align-items:center; justify-content:space-between;">
         <span>Protected Placeholders</span>
-        <button class="wv-btn-vault-open" title="Open Isolated Client Vault Window" style="background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); color:#38bdf8; border-radius:4px; font-size:10px; font-weight:600; padding:2px 8px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+        <button class="wv-btn-vault-open" title="Open Isolated Client Vault Window" style="background:#f0f0ee; border:1px solid #e5e5e3; color:#5b5bd6; border-radius:4px; font-size:11px; font-weight:500; padding:2px 8px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           Open Vault Window
         </button>
@@ -897,7 +888,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="wv-saw-telemetry-box">
           <div class="wv-saw-telemetry-header">
             <span>On-Device Visual Perception</span>
-            <span class="wv-saw-verified-badge">ISRO PS-26171</span>
+            <span class="wv-saw-verified-badge">Local Engine</span>
           </div>
           <div class="wv-saw-telemetry-grid">
             <div class="wv-saw-pill">
@@ -909,8 +900,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <span class="wv-saw-pill-v">${infMs} ms</span>
             </div>
             <div class="wv-saw-pill">
-              <span class="wv-saw-pill-k">Perception</span>
-              <span class="wv-saw-pill-v">${regionsCount} regions</span>
+              <span class="wv-saw-pill-k">Visual Features</span>
+              <span class="wv-saw-pill-v">${regionsCount} detected</span>
             </div>
             <div class="wv-saw-pill">
               <span class="wv-saw-pill-k">Sanitized</span>
@@ -944,14 +935,11 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="wv-saw-collapsible">
         <button class="wv-saw-toggle-btn" type="button">
           <span class="wv-saw-toggle-left">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-            </svg>
             <span>What WebVeil saw</span>
+            <svg class="wv-saw-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
           </span>
-          <svg class="wv-saw-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
         </button>
         <div class="wv-saw-content" style="display: none;">
           <div class="wv-saw-meta">
@@ -965,14 +953,14 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="wv-saw-row">
               <span class="wv-saw-key">DOM</span>
-              <span class="wv-saw-val">${data.scannedNodes || 0} elements scanned & sanitized</span>
+              <span class="wv-saw-val">${data.scannedNodes || 0} interactive elements</span>
             </div>
           </div>
           ${telemetrySectionHtml}
           ${visualProofHtml}
           ${tokensSectionHtml}
           <button class="wv-inspect-link" type="button">
-            <span>Inspect Outgoing Payload</span>
+            <span>Inspect outgoing payload</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
@@ -1024,6 +1012,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Alias for backward compatibility
   const buildResultCard = buildActivityCard;
+  window.buildResultCard = buildActivityCard;
+  window.buildActivityCard = buildActivityCard;
 
   // ═══════════════════════════════════════════════════════════
   // AUTOMATED AGENT PIPELINE (Unified Reasoning Stream & Live Tokens)
@@ -1286,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (visionEngine) {
           visionResult = await visionEngine.analyze(rawScreenshot, { domElements: prunedNodes });
           const bName = visionResult.backendLabel || (visionResult.backend === 'local-cv-cpu' ? 'Local CV (CPU)' : visionResult.backend.toUpperCase());
-          activityTimeline.push(`Local vision: ${visionResult.regions.length} regions detected via ${bName} in ${visionResult.inferenceMs}ms`);
+          activityTimeline.push(`Local vision: ${visionResult.regions.length} visual features detected via ${bName} in ${visionResult.inferenceMs}ms`);
         }
 
         // 3. On-Device Visual Privacy Engine (Permanent solid blackout of secrets & Gaussian blur on avatars)
@@ -1330,7 +1320,7 @@ document.addEventListener('DOMContentLoaded', () => {
           visualSummary: visionResult.visualSummary
         };
 
-        updateReasoningStage('Visual perception & privacy', `Visual analysis complete (${visionResult.regions.length} regions, ${visionResult.inferenceMs}ms, ${privacyResult.redactions.length} redacted)`);
+        updateReasoningStage('Visual perception & privacy', `Visual analysis complete (${visionResult.regions.length} visual features, ${visionResult.inferenceMs}ms, ${privacyResult.redactions.length} redacted)`);
 
       } catch (visErr) {
         console.warn('[WebVeil] Visual perception warning:', visErr);
