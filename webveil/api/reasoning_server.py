@@ -326,34 +326,51 @@ async def reason(request: ReasonRequest):
         )
 
 
-def _format_dom_for_prompt(nodes: List[DOMNode], max_nodes: int = 180) -> str:
+def _format_dom_for_prompt(nodes: List[DOMNode], max_nodes: int = 250) -> str:
     """Format sanitized DOM nodes into a text representation for LLM prompt.
-    Prioritizes interactive and structural elements, capping to stay well within token limits.
+    Balanced budget: form controls first, headings & infobox data, then links & content.
     """
     if not nodes:
         return ""
 
-    interactive_nodes = []
-    structural_nodes = []
+    form_controls = []
+    structural_headings = []
+    content_data = []  # th, td, p, li with informative text
+    links = []
     other_nodes = []
 
     for n in nodes:
         tag = (n.tag_name or "").lower()
-        if n.is_interactive or tag in ("input", "button", "select", "textarea", "a"):
-            interactive_nodes.append(n)
-        elif tag in ("h1", "h2", "h3", "h4", "form", "main", "nav", "article", "header", "table"):
-            structural_nodes.append(n)
+        if tag in ("input", "button", "select", "textarea"):
+            form_controls.append(n)
+        elif tag in ("h1", "h2", "h3", "h4", "form", "main"):
+            structural_headings.append(n)
+        elif tag in ("th", "td", "li", "p") and n.text_content and len(n.text_content.strip()) > 2:
+            content_data.append(n)
+        elif tag == "a" or n.is_interactive:
+            links.append(n)
         else:
             other_nodes.append(n)
 
-    # Combine with budget: all interactive first, then structural, then text content
-    selected = interactive_nodes[:max_nodes]
-    remaining_budget = max_nodes - len(selected)
-    if remaining_budget > 0:
-        selected.extend(structural_nodes[:remaining_budget])
-        remaining_budget = max_nodes - len(selected)
-    if remaining_budget > 0:
-        selected.extend(other_nodes[:remaining_budget])
+    # Allocate balanced budget:
+    # 1. All form controls (inputs, buttons) - critical for actions
+    selected = list(form_controls)
+    
+    # 2. All structural headings (h1, h2, h3)
+    selected.extend(structural_headings[:40])
+    
+    # 3. Informative content & infobox rows (th, td, p, li)
+    selected.extend(content_data[:120])
+    
+    # 4. Interactive links (capped so thousands of Wikipedia links don't crowd out text)
+    remaining = max_nodes - len(selected)
+    if remaining > 0:
+        selected.extend(links[:remaining])
+        
+    # 5. Any other remaining space
+    remaining = max_nodes - len(selected)
+    if remaining > 0:
+        selected.extend(other_nodes[:remaining])
 
     # Sort back by original node_id so DOM layout order is preserved
     selected.sort(key=lambda x: x.node_id)
@@ -364,7 +381,7 @@ def _format_dom_for_prompt(nodes: List[DOMNode], max_nodes: int = 180) -> str:
         if node.element_type:
             parts.append(f'type="{node.element_type}"')
         if node.text_content:
-            parts.append(f'"{node.text_content[:80]}"')
+            parts.append(f'"{node.text_content[:90]}"')
         if node.is_interactive:
             parts.append("[interactive]")
         lines.append(" ".join(parts))
