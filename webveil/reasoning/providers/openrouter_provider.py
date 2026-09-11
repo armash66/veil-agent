@@ -33,7 +33,7 @@ class OpenRouterProvider:
     ):
         from webveil.config import config
         self._token_usage = TokenUsage()
-        self._model_name = model or config.openrouter_model or "nvidia/nemotron-3-ultra-550b-a55b:free"
+        self._model_name = model or config.openrouter_model or "nvidia/nemotron-3.5-lightning:free"
 
         try:
             from openai import OpenAI
@@ -48,6 +48,7 @@ class OpenRouterProvider:
             self._client = OpenAI(
                 base_url="https://openrouter.ai/api/v1",
                 api_key=api_key,
+                timeout=25.0,
                 default_headers={
                     "HTTP-Referer": site_url,
                     "X-Title": site_name,

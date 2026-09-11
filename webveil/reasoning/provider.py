@@ -326,7 +326,7 @@ class CascadeReasoningProvider:
             self._ollama: Optional[OllamaProvider] = OllamaProvider(
                 base_url=ollama_url or config.ollama_base_url,
                 model=ollama_model or config.ollama_model,
-                timeout=float(os.getenv("OLLAMA_TIMEOUT", "25.0")),
+                timeout=float(os.getenv("OLLAMA_TIMEOUT", "35.0")),
             )
         except Exception as e:
             logger.warning(f"[Cascade] Ollama provider init failed: {e}")
@@ -334,7 +334,7 @@ class CascadeReasoningProvider:
 
         # Initialize Tier 2: OpenRouter Free
         or_key = openrouter_key or config.openrouter_api_key
-        or_model = openrouter_model or config.openrouter_model or "nvidia/nemotron-3-ultra-550b-a55b:free"
+        or_model = openrouter_model or config.openrouter_model or "nvidia/nemotron-3.5-lightning:free"
         if or_key:
             try:
                 from webveil.reasoning.providers.openrouter_provider import OpenRouterProvider

@@ -1081,10 +1081,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // ═══════════════════════════════════════════════════════════
   function getSelectedProviderAndModel() {
     const label = ((currentSelectedModel || '') + ' ' + (modelSelectName ? modelSelectName.textContent : '')).trim().toLowerCase();
-    if (label.includes('ollama')) {
-      return { provider: 'ollama', model: 'llama3.1' };
+    if (label.includes('ollama') || label.includes('llama')) {
+      return { provider: 'ollama', model: 'llama3.2:3b' };
     } else if (label.includes('nemotron') || label.includes('openrouter')) {
-      return { provider: 'openrouter', model: 'nvidia/nemotron-3-ultra-550b-a55b:free' };
+      return { provider: 'openrouter', model: 'nvidia/nemotron-3.5-lightning:free' };
     } else if (label.includes('gemini')) {
       return { provider: 'gemini', model: 'gemini-2.5-flash' };
     }

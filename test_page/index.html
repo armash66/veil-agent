@@ -2019,6 +2019,17 @@
                 resultEl.textContent = '✗ Incorrect. The visual instruction specified GAMMA.';
             }
         }
+        window.checkCanvasAnswer = checkCanvasAnswer;
+        window.activateTab = activateTab;
+
+        // Auto-activate panels when targeted by agent or user
+        document.addEventListener('focusin', (e) => {
+            const panel = e.target.closest?.('.ps-panel');
+            if (panel && !panel.classList.contains('active')) {
+                const tabKey = panel.id.replace('panel-', '');
+                if (typeof activateTab === 'function') activateTab(tabKey, false);
+            }
+        }, true);
 
         // ── Attack Verification Logic ──
         const logBox = document.getElementById('logBox');

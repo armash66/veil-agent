@@ -29,7 +29,7 @@ class OllamaProvider:
         self,
         base_url: Optional[str] = None,
         model: Optional[str] = None,
-        timeout: float = 30.0,
+        timeout: float = 35.0,
     ):
         from webveil.config import config
         self._base_url = (base_url or config.ollama_base_url or "http://localhost:11434").rstrip("/")
