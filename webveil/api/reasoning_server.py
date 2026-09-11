@@ -308,9 +308,29 @@ async def reason(request: ReasonRequest):
         instruction_context=request.instruction_context or request.instructions,
     )
 
-    # Build action history
-    from webveil.core.models.schema import ActionResult
+    # Build action history from request
+    from webveil.core.models.schema import ActionResult, BrowserAction, ActionType
     history = []
+    if request.action_history:
+        for idx, item in enumerate(request.action_history):
+            act_type_str = str(item.get("action") or "click").lower()
+            try:
+                act_type = ActionType(act_type_str)
+            except Exception:
+                act_type = ActionType.CLICK
+            b_act = BrowserAction(
+                action=act_type,
+                node_id=item.get("node_id"),
+                text=item.get("text"),
+                url=item.get("url"),
+                key=item.get("key"),
+                value=item.get("value"),
+            )
+            history.append(ActionResult(
+                action=b_act,
+                success=item.get("success", True),
+                step_index=idx + 1,
+            ))
 
     try:
         plan: ActionPlan = await asyncio.to_thread(

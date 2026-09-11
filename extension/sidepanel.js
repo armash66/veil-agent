@@ -1234,256 +1234,283 @@ document.addEventListener('DOMContentLoaded', () => {
       // Reset action firewall & vault on page for new run
       try { await sendTabMessage(tab.id, { action: 'RESET_FIREWALL' }); } catch (_) {}
 
-      // ── STEP 2: DOM Pruning (content script) ──
-      updateReasoningStage('Reading page', 'DOM extraction started');
-
-      try {
-        const domResult = await sendTabMessage(tab.id, { action: 'PRUNE_DOM' });
-        prunedNodes = domResult.nodes || [];
-        canvasImages = domResult.canvasImages || [];
-        updateReasoningStage('Reading page', `DOM extraction complete (${prunedNodes.length} nodes)`);
-        activityTimeline.push(`Scanned page DOM (${prunedNodes.length} elements)`);
-      } catch (e) {
-        const lastErr = chrome.runtime?.lastError?.message || e.message || 'Content script disconnected';
-        completeReasoning(true, "Stopped · couldn't read this page", lastErr);
-        return;
-      }
-
-      // ── STEP 3: PII Detection (content script, isolated world) ──
-      updateReasoningStage('Scanning for sensitive data', 'PII scan started');
-
-      try {
-        piiResult = await sendTabMessage(tab.id, { action: 'DETECT_PII', nodes: prunedNodes });
-        updateReasoningStage('Scanning for sensitive data', `PII scan complete (${piiResult.count || 0} fields protected)`);
-
-        if (piiResult.tokens && piiResult.tokens.length > 0) {
-          const liveVaultEntries = [];
-          for (let i = 0; i < piiResult.tokens.length; i++) {
-            const t = piiResult.tokens[i];
-            resultData.protectedCount += 1;
-            resultData.tokens.push({
-              replacement: t.replacement,
-              category: t.category,
-              original: t.original,
-              fieldId: t.fieldId || t.nodeId
-            });
-            liveVaultEntries.push({
-              token: t.replacement,
-              category: t.category,
-              fieldId: t.fieldId || t.category?.toLowerCase() || 'field',
-              rawSecret: t.original,
-              origin: tab.url ? new URL(tab.url).origin : window.location.origin,
-              extractedAt: Date.now()
-            });
-          }
-          try {
-            chrome.storage.local.set({
-              webveil_vault_entries: liveVaultEntries,
-              webveil_vault_origin: tab.url ? new URL(tab.url).origin : window.location.origin,
-              webveil_vault_tab_id: tab.id,
-              webveil_vault_updated_at: Date.now()
-            });
-          } catch (_) {}
-        }
-        activityTimeline.push(piiResult.count > 0 ? `Shielded ${piiResult.count} sensitive fields` : 'Page privacy verified');
-
-        // Re-scrub instruction context with detected PII tokens if any
-        if (activeFileId && piiResult.replacements && piiResult.replacements.length > 0) {
-          const fileObj = instructionFiles.find(f => f.id === activeFileId);
-          if (fileObj && fileObj.content) {
-            instructionContext = sanitizeAndSelectInstructions(fileObj.content, task, piiResult.replacements);
-          }
-        }
-      } catch (e) {
-        updateReasoningStage('Scanning for sensitive data', 'PII scan skipped');
-      }
-
-      // Build sanitized DOM (replace raw text and input values with vault tokens)
-      sanitizedDom = prunedNodes.map(node => {
-        let text = node.text_content || '';
-        let val = '';
-        if (piiResult.replacements) {
-          piiResult.replacements.forEach(r => {
-            text = text.split(r.original).join(r.replacement);
-          });
-        }
-        // Hard Egress Invariant: password values are never transmitted; other inputs scrubbed
-        if (node.element_type === 'password') {
-          val = '';
-        } else if (node.value) {
-          val = node.value;
-          if (piiResult.replacements) {
-            piiResult.replacements.forEach(r => {
-              val = val.split(r.original).join(r.replacement);
-            });
-          }
-        }
-        return { ...node, text_content: text, value: val };
-      });
-
-      // ── STEP 3B: In-Browser Visual Perception & Visual Privacy Engine ──
-      updateReasoningStage('Visual perception & privacy', 'Probing on-device vision & redacting screen');
-
+      // ── AUTONOMOUS AGENT LOOP (Multi-turn execution up to 3 turns / 14 actions) ──
+      let turn = 0;
+      const MAX_TURNS = 3;
+      let totalActionsExecuted = 0;
+      let isTaskDone = false;
+      const accumulatedActionHistory = [];
+      let finalThought = '';
       let visualTelemetry = null;
       let sanitizedScreenshotB64 = null;
 
-      try {
-        // 1. Capture screen into client offscreen memory ONLY
-        let rawScreenshot = await captureTabScreenshot(tab.windowId);
+      while (turn < MAX_TURNS && !isTaskDone && totalActionsExecuted < 14) {
+        turn++;
 
-        // Fallback: If screenshot capture is unavailable (e.g. mock test environment), generate synthetic viewport canvas
-        if (!rawScreenshot) {
-          const synthCanvas = document.createElement('canvas');
-          synthCanvas.width = piiResult.viewport?.width || 1280;
-          synthCanvas.height = piiResult.viewport?.height || 800;
-          const sctx = synthCanvas.getContext('2d');
-          if (sctx) {
-            sctx.fillStyle = '#0f0f12';
-            sctx.fillRect(0, 0, synthCanvas.width, synthCanvas.height);
-            sctx.fillStyle = '#1e1e24';
-            sctx.fillRect(30, 30, 200, 40);
+        // ── STEP 2: DOM Pruning (content script) ──
+        updateReasoningStage('Reading page', turn > 1 ? `Re-scanning page DOM (turn ${turn})...` : 'DOM extraction started');
+
+        try {
+          const domResult = await sendTabMessage(tab.id, { action: 'PRUNE_DOM' });
+          prunedNodes = domResult.nodes || [];
+          canvasImages = domResult.canvasImages || [];
+          updateReasoningStage('Reading page', `DOM extraction complete (${prunedNodes.length} nodes)`);
+          if (turn === 1) {
+            activityTimeline.push(`Scanned page DOM (${prunedNodes.length} elements)`);
           }
-          rawScreenshot = synthCanvas.toDataURL('image/png');
+        } catch (e) {
+          if (turn > 1) break;
+          const lastErr = chrome.runtime?.lastError?.message || e.message || 'Content script disconnected';
+          completeReasoning(true, "Stopped · couldn't read this page", lastErr);
+          return;
         }
 
-        // 2. On-Device Vision Perception (WebGPU -> WASM -> CPU Graceful Fallback)
-        let visionEngine;
-        if (typeof ONNXLocalVisionEngine !== 'undefined') {
-          visionEngine = new ONNXLocalVisionEngine();
-        } else if (typeof window !== 'undefined' && window.ONNXLocalVisionEngine) {
-          visionEngine = new window.ONNXLocalVisionEngine();
-        }
+        // ── STEP 3: PII Detection (content script, isolated world) ──
+        updateReasoningStage('Scanning for sensitive data', 'PII scan started');
 
-        let visionResult = { regions: [], inferenceMs: 0, backend: 'cpu-fallback', visualSummary: '' };
-        if (visionEngine) {
-          visionResult = await visionEngine.analyze(rawScreenshot, { domElements: prunedNodes });
-          const bName = visionResult.backendLabel || (visionResult.backend === 'local-cv-cpu' ? 'Local CV (CPU)' : visionResult.backend.toUpperCase());
-          activityTimeline.push(`Local vision: ${visionResult.regions.length} visual features detected via ${bName} in ${visionResult.inferenceMs}ms`);
-        }
+        try {
+          piiResult = await sendTabMessage(tab.id, { action: 'DETECT_PII', nodes: prunedNodes });
+          updateReasoningStage('Scanning for sensitive data', `PII scan complete (${piiResult.count || 0} fields protected)`);
 
-        // 3. On-Device Visual Privacy Engine (Permanent solid blackout of secrets & Gaussian blur on avatars)
-        let privacyEngine;
-        if (typeof VisualPrivacyEngine !== 'undefined') {
-          privacyEngine = new VisualPrivacyEngine({ blurRadius: 14 });
-        } else if (typeof window !== 'undefined' && window.VisualPrivacyEngine) {
-          privacyEngine = new window.VisualPrivacyEngine({ blurRadius: 14 });
-        }
-
-        let privacyResult = { sanitizedImage: null, redactions: [], dimensions: { width: 0, height: 0 } };
-        if (privacyEngine) {
-          privacyResult = await privacyEngine.redact({
-            screenshot: rawScreenshot,
-            passwordRegions: piiResult.passwordRegions || [],
-            piiRegions: piiResult.piiRegions || [],
-            faceRegions: piiResult.faceRegions || [],
-            devicePixelRatio: piiResult.devicePixelRatio || window.devicePixelRatio || 1,
-            viewport: piiResult.viewport || null,
-          });
-
-          if (privacyResult.redactions.length > 0) {
-            activityTimeline.push(`Visual privacy: ${privacyResult.redactions.length} regions redacted (faces blurred, secrets blacked out)`);
+          if (piiResult.tokens && piiResult.tokens.length > 0) {
+            const liveVaultEntries = [];
+            for (let i = 0; i < piiResult.tokens.length; i++) {
+              const t = piiResult.tokens[i];
+              if (turn === 1) {
+                resultData.protectedCount += 1;
+                resultData.tokens.push({
+                  replacement: t.replacement,
+                  category: t.category,
+                  original: t.original,
+                  fieldId: t.fieldId || t.nodeId
+                });
+              }
+              liveVaultEntries.push({
+                token: t.replacement,
+                category: t.category,
+                fieldId: t.fieldId || t.category?.toLowerCase() || 'field',
+                rawSecret: t.original,
+                origin: tab.url ? new URL(tab.url).origin : window.location.origin,
+                extractedAt: Date.now()
+              });
+            }
+            try {
+              chrome.storage.local.set({
+                webveil_vault_entries: liveVaultEntries,
+                webveil_vault_origin: tab.url ? new URL(tab.url).origin : window.location.origin,
+                webveil_vault_tab_id: tab.id,
+                webveil_vault_updated_at: Date.now()
+              });
+            } catch (_) {}
           }
+          if (turn === 1) {
+            activityTimeline.push(piiResult.count > 0 ? `Shielded ${piiResult.count} sensitive fields` : 'Page privacy verified');
+          }
+
+          // Re-scrub instruction context with detected PII tokens if any
+          if (activeFileId && piiResult.replacements && piiResult.replacements.length > 0) {
+            const fileObj = instructionFiles.find(f => f.id === activeFileId);
+            if (fileObj && fileObj.content) {
+              instructionContext = sanitizeAndSelectInstructions(fileObj.content, task, piiResult.replacements);
+            }
+          }
+        } catch (e) {
+          updateReasoningStage('Scanning for sensitive data', 'PII scan skipped');
         }
 
-        // HARD EGRESS INVARIANT: Raw screenshot variable is immediately freed and cleared
-        rawScreenshot = null;
-
-        sanitizedScreenshotB64 = privacyResult.sanitizedImage || null;
-        visualTelemetry = {
-          backend: visionResult.backend,
-          inference_ms: visionResult.inferenceMs,
-          inferenceMs: visionResult.inferenceMs,
-          regions_count: visionResult.regions.length,
-          regionsCount: visionResult.regions.length,
-          redactions_count: privacyResult.redactions.length,
-          redactionsCount: privacyResult.redactions.length,
-          sanitizedImage: sanitizedScreenshotB64,
-          redactions: privacyResult.redactions,
-          visualSummary: visionResult.visualSummary
-        };
-
-        updateReasoningStage('Visual perception & privacy', `Visual analysis complete (${visionResult.regions.length} visual features, ${visionResult.inferenceMs}ms, ${privacyResult.redactions.length} redacted)`);
-
-      } catch (visErr) {
-        console.warn('[WebVeil] Visual perception warning:', visErr);
-        updateReasoningStage('Visual perception & privacy', 'Visual perception completed with basic DOM telemetry');
-      }
-
-      // ── STEP 4: Send to reasoning server ──
-      updateReasoningStage('Thinking', 'Reasoning request sent');
-
-      const pm = getSelectedProviderAndModel();
-      const payload = {
-        task,
-        url: tab.url,
-        title: tab.title,
-        dom: sanitizedDom,
-        sanitized_dom: sanitizedDom,
-        canvas_images: canvasImages,
-        ocr_summary: visualTelemetry?.ocrSummary || '',
-        provider: pm.provider,
-        model: pm.model,
-        instruction_context: instructionContext,
-        instructions: instructionContext,
-        sanitized_screenshot_b64: sanitizedScreenshotB64,
-        visual_telemetry: visualTelemetry ? {
-          backend: visualTelemetry.backend,
-          inference_ms: visualTelemetry.inferenceMs,
-          regions_count: visualTelemetry.regionsCount,
-          redactions_count: visualTelemetry.redactionsCount,
-          ocr_summary: visualTelemetry.ocrSummary || '',
-        } : null,
-        redaction_summary: {
-          total_redacted: (piiResult.count || 0) + (visualTelemetry ? visualTelemetry.redactionsCount : 0),
-          tokens: piiResult.tokens ? piiResult.tokens.map(t => t.replacement) : [],
-        }
-      };
-
-      latestPayload = {
-        ...payload,
-        sanitized_screenshot_b64: sanitizedScreenshotB64 ? `[DATA_URL_IMAGE_WEBP_SANITIZED: ${sanitizedScreenshotB64.length} chars (faces blurred, passwords blacked out)]` : null
-      };
-
-      let reasonData = null;
-      try {
-        const res = await fetch(getReasoningUrl(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+        // Build sanitized DOM (replace raw text and input values with vault tokens)
+        sanitizedDom = prunedNodes.map(node => {
+          let text = node.text_content || '';
+          let val = '';
+          if (piiResult.replacements) {
+            piiResult.replacements.forEach(r => {
+              text = text.split(r.original).join(r.replacement);
+            });
+          }
+          // Hard Egress Invariant: password values are never transmitted; other inputs scrubbed
+          if (node.element_type === 'password') {
+            val = '';
+          } else if (node.value) {
+            val = node.value;
+            if (piiResult.replacements) {
+              piiResult.replacements.forEach(r => {
+                val = val.split(r.original).join(r.replacement);
+              });
+            }
+          }
+          return { ...node, text_content: text, value: val };
         });
 
-        if (!res.ok) {
-          const errBody = await res.text().catch(() => '');
-          throw new Error(`HTTP ${res.status}${errBody ? ': ' + errBody : ''}`);
+        // ── STEP 3B: In-Browser Visual Perception & Visual Privacy Engine (Turn 1) ──
+        if (turn === 1) {
+          updateReasoningStage('Visual perception & privacy', 'Probing on-device vision & redacting screen');
+
+          try {
+            let rawScreenshot = await captureTabScreenshot(tab.windowId);
+
+            if (!rawScreenshot) {
+              const synthCanvas = document.createElement('canvas');
+              synthCanvas.width = piiResult.viewport?.width || 1280;
+              synthCanvas.height = piiResult.viewport?.height || 800;
+              const sctx = synthCanvas.getContext('2d');
+              if (sctx) {
+                sctx.fillStyle = '#0f0f12';
+                sctx.fillRect(0, 0, synthCanvas.width, synthCanvas.height);
+                sctx.fillStyle = '#1e1e24';
+                sctx.fillRect(30, 30, 200, 40);
+              }
+              rawScreenshot = synthCanvas.toDataURL('image/png');
+            }
+
+            let visionEngine;
+            if (typeof ONNXLocalVisionEngine !== 'undefined') {
+              visionEngine = new ONNXLocalVisionEngine();
+            } else if (typeof window !== 'undefined' && window.ONNXLocalVisionEngine) {
+              visionEngine = new window.ONNXLocalVisionEngine();
+            }
+
+            let visionResult = { regions: [], inferenceMs: 0, backend: 'cpu-fallback', visualSummary: '' };
+            if (visionEngine) {
+              visionResult = await visionEngine.analyze(rawScreenshot, { domElements: prunedNodes });
+              const bName = visionResult.backendLabel || (visionResult.backend === 'local-cv-cpu' ? 'Local CV (CPU)' : visionResult.backend.toUpperCase());
+              activityTimeline.push(`Local vision: ${visionResult.regions.length} visual features detected via ${bName} in ${visionResult.inferenceMs}ms`);
+            }
+
+            let privacyEngine;
+            if (typeof VisualPrivacyEngine !== 'undefined') {
+              privacyEngine = new VisualPrivacyEngine({ blurRadius: 14 });
+            } else if (typeof window !== 'undefined' && window.VisualPrivacyEngine) {
+              privacyEngine = new window.VisualPrivacyEngine({ blurRadius: 14 });
+            }
+
+            let privacyResult = { sanitizedImage: null, redactions: [], dimensions: { width: 0, height: 0 } };
+            if (privacyEngine) {
+              privacyResult = await privacyEngine.redact({
+                screenshot: rawScreenshot,
+                passwordRegions: piiResult.passwordRegions || [],
+                piiRegions: piiResult.piiRegions || [],
+                faceRegions: piiResult.faceRegions || [],
+                devicePixelRatio: piiResult.devicePixelRatio || window.devicePixelRatio || 1,
+                viewport: piiResult.viewport || null,
+              });
+
+              if (privacyResult.redactions.length > 0) {
+                activityTimeline.push(`Visual privacy: ${privacyResult.redactions.length} regions redacted (faces blurred, secrets blacked out)`);
+              }
+            }
+
+            rawScreenshot = null;
+            sanitizedScreenshotB64 = privacyResult.sanitizedImage || null;
+            visualTelemetry = {
+              backend: visionResult.backend,
+              inference_ms: visionResult.inferenceMs,
+              inferenceMs: visionResult.inferenceMs,
+              regions_count: visionResult.regions.length,
+              regionsCount: visionResult.regions.length,
+              redactions_count: privacyResult.redactions.length,
+              redactionsCount: privacyResult.redactions.length,
+              sanitizedImage: sanitizedScreenshotB64,
+              redactions: privacyResult.redactions,
+              visualSummary: visionResult.visualSummary
+            };
+
+            updateReasoningStage('Visual perception & privacy', `Visual analysis complete (${visionResult.regions.length} visual features, ${visionResult.inferenceMs}ms, ${privacyResult.redactions.length} redacted)`);
+
+          } catch (visErr) {
+            console.warn('[WebVeil] Visual perception warning:', visErr);
+            updateReasoningStage('Visual perception & privacy', 'Visual perception completed with basic DOM telemetry');
+          }
         }
 
-        reasonData = await res.json();
-        actionPlan = reasonData.action_plan || reasonData;
-        const tierUsed = reasonData.provider_used || reasonData.tier_used || 'Local (Ollama)';
-        setServerStatus(true, tierUsed);
-        updateReasoningStage('Thinking', `Reasoning response received (${tierUsed})`);
-        activityTimeline.push(`Reasoning executed via ${tierUsed}`);
-      } catch (e) {
-        const isOffline = e.message.includes('Failed to fetch') || e.message.includes('NetworkError');
-        const errLabel = isOffline ? 'Stopped · server offline' : 'Stopped · reasoning failed';
-        const errDetail = isOffline ? `Reasoning server unreachable at ${getReasoningUrl()}` : e.message;
-        completeReasoning(true, errLabel, errDetail);
-        return;
-      }
+        // ── STEP 4: Send to reasoning server ──
+        updateReasoningStage('Thinking', turn > 1 ? `Reasoning request sent (turn ${turn})...` : 'Reasoning request sent');
 
-      // Show LLM response text
-      if (actionPlan && actionPlan.thought) {
-        addMessage(session, { type: 'agent', text: actionPlan.thought });
-      }
+        const pm = getSelectedProviderAndModel();
+        const payload = {
+          task,
+          url: tab.url,
+          title: tab.title,
+          dom: sanitizedDom,
+          sanitized_dom: sanitizedDom,
+          action_history: accumulatedActionHistory,
+          canvas_images: canvasImages,
+          ocr_summary: visualTelemetry?.ocrSummary || '',
+          provider: pm.provider,
+          model: pm.model,
+          instruction_context: instructionContext,
+          instructions: instructionContext,
+          sanitized_screenshot_b64: sanitizedScreenshotB64,
+          visual_telemetry: visualTelemetry ? {
+            backend: visualTelemetry.backend,
+            inference_ms: visualTelemetry.inferenceMs,
+            regions_count: visualTelemetry.regionsCount,
+            redactions_count: visualTelemetry.redactionsCount,
+            ocr_summary: visualTelemetry.ocrSummary || '',
+          } : null,
+          redaction_summary: {
+            total_redacted: (piiResult.count || 0) + (visualTelemetry ? visualTelemetry.redactionsCount : 0),
+            tokens: piiResult.tokens ? piiResult.tokens.map(t => t.replacement) : [],
+          }
+        };
 
-      // ── STEP 5: Action Execution via Content Script Firewall ──
-      let actionsExecuted = 0;
-      const actionsList = (actionPlan && actionPlan.actions) ? actionPlan.actions : [];
+        latestPayload = {
+          ...payload,
+          sanitized_screenshot_b64: sanitizedScreenshotB64 ? `[DATA_URL_IMAGE_WEBP_SANITIZED: ${sanitizedScreenshotB64.length} chars (faces blurred, passwords blacked out)]` : null
+        };
 
-      if (actionsList.length > 0) {
-        updateReasoningStage('Taking action', 'Action execution started');
+        let reasonData = null;
+        try {
+          const res = await fetch(getReasoningUrl(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) {
+            const errBody = await res.text().catch(() => '');
+            throw new Error(`HTTP ${res.status}${errBody ? ': ' + errBody : ''}`);
+          }
+
+          reasonData = await res.json();
+          actionPlan = reasonData.action_plan || reasonData;
+          const tierUsed = reasonData.provider_used || reasonData.tier_used || 'Local (Ollama)';
+          setServerStatus(true, tierUsed);
+          updateReasoningStage('Thinking', `Reasoning response received (${tierUsed})`);
+          if (turn === 1) {
+            activityTimeline.push(`Reasoning executed via ${tierUsed}`);
+          }
+        } catch (e) {
+          if (turn > 1) break;
+          const isOffline = e.message.includes('Failed to fetch') || e.message.includes('NetworkError');
+          const errLabel = isOffline ? 'Stopped · server offline' : 'Stopped · reasoning failed';
+          const errDetail = isOffline ? `Reasoning server unreachable at ${getReasoningUrl()}` : e.message;
+          completeReasoning(true, errLabel, errDetail);
+          return;
+        }
+
+        // Show LLM response text
+        if (actionPlan && actionPlan.thought) {
+          finalThought = actionPlan.thought;
+          addMessage(session, { type: 'agent', text: actionPlan.thought });
+        }
+
+        // ── STEP 5: Action Execution via Content Script Firewall ──
+        const actionsList = (actionPlan && actionPlan.actions) ? actionPlan.actions : [];
+
+        if (actionsList.length === 0) {
+          isTaskDone = true;
+          break;
+        }
+
+        updateReasoningStage('Taking action', `Action execution started (turn ${turn})`);
 
         for (const action of actionsList) {
+          const actType = (action.action || '').toUpperCase();
+          if (actType === 'DONE') {
+            isTaskDone = true;
+            break;
+          }
+
           try {
             const execResult = await sendTabMessage(tab.id, {
               action: 'EXECUTE_ACTION',
@@ -1491,11 +1518,24 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (execResult && execResult.success) {
-              actionsExecuted++;
-              resultData.actions = actionsExecuted;
+              totalActionsExecuted++;
+              resultData.actions = totalActionsExecuted;
               activityTimeline.push(`${action.action} on #${action.node_id ?? 'element'}`);
+              accumulatedActionHistory.push({
+                action: action.action,
+                node_id: action.node_id,
+                text: action.text,
+                value: action.value,
+                success: true
+              });
               saveSessions();
               updateReasoningStage('Taking action', `${action.action} on #${action.node_id ?? 'N/A'}`);
+
+              const thoughtLow = (action.thought || '').toLowerCase();
+              if (actType === 'CLICK' && (thoughtLow.includes('submit') || thoughtLow.includes('submitting'))) {
+                isTaskDone = true;
+              }
+
               // Cadence respecting the 500ms action firewall rate limit
               await new Promise(r => setTimeout(r, 550));
             } else {
@@ -1506,7 +1546,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   status: 'error',
                   title: 'Task Stopped',
                   summary: execResult?.detail || 'Firewall blocked action.',
-                  actions: actionsExecuted,
+                  actions: totalActionsExecuted,
                   protectedCount: (piiResult?.count || 0) + (visualTelemetry?.redactionsCount || 0),
                   tokens: resultData.tokens,
                   pageTitle: tab.title,
@@ -1527,7 +1567,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 status: 'error',
                 title: 'Task Stopped',
                 summary: e.message || 'Action error',
-                actions: actionsExecuted,
+                actions: totalActionsExecuted,
                 protectedCount: (piiResult?.count || 0) + (visualTelemetry?.redactionsCount || 0),
                 tokens: resultData.tokens,
                 pageTitle: tab.title,
@@ -1541,11 +1581,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
         }
+
+        if (isTaskDone) break;
+
+        if (actionsList.some(a => (a.action || '').toUpperCase() === 'DONE')) {
+          isTaskDone = true;
+          break;
+        }
+
+        // Brief pause between turns for DOM settling
+        await new Promise(r => setTimeout(r, 600));
       }
 
       // ── STEP 6: Complete reasoning block & Show Agent Activity at end ──
       const totalProtected = (piiResult?.count || 0) + (visualTelemetry?.redactionsCount || 0);
-      const stepLabel = actionsExecuted === 1 ? '1 step' : `${actionsExecuted} steps`;
+      const stepLabel = totalActionsExecuted === 1 ? '1 step' : `${totalActionsExecuted} steps`;
       const fieldLabel = totalProtected === 1 ? '1 field protected' : `${totalProtected} fields protected`;
       completeReasoning(false, `Done · ${stepLabel} · ${fieldLabel}`, 'Pipeline completed');
 
@@ -1553,8 +1603,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const activityData = {
         status: 'completed',
         title: 'Task Completed',
-        summary: actionPlan?.thought || `Agent finished task in ${actionsExecuted} action steps with privacy protection.`,
-        actions: actionsExecuted,
+        summary: finalThought || actionPlan?.thought || `Agent finished task in ${totalActionsExecuted} action steps with privacy protection.`,
+        actions: totalActionsExecuted,
         protectedCount: totalProtected,
         tokens: resultData.tokens,
         pageTitle: tab.title,

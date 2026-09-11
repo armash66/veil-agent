@@ -753,11 +753,12 @@
     const inlineW = parseFloat(targetEl.style?.width);
     const inlineH = parseFloat(targetEl.style?.height);
 
-    const isTiny = rect.width < 10 || rect.height < 10 ||
+    const isTiny = (targetEl.type !== 'checkbox' && targetEl.type !== 'radio') && (
+                   rect.width < 10 || rect.height < 10 ||
                    (targetEl.clientWidth !== undefined && targetEl.clientWidth < 5) ||
                    (targetEl.clientHeight !== undefined && targetEl.clientHeight < 5) ||
                    (!isNaN(styleW) && styleW < 5) || (!isNaN(styleH) && styleH < 5) ||
-                   (!isNaN(inlineW) && inlineW < 5) || (!isNaN(inlineH) && inlineH < 5);
+                   (!isNaN(inlineW) && inlineW < 5) || (!isNaN(inlineH) && inlineH < 5));
 
     if (
       isTiny ||
@@ -773,7 +774,22 @@
 
     // ── 8. CLICK ──
     if (actionType === 'CLICK') {
+      targetEl.focus?.();
       targetEl.click();
+      if (targetEl.type === 'checkbox' || targetEl.type === 'radio') {
+        if (!targetEl.checked) targetEl.checked = true;
+        targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+        targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      if (targetEl.type === 'submit' && targetEl.form) {
+        try {
+          if (typeof targetEl.form.requestSubmit === 'function') {
+            targetEl.form.requestSubmit(targetEl);
+          } else {
+            targetEl.form.submit();
+          }
+        } catch (_) {}
+      }
       return { success: true, detail: `Clicked <${targetEl.tagName.toLowerCase()}> node [${browserAction.node_id}]` };
     }
 
@@ -782,15 +798,31 @@
       if (targetEl.tagName !== 'SELECT') {
         return { success: false, detail: `FIREWALL REJECT: SELECT action on non-<select> element` };
       }
-      targetEl.value = browserAction.text || '';
+      const valToSelect = browserAction.value != null ? browserAction.value : (browserAction.text || '');
+      targetEl.value = valToSelect;
+      if (!targetEl.value && valToSelect) {
+        const opt = Array.from(targetEl.options).find(o => 
+          o.text.toLowerCase().includes(String(valToSelect).toLowerCase()) || 
+          o.value.toLowerCase().includes(String(valToSelect).toLowerCase())
+        );
+        if (opt) targetEl.value = opt.value;
+      }
       targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+      targetEl.dispatchEvent(new Event('input', { bubbles: true }));
       return { success: true, detail: `Selected option in <select> node [${browserAction.node_id}]` };
     }
 
     // ── 10. TYPE with Vault Interception ──
     if (actionType === 'TYPE') {
-      if (browserAction.text == null) {
-        return { success: false, detail: 'FIREWALL REJECT: TYPE action requires text' };
+      if (browserAction.text == null && browserAction.value == null) {
+        return { success: false, detail: 'FIREWALL REJECT: TYPE action requires text or value' };
+      }
+
+      if (targetEl.type === 'checkbox' || targetEl.type === 'radio') {
+        targetEl.checked = true;
+        targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+        targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+        return { success: true, detail: `Checked <${targetEl.tagName.toLowerCase()}> node [${browserAction.node_id}]` };
       }
 
       const typableTypes = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
@@ -800,14 +832,22 @@
 
       targetEl.focus();
 
-      let textToType = browserAction.text;
+      let textToType = browserAction.text != null ? browserAction.text : browserAction.value;
 
       // Vault token interception: if text looks like [TOKEN_N], restore from vault
-      if (textToType.startsWith('[') && textToType.endsWith(']') && vault.hasToken(textToType)) {
+      if (typeof textToType === 'string' && textToType.startsWith('[') && textToType.endsWith(']') && vault.hasToken(textToType)) {
         try {
           textToType = vault.restoreSecret(textToType, targetEl, window.location.origin);
         } catch (e) {
           return { success: false, detail: `FIREWALL REJECT: Vault restoration denied — ${e.message}` };
+        }
+      }
+
+      // Date field formatting adaptation (convert MM/DD/YYYY to YYYY-MM-DD for <input type="date">)
+      if (targetEl.type === 'date' && typeof textToType === 'string' && textToType.includes('/')) {
+        const parts = textToType.split('/');
+        if (parts.length === 3 && parts[2].length === 4) {
+          textToType = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
         }
       }
 
