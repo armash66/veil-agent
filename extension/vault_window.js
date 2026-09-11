@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadVault() {
-    tableContainer.innerHTML = '<div class="empty-state">Connecting to Isolated World client vault...</div>';
+    tableContainer.innerHTML = '<div class="empty-state">Connecting to client vault...</div>';
 
     const urlParams = new URLSearchParams(window.location.search);
     const originParam = urlParams.get('origin') || null;
@@ -135,14 +135,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let html = `
       <table>
+        <colgroup>
+          <col style="width: 22%;">
+          <col style="width: 15%;">
+          <col style="width: 16%;">
+          <col style="width: 26%;">
+          <col style="width: 11%;">
+          <col style="width: 10%;">
+        </colgroup>
         <thead>
           <tr>
             <th>Token</th>
-            <th>Category</th>
-            <th>Target Field</th>
-            <th>Isolated Secret</th>
-            <th>Origin Scope</th>
-            <th>Security Status</th>
+            <th>Type</th>
+            <th>Field</th>
+            <th>Protected Value</th>
+            <th>Website</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -153,10 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const displaySecret = isRevealed
         ? escapeHtml(entry.rawSecret)
         : '••••••••••••';
+      const cleanOrigin = entry.origin ? escapeHtml(entry.origin.replace(/^https?:\/\//, '')) : 'Active Page';
 
       html += `
         <tr>
-          <td><span class="token-chip">${escapeHtml(entry.token)}</span></td>
+          <td><span class="token-chip" title="${escapeHtml(entry.token)}">${escapeHtml(entry.token)}</span></td>
           <td><strong>${escapeHtml(entry.category)}</strong></td>
           <td><code>#${escapeHtml(entry.fieldId)}</code></td>
           <td>
@@ -165,8 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
               ${isRevealed ? 'Hide' : 'Show'}
             </button>
           </td>
-          <td><code>${escapeHtml(entry.origin)}</code></td>
-          <td><span class="status-pill status-isolated"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Isolated Scope</span></td>
+          <td><span class="origin-label" title="${escapeHtml(entry.origin || '')}">${cleanOrigin}</span></td>
+          <td><span class="status-pill status-secure">Protected</span></td>
         </tr>
       `;
     });
@@ -193,16 +202,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ── Attack 1: Probe window scope ──
+  // ── Test 1: Check Page Script Access ──
   attackScopeBtn.addEventListener('click', async () => {
     if (!hasChromeExtension) {
-      logAttack('Injecting hostile script probe into page window scope (`window.__WEBVEIL_ISOLATED_VAULT__`)...');
+      logAttack('Running Test 1: Probing page JavaScript scope to test vault memory protection...');
       setTimeout(() => {
         const exposed = typeof window.__WEBVEIL_ISOLATED_VAULT__ !== 'undefined';
         if (exposed) {
-          logAttack('SECURITY BREACH: Vault was exposed to page JavaScript!', true);
+          logAttack('SECURITY ALERT: Vault memory was accessible to page scripts!', true);
         } else {
-          logAttack('PASS: window.__WEBVEIL_ISOLATED_VAULT__ is undefined in page JS. Chrome Isolated World strictly blocks access!');
+          logAttack('PASS: Vault memory is completely unreachable from page JavaScript. Local isolation confirmed.');
         }
       }, 300);
       return;
@@ -210,11 +219,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const tab = await findTargetTab();
     if (!tab) {
-      logAttack('Could not locate target tab for attack.', true);
+      logAttack('Could not locate target tab for verification test.', true);
       return;
     }
 
-    logAttack('Injecting hostile script into page window scope to probe `window.__WEBVEIL_ISOLATED_VAULT__`...');
+    logAttack('Running Test 1: Probing page JavaScript scope to test vault memory protection...');
 
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -232,17 +241,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const res = results && results[0] ? results[0].result : null;
       if (res && res.vaultExposed) {
-        logAttack('SECURITY BREACH: Vault was exposed to page JavaScript!', true);
+        logAttack('SECURITY ALERT: Vault memory was accessible to page scripts!', true);
       } else {
-        logAttack('PASS: window.__WEBVEIL_ISOLATED_VAULT__ is undefined in page JS. Chrome Isolated World strictly blocks access!');
+        logAttack('PASS: Vault memory is completely unreachable from page JavaScript. Local isolation confirmed.');
       }
     });
   });
 
-  // ── Attack 2: Inspect DOM Attributes ──
+  // ── Test 2: Check DOM Token Protection ──
   attackDomBtn.addEventListener('click', async () => {
     if (!hasChromeExtension) {
-      logAttack('Scanning DOM attributes in page scope to check for leaked secrets or token attributes...');
+      logAttack('Running Test 2: Inspecting webpage DOM attributes for credential leaks...');
       setTimeout(() => {
         const leaked = [];
         document.querySelectorAll('*').forEach(el => {
@@ -254,9 +263,9 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
         if (leaked.length > 0) {
-          logAttack(`SECURITY ALERT: Leaked attributes found: ${JSON.stringify(leaked)}`, true);
+          logAttack(`SECURITY ALERT: Leaked attributes found in page: ${JSON.stringify(leaked)}`, true);
         } else {
-          logAttack('PASS: 0 leaked vault secrets found in DOM attributes. Real credentials stay in out-of-DOM extension memory.');
+          logAttack('PASS: Zero credentials found in DOM attributes. All values remain securely tokenized.');
         }
       }, 300);
       return;
@@ -264,11 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const tab = await findTargetTab();
     if (!tab) {
-      logAttack('Could not locate target tab for attack.', true);
+      logAttack('Could not locate target tab for verification test.', true);
       return;
     }
 
-    logAttack('Scanning DOM attributes in page scope to check for leaked secrets or token attributes...');
+    logAttack('Running Test 2: Inspecting webpage DOM attributes for credential leaks...');
 
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -287,14 +296,14 @@ document.addEventListener('DOMContentLoaded', () => {
       },
     }, (results) => {
       if (chrome.runtime.lastError) {
-        logAttack(`DOM query failed: ${chrome.runtime.lastError.message}`);
+        logAttack(`Script execution blocked: ${chrome.runtime.lastError.message}`);
         return;
       }
       const leaked = results && results[0] ? results[0].result : [];
-      if (leaked.length > 0) {
-        logAttack(`SECURITY ALERT: Leaked attributes found: ${JSON.stringify(leaked)}`, true);
+      if (leaked && leaked.length > 0) {
+        logAttack(`SECURITY ALERT: Leaked attributes found in page: ${JSON.stringify(leaked)}`, true);
       } else {
-        logAttack('PASS: 0 leaked vault secrets found in DOM attributes. Real credentials stay in out-of-DOM extension memory.');
+        logAttack('PASS: Zero credentials found in DOM attributes. All values remain securely tokenized.');
       }
     });
   });

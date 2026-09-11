@@ -1595,15 +1595,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // ── STEP 6: Complete reasoning block & Show Agent Activity at end ──
       const totalProtected = (piiResult?.count || 0) + (visualTelemetry?.redactionsCount || 0);
-      const stepLabel = totalActionsExecuted === 1 ? '1 step' : `${totalActionsExecuted} steps`;
       const fieldLabel = totalProtected === 1 ? '1 field protected' : `${totalProtected} fields protected`;
-      completeReasoning(false, `Done · ${stepLabel} · ${fieldLabel}`, 'Pipeline completed');
+      let completionSummary = '';
+      if (totalActionsExecuted > 0) {
+        const stepLabel = totalActionsExecuted === 1 ? '1 action' : `${totalActionsExecuted} actions`;
+        completionSummary = totalProtected > 0 ? `Completed · ${stepLabel} · ${fieldLabel}` : `Completed in ${stepLabel}`;
+      } else {
+        completionSummary = totalProtected > 0 ? `Completed · ${fieldLabel}` : 'Task Completed';
+      }
+      completeReasoning(false, completionSummary, 'Pipeline completed');
 
       // Append Agent Activity card
       const activityData = {
         status: 'completed',
         title: 'Task Completed',
-        summary: finalThought || actionPlan?.thought || `Agent finished task in ${totalActionsExecuted} action steps with privacy protection.`,
+        summary: finalThought || actionPlan?.thought || `Agent finished task with privacy protection.`,
         actions: totalActionsExecuted,
         protectedCount: totalProtected,
         tokens: resultData.tokens,
@@ -1619,7 +1625,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       saveSessions();
 
-      showStatusStrip(`Done · ${stepLabel} · ${fieldLabel}`);
+      showStatusStrip(completionSummary);
 
     } catch (err) {
       console.error('[WebVeil Sidepanel] Pipeline error:', err);
@@ -1811,9 +1817,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // ═══════════════════════════════════════════════════════════
   // UI HELPERS
   // ═══════════════════════════════════════════════════════════
+  let statusStripTimer = null;
   function showStatusStrip(text) {
+    if (!statusStrip || !statusStripText) return;
     statusStripText.textContent = text;
-    statusStrip.style.display = '';
+    statusStrip.style.display = 'flex';
+    if (statusStripTimer) clearTimeout(statusStripTimer);
+    statusStripTimer = setTimeout(() => {
+      if (statusStrip) statusStrip.style.display = 'none';
+    }, 5000);
   }
 
   function scrollToBottom() {

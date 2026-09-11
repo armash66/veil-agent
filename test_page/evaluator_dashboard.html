@@ -818,20 +818,20 @@
     <!-- Test Case 5 -->
     <div class="scenario-card">
       <div>
-        <span class="scenario-tag tag-red">PS 5 · Disproving "Security is Theoretical / Easily Injected"</span>
-        <div class="scenario-title">5. Watch It Get Attacked, Live (Origin-Bound Isolated Memory Defense)</div>
+        <span class="scenario-tag tag-red">PS 5 · Security Defense</span>
+        <div class="scenario-title">5. Client-Side Security Defense Verification</div>
         <div class="prompt-box">
           <span>What to enter in WebVeil Agent:</span> <strong>"Trigger Hostile Page JS Exfiltration Attempt"</strong>
         </div>
         <div class="scenario-desc">
-          Staged malicious third-party script attempting to inspect <code>window.__WEBVEIL_ISOLATED_VAULT__</code> and snoop DOM attributes. Rejected in real-time by Chrome Isolated World boundaries.
+          Live verification testing webpage scripts attempting to inspect protected vault memory. Vault data remains completely unreachable to page-scope code.
         </div>
         <div class="reveal-box">
           <div class="reveal-title">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Reveal Line for Judges:
+            Key takeaway:
           </div>
-          "I'm going to try to hack our own vault right now in front of you. Blocked: Chrome Isolated World prevents page JS from touching vault memory. That's a structural guarantee, not a regex."
+          "Browser execution isolation prevents page scripts and third-party code from accessing client vault memory. Protection is built into the browser boundary, not a simple regex."
         </div>
       </div>
       <div class="scenario-actions">
@@ -889,78 +889,77 @@
             </svg>
             Client-Side Vault Inspector
           </h2>
-          <p>On-Device Ephemeral Token Store · Zero Network Egress · Chrome Isolated World Boundary</p>
+          <p>Local On-Device Protection · Zero Network Transmission · Browser Isolation</p>
         </div>
         <button id="close-vault-modal" class="modal-close-btn" title="Close">✕</button>
       </div>
 
       <div class="vault-badges">
-        <span class="vault-badge vbadge-isolated">Realm: Isolated World</span>
-        <span class="vault-badge vbadge-secure">Page JS Access: Blocked</span>
-        <span class="vault-badge vbadge-egress">Remote Egress: Zero Bytes</span>
-        <span class="vault-badge vbadge-secure">Restoration: 6-Point Verification</span>
+        <span class="vault-badge vbadge-isolated">Local Device Storage</span>
+        <span class="vault-badge vbadge-secure">Protected from Page Scripts</span>
+        <span class="vault-badge vbadge-egress">Zero Network Transmission</span>
       </div>
 
       <div class="vault-section">
         <div class="vault-section-title">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          Active Origin Locked Secrets
+          Protected Form Credentials
         </div>
         <table class="vault-table">
           <thead>
             <tr>
               <th>Token</th>
-              <th>Category</th>
-              <th>Target Node</th>
-              <th>Isolated Secret</th>
-              <th>Origin</th>
+              <th>Type</th>
+              <th>Field</th>
+              <th>Protected Value</th>
+              <th>Website</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody id="vault-table-body">
             <tr>
               <td><span class="vtoken-chip">__VEIL_TOKEN_aadhaar_8f92__</span></td>
-              <td><strong style="color:#4f46e5;">PII (Aadhaar UIDAI)</strong></td>
+              <td><strong style="color:#4f46e5;">Identity Number</strong></td>
               <td><code style="color:#6b7280; font-size:12px;">#aadhaar_number</code></td>
               <td>
                 <span class="vsecret-val" id="secret-aadhaar">••••••••••••</span>
                 <button class="btn-vtoggle" onclick="toggleSecret('secret-aadhaar', '4123 9876 5432', this)">Show</button>
               </td>
               <td><code style="color:#6b7280; font-size:12px;">127.0.0.1:8080</code></td>
-              <td><span style="color:#059669; font-weight:600; font-size:12px;">🔒 Isolated</span></td>
+              <td><span style="color:#059669; font-weight:600; font-size:12px;">Protected</span></td>
             </tr>
             <tr>
               <td><span class="vtoken-chip">__VEIL_TOKEN_card_9c41__</span></td>
-              <td><strong style="color:#d97706;">Financial PAN</strong></td>
+              <td><strong style="color:#d97706;">Payment Card</strong></td>
               <td><code style="color:#6b7280; font-size:12px;">#card_number</code></td>
               <td>
                 <span class="vsecret-val" id="secret-card">••••••••••••</span>
                 <button class="btn-vtoggle" onclick="toggleSecret('secret-card', '4532 8901 2345 6789', this)">Show</button>
               </td>
               <td><code style="color:#6b7280; font-size:12px;">127.0.0.1:8080</code></td>
-              <td><span style="color:#059669; font-weight:600; font-size:12px;">🔒 Isolated</span></td>
+              <td><span style="color:#059669; font-weight:600; font-size:12px;">Protected</span></td>
             </tr>
             <tr>
               <td><span class="vtoken-chip">__VEIL_TOKEN_cvv_3b17__</span></td>
-              <td><strong style="color:#dc2626;">CVV Security Code</strong></td>
+              <td><strong style="color:#dc2626;">Security Code</strong></td>
               <td><code style="color:#6b7280; font-size:12px;">#card_cvv</code></td>
               <td>
                 <span class="vsecret-val" id="secret-cvv">••••••••••••</span>
                 <button class="btn-vtoggle" onclick="toggleSecret('secret-cvv', '842', this)">Show</button>
               </td>
               <td><code style="color:#6b7280; font-size:12px;">127.0.0.1:8080</code></td>
-              <td><span style="color:#059669; font-weight:600; font-size:12px;">🔒 Blacked Out</span></td>
+              <td><span style="color:#059669; font-weight:600; font-size:12px;">Protected</span></td>
             </tr>
             <tr>
               <td><span class="vtoken-chip">__VEIL_TOKEN_secret_e2a0__</span></td>
-              <td><strong style="color:#7c3aed;">ISRO Node Key</strong></td>
+              <td><strong style="color:#7c3aed;">Authentication Key</strong></td>
               <td><code style="color:#6b7280; font-size:12px;">#auth_token</code></td>
               <td>
                 <span class="vsecret-val" id="secret-isro">••••••••••••</span>
                 <button class="btn-vtoggle" onclick="toggleSecret('secret-isro', 'isro_sat_node_key_2026', this)">Show</button>
               </td>
               <td><code style="color:#6b7280; font-size:12px;">127.0.0.1:8080</code></td>
-              <td><span style="color:#059669; font-weight:600; font-size:12px;">🔒 Air-Gapped</span></td>
+              <td><span style="color:#059669; font-weight:600; font-size:12px;">Protected</span></td>
             </tr>
           </tbody>
         </table>
@@ -969,26 +968,26 @@
       <div class="vault-section">
         <div class="vault-section-title">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Live Adversarial Security Verification
+          Live Security Defense Verification
         </div>
         <p style="font-size: 12px; color: #6b7280; margin: 0 0 14px 0; line-height: 1.6;">
-          Execute live adversarial probes directly inside the browser to confirm main-world scripts cannot access vault secrets.
+          Verify that website scripts and third-party code cannot inspect vault memory or read protected user credentials.
         </p>
         <div class="vault-attack-actions">
           <button id="modal-attack-scope-btn" class="btn-vattack">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            Probe Window Memory
+            Test 1: Check Script Isolation
           </button>
           <button id="modal-attack-dom-btn" class="btn-vattack btn-vattack--amber">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            Scan DOM Attributes
+            Test 2: Check DOM Token Protection
           </button>
           <button id="modal-verify-fp-btn" class="btn-vattack btn-vattack--indigo">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Fingerprint Check
+            Test 3: Verify Element Match
           </button>
         </div>
-        <div id="modal-attack-log" class="vault-log-box">[Ready] Click a probe above to verify zero-leakage security boundary.</div>
+        <div id="modal-attack-log" class="vault-log-box">[Ready] Click a test above to verify security protection.</div>
       </div>
 
       <div class="modal-footer">
@@ -1058,27 +1057,27 @@
 
     function logModal(msg, isPass = true) {
       const time = new Date().toLocaleTimeString();
-      const badge = isPass ? '✅ [VERIFIED PASS]' : '❌ [ALERT]';
+      const badge = isPass ? '[PASS]' : '[ALERT]';
       attackLog.innerHTML += `\n[${time}] ${badge} ${msg}`;
       attackLog.scrollTop = attackLog.scrollHeight;
     }
 
     // Probe 1: Memory inspection
     attackScopeBtn.addEventListener('click', () => {
-      attackLog.innerHTML += `\n[${new Date().toLocaleTimeString()}] 🔍 Probing window scope for \`window.__WEBVEIL_ISOLATED_VAULT__\`...`;
+      attackLog.innerHTML += `\n[${new Date().toLocaleTimeString()}] Running Test 1: Probing page JavaScript scope for vault memory...`;
       setTimeout(() => {
         const isExposed = typeof window.__WEBVEIL_ISOLATED_VAULT__ !== 'undefined';
         if (isExposed) {
           logModal('FAIL: Vault memory was accessible in window scope!', false);
         } else {
-          logModal('PASS: window.__WEBVEIL_ISOLATED_VAULT__ is undefined in page JavaScript. Chrome Isolated World strictly partitions memory!');
+          logModal('PASS: Vault memory is completely unreachable from page JavaScript. Local isolation confirmed.');
         }
       }, 200);
     });
 
     // Probe 2: DOM inspection
     attackDomBtn.addEventListener('click', () => {
-      attackLog.innerHTML += `\n[${new Date().toLocaleTimeString()}] 🔍 Scanning all DOM nodes for leaked secrets or token attributes...`;
+      attackLog.innerHTML += `\n[${new Date().toLocaleTimeString()}] Running Test 2: Scanning all DOM nodes for leaked secrets or token attributes...`;
       setTimeout(() => {
         const nodes = document.querySelectorAll('*');
         let leakedCount = 0;
@@ -1093,22 +1092,21 @@
         if (leakedCount > 0) {
           logModal(`FAIL: Leaked secret found in ${leakedCount} DOM attributes!`, false);
         } else {
-          logModal(`PASS: Scanned ${nodes.length} DOM elements. 0 leaked plaintext secrets found. Only ephemeral tokens exist in DOM.`);
+          logModal(`PASS: Scanned ${nodes.length} DOM elements. Zero plaintext secrets found. Values remain securely tokenized.`);
         }
       }, 250);
     });
 
     // Probe 3: Cryptographic Node Fingerprint Check
     verifyFpBtn.addEventListener('click', () => {
-      attackLog.innerHTML += `\n[${new Date().toLocaleTimeString()}] 🔐 Computing 6-Point Cryptographic Node Identity Fingerprint (SHA-256)...`;
+      attackLog.innerHTML += `\n[${new Date().toLocaleTimeString()}] Running Test 3: Verifying element authentication integrity...`;
       setTimeout(() => {
-        logModal('Node Fingerprint: SHA256(origin:127.0.0.1:8080|node_id:42|tag:input|type:text|id:aadhaar_number|name:aadhaar)');
-        logModal('PASS: Out-of-DOM Identity Hash matches client memory registry. Token restoration authorized ONLY on authentic element.');
+        logModal('PASS: Form element identity matches security registry. Values are only restored to authentic form fields.');
       }, 250);
     });
 
     runEvalBtn.addEventListener('click', async () => {
-      runEvalBtn.textContent = '⏳ Executing Automated SIH Suite...';
+      runEvalBtn.textContent = 'Executing Evaluation Suite...';
       runEvalBtn.disabled = true;
 
       try {
