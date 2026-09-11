@@ -824,6 +824,30 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.wv-saw-preview-frame:hover .wv-zoom-hint {
+  opacity: 1;
+}
+
+.wv-zoom-hint {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0,0,0,0.65);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  pointer-events: none;
 }
 
 .wv-saw-preview-img {
@@ -831,6 +855,31 @@ html, body {
   height: auto;
   display: block;
   object-fit: cover;
+}
+
+/* ── Image Lightbox Overlay ── */
+.wv-lightbox-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  cursor: zoom-out;
+}
+
+.wv-lightbox-overlay.visible {
+  display: flex;
+}
+
+.wv-lightbox-overlay img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 6px;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.4);
+  object-fit: contain;
 }
 
 /* ── Tokens Section ── */
@@ -1605,6 +1654,39 @@ html, body {
   color: var(--text-primary);
 }
 
+.wv-modal-search-row {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-elevated);
+}
+
+.wv-modal-search-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 120ms ease;
+}
+
+.wv-modal-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.wv-modal-search-input:focus {
+  border-color: var(--accent-primary);
+}
+
+.wv-modal-match-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
 .wv-modal-body {
   padding: 14px;
   overflow-y: auto;
@@ -1615,4 +1697,11 @@ html, body {
   color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.wv-modal-body mark {
+  background-color: #fbbf24;
+  color: #1a1a2e;
+  border-radius: 2px;
+  padding: 0 1px;
 }

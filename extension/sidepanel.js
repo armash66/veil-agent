@@ -946,7 +946,11 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <span class="wv-saw-preview-note">Faces blurred · Secrets blacked</span>
           </div>
-          <div class="wv-saw-preview-frame">
+          <div class="wv-saw-preview-frame" data-lightbox-src="${vt.sanitizedImage}">
+            <span class="wv-zoom-hint">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              Click to enlarge
+            </span>
             <img src="${vt.sanitizedImage}" class="wv-saw-preview-img" alt="Sanitized Client Screen" />
           </div>
         </div>
@@ -1011,8 +1015,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inspectBtn) {
       inspectBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        modalJson.textContent = JSON.stringify(latestPayload, null, 2);
+        const rawJson = JSON.stringify(latestPayload, null, 2);
+        modalJson.textContent = rawJson;
+        modalJson.setAttribute('data-raw-json', rawJson);
+        const searchInput = document.getElementById('payload-search-input');
+        const matchCount = document.getElementById('payload-match-count');
+        if (searchInput) searchInput.value = '';
+        if (matchCount) matchCount.textContent = '';
         payloadModal.classList.add('visible');
+        if (searchInput) setTimeout(() => searchInput.focus(), 80);
       });
     }
 
@@ -1025,6 +1036,20 @@ document.addEventListener('DOMContentLoaded', () => {
           chrome.runtime.sendMessage({ action: 'OPEN_VAULT_WINDOW' });
         } catch (_) {
           window.open('vault_window.html', '_blank', 'width=740,height=580');
+        }
+      });
+    }
+
+    // Wire image lightbox (click to enlarge)
+    const previewFrame = card.querySelector('.wv-saw-preview-frame[data-lightbox-src]');
+    if (previewFrame) {
+      previewFrame.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const lightbox = document.getElementById('image-lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        if (lightbox && lightboxImg) {
+          lightboxImg.src = previewFrame.getAttribute('data-lightbox-src');
+          lightbox.classList.add('visible');
         }
       });
     }
@@ -2134,6 +2159,42 @@ document.addEventListener('DOMContentLoaded', () => {
       payloadModal.classList.remove('visible');
     }
   });
+
+  // ── Image Lightbox Close ──
+  const imageLightbox = document.getElementById('image-lightbox');
+  if (imageLightbox) {
+    imageLightbox.addEventListener('click', () => {
+      imageLightbox.classList.remove('visible');
+    });
+  }
+
+  // ── Payload Search Bar ──
+  const payloadSearchInput = document.getElementById('payload-search-input');
+  const payloadMatchCount = document.getElementById('payload-match-count');
+  if (payloadSearchInput) {
+    payloadSearchInput.addEventListener('input', () => {
+      const query = payloadSearchInput.value.trim();
+      const rawJson = modalJson.getAttribute('data-raw-json') || modalJson.textContent;
+      if (!query) {
+        modalJson.textContent = rawJson;
+        if (payloadMatchCount) payloadMatchCount.textContent = '';
+        return;
+      }
+      // Escape special regex chars in query
+      const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${escaped})`, 'gi');
+      const matches = rawJson.match(regex);
+      const count = matches ? matches.length : 0;
+      if (payloadMatchCount) {
+        payloadMatchCount.textContent = count > 0 ? `${count} match${count !== 1 ? 'es' : ''} found` : 'No matches';
+      }
+      // Build highlighted HTML
+      const safeJson = rawJson.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const safeEscaped = query.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const highlightRegex = new RegExp(`(${safeEscaped})`, 'gi');
+      modalJson.innerHTML = safeJson.replace(highlightRegex, '<mark>$1</mark>');
+    });
+  }
 
   // ── Instructions Selector Dropdown & File Import ──
   if (instructionsBtn && instructionsDropdownMenu) {
