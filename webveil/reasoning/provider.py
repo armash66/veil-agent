@@ -34,9 +34,9 @@ IMPORTANT RULES:
 6. Your "thought" field should explain your reasoning for EACH action and summarize what was accomplished.
 
 ACTION TYPES:
-- click: Click element by node_id (buttons, links, checkboxes). Required: node_id
-- type: Type text into element. Required: node_id, text
-- select: Select dropdown option. Required: node_id, value
+- click: Click element by node_id (buttons, links, checkboxes). Required: node_id. To check a checkbox, click it.
+- type: Type text into element (text, email, password, date). Required: node_id, text. For date fields, use YYYY-MM-DD (e.g., "1995-05-15").
+- select: Select dropdown option. Required: node_id, value. Choose an option value from the select element's options list.
 - navigate: Go to URL. Required: url
 - scroll: Scroll the page. Optional: direction ("up"/"down"), amount (pixels)
 - keypress: Press a key. Required: key (e.g., "Enter", "Tab", "Escape")
@@ -45,7 +45,7 @@ ACTION TYPES:
 
 DOM FORMAT:
 Each interactive element is shown as:
-[node_id] <tag type='...' name='...' placeholder='...' value='...'>text</tag>
+[node_id] <tag id='...' type='...' placeholder='...' value='...'>"text or options" [interactive]
 
 RESPOND WITH ONLY VALID JSON in this exact format:
 {
@@ -53,8 +53,13 @@ RESPOND WITH ONLY VALID JSON in this exact format:
   "actions": [
     {"action": "type", "node_id": 45, "text": "John Doe", "thought": "Filling full name"},
     {"action": "type", "node_id": 47, "text": "[EMAIL_1]", "thought": "Filling email placeholder"},
-    {"action": "click", "node_id": 55, "thought": "Checking consent box"},
-    {"action": "click", "node_id": 56, "thought": "Submitting the form"},
+    {"action": "type", "node_id": 49, "text": "9876543210", "thought": "Filling phone number"},
+    {"action": "type", "node_id": 51, "text": "[AADHAAR_1]", "thought": "Filling Aadhaar identifier"},
+    {"action": "type", "node_id": 53, "text": "[PASSWORD_1]", "thought": "Filling password"},
+    {"action": "select", "node_id": 55, "value": "aadhaar", "thought": "Selecting document type"},
+    {"action": "type", "node_id": 57, "text": "1995-05-15", "thought": "Filling date of birth"},
+    {"action": "click", "node_id": 58, "thought": "Checking consent box"},
+    {"action": "click", "node_id": 60, "thought": "Submitting the form"},
     {"action": "done", "thought": "Form completed and submitted"}
   ]
 }"""
@@ -159,7 +164,7 @@ def build_reasoning_context(
     return "\n".join(parts)
 
 
-def parse_action_plan(raw_response: str, max_actions: int = 5) -> ActionPlan:
+def parse_action_plan(raw_response: str, max_actions: int = 15) -> ActionPlan:
     """
     Parse LLM response into an ActionPlan.
     Handles JSON extraction from potentially noisy LLM output.

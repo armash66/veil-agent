@@ -198,13 +198,23 @@
         (el.alt && (el.alt.toLowerCase().includes('avatar') || el.alt.toLowerCase().includes('profile')))
       )) || (el.className && typeof el.className === 'string' && (el.className.toLowerCase().includes('avatar') || el.className.toLowerCase().includes('profile-pic')));
 
+      let selectOptionsText = '';
+      if (tag === 'select' && el.options) {
+        const opts = Array.from(el.options)
+          .map(o => o.value ? `${o.value}: ${(o.text || o.value).trim()}` : (o.text || '').trim())
+          .filter(Boolean);
+        if (opts.length > 0) {
+          selectOptionsText = `options: [${opts.join(', ')}]`;
+        }
+      }
+
       const node = {
         node_id: idx,
         tag_name: tag,
         element_type: isCanvas ? 'canvas' : (el.type || ''),
         element_name: el.name || '',
         element_id: el.id || '',
-        text_content: text.substring(0, 200),
+        text_content: selectOptionsText || text.substring(0, 200),
         value: '',
         placeholder: el.placeholder || '',
         autocomplete: el.autocomplete || '',
@@ -220,8 +230,10 @@
         },
       };
 
-      // Capture input values for PII scanning (stays in isolated world)
-      if (node.is_interactive && el.value) {
+      // Capture input values for PII scanning and state awareness
+      if (node.element_type === 'checkbox' || node.element_type === 'radio') {
+        node.value = el.checked ? 'checked' : 'unchecked';
+      } else if (node.is_interactive && el.value) {
         node.value = el.value;
       }
 
@@ -781,7 +793,7 @@
         targetEl.dispatchEvent(new Event('change', { bubbles: true }));
         targetEl.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      if (targetEl.type === 'submit' && targetEl.form) {
+      if ((targetEl.type === 'submit' || targetEl.tagName === 'BUTTON' || targetEl.id === 'submitBtn') && targetEl.form) {
         try {
           if (typeof targetEl.form.requestSubmit === 'function') {
             targetEl.form.requestSubmit(targetEl);
@@ -843,12 +855,41 @@
         }
       }
 
-      // Date field formatting adaptation (convert MM/DD/YYYY to YYYY-MM-DD for <input type="date">)
-      if (targetEl.type === 'date' && typeof textToType === 'string' && textToType.includes('/')) {
-        const parts = textToType.split('/');
-        if (parts.length === 3 && parts[2].length === 4) {
-          textToType = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+      // If typing into a SELECT element, adapt to selecting matching option
+      if (targetEl.tagName === 'SELECT') {
+        const valToSelect = textToType;
+        targetEl.value = valToSelect;
+        if (!targetEl.value && valToSelect) {
+          const opt = Array.from(targetEl.options).find(o => 
+            o.text.toLowerCase().includes(String(valToSelect).toLowerCase()) || 
+            o.value.toLowerCase().includes(String(valToSelect).toLowerCase())
+          );
+          if (opt) targetEl.value = opt.value;
         }
+        targetEl.dispatchEvent(new Event('change', { bubbles: true }));
+        targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+        return { success: true, detail: `Selected option in <select> node [${browserAction.node_id}]` };
+      }
+
+      // Date field formatting adaptation (convert MM/DD/YYYY, DD-MM-YYYY, etc. to YYYY-MM-DD for <input type="date">)
+      if (targetEl.type === 'date' && typeof textToType === 'string') {
+        let cleanDate = textToType.trim();
+        if (/^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/.test(cleanDate)) {
+          const parts = cleanDate.split(/[\/\-\.]/);
+          const year = parts[2];
+          const p0 = parts[0].padStart(2, '0');
+          const p1 = parts[1].padStart(2, '0');
+          cleanDate = parseInt(p0, 10) > 12 ? `${year}-${p1}-${p0}` : `${year}-${p0}-${p1}`;
+        } else if (/^\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}$/.test(cleanDate)) {
+          const parts = cleanDate.split(/[\/\-\.]/);
+          cleanDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        } else {
+          const parsed = new Date(cleanDate);
+          if (!isNaN(parsed.getTime())) {
+            cleanDate = parsed.toISOString().split('T')[0];
+          }
+        }
+        textToType = cleanDate;
       }
 
       targetEl.value = textToType;

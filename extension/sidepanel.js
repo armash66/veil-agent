@@ -1244,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let visualTelemetry = null;
       let sanitizedScreenshotB64 = null;
 
-      while (turn < MAX_TURNS && !isTaskDone && totalActionsExecuted < 14) {
+      while (turn < MAX_TURNS && !isTaskDone && totalActionsExecuted < 20) {
         turn++;
 
         // ── STEP 2: DOM Pruning (content script) ──

@@ -62,6 +62,11 @@ class DOMNode(BaseModel):
     node_id: int
     tag_name: str
     element_type: str = ""
+    element_id: str = ""
+    element_name: str = ""
+    placeholder: str = ""
+    value: str = ""
+    aria_label: str = ""
     text_content: str = ""
     is_interactive: bool = False
     bounding_box: Optional[Dict[str, int]] = None
@@ -240,7 +245,10 @@ async def reason(request: ReasonRequest):
             node_id=n.node_id,
             tag_name=n.tag_name,
             element_type=n.element_type,
+            element_id=n.element_id,
+            name=n.element_name,
             text_content=n.text_content,
+            value=n.value,
             is_interactive=n.is_interactive,
             bounding_box=n.bounding_box,
         )
@@ -444,10 +452,20 @@ def _format_dom_for_prompt(nodes: List[DOMNode], max_nodes: int = 250) -> str:
     lines = []
     for node in selected:
         parts = [f"[{node.node_id}]", f"<{node.tag_name}>"]
-        if node.element_type:
+        if getattr(node, "element_id", None):
+            parts.append(f'id="{node.element_id}"')
+        elif getattr(node, "element_name", None):
+            parts.append(f'name="{node.element_name}"')
+        if getattr(node, "element_type", None):
             parts.append(f'type="{node.element_type}"')
+        if getattr(node, "placeholder", None):
+            parts.append(f'placeholder="{node.placeholder}"')
+        if getattr(node, "value", None):
+            parts.append(f'value="{node.value[:60]}"')
+        if getattr(node, "aria_label", None):
+            parts.append(f'aria-label="{node.aria_label}"')
         if node.text_content:
-            parts.append(f'"{node.text_content[:90]}"')
+            parts.append(f'"{node.text_content[:120]}"')
         if node.is_interactive:
             parts.append("[interactive]")
         lines.append(" ".join(parts))
