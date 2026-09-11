@@ -180,6 +180,20 @@
       color: var(--text-muted);
       font-size: 13px;
     }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .status-isolated {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+    }
   </style>
 </head>
 <body>
@@ -194,7 +208,9 @@
       </svg>
       <h1>WebVeil Client-Side Vault — Isolated Security Boundary</h1>
     </div>
-    <button id="refresh-btn" class="btn-action">🔄 Refresh Vault</button>
+    <button id="refresh-btn" class="btn-action">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:4px; vertical-align:-1px;"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh Vault
+    </button>
   </div>
 
   <div class="badges">

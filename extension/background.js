@@ -43,11 +43,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Async channel
 
   } else if (request.action === 'OPEN_VAULT_WINDOW') {
+    const params = new URLSearchParams();
+    if (request.tabId) params.set('tabId', request.tabId);
+    if (request.origin) params.set('origin', request.origin);
+    const queryStr = params.toString() ? '?' + params.toString() : '';
     chrome.windows.create({
-      url: chrome.runtime.getURL('vault_window.html'),
+      url: chrome.runtime.getURL('vault_window.html' + queryStr),
       type: 'popup',
-      width: 740,
-      height: 580,
+      width: 780,
+      height: 620,
     }, (win) => {
       sendResponse({ success: true, windowId: win?.id });
     });

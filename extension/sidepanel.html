@@ -178,7 +178,7 @@
             <span class="wv-settings-label">Active Cascade Tier</span>
             <span id="settings-active-tier-badge" class="wv-tier-badge">Local (Ollama)</span>
           </div>
-          <div class="wv-settings-help-text">Automatic escalation order: Tier 1 Local Ollama (zero network egress) ➔ Tier 2 OpenRouter ➔ Tier 3 Gemini. Read-only status.</div>
+          <div class="wv-settings-help-text">Automatic escalation order: Tier 1 Local Ollama (zero network egress) -&gt; Tier 2 OpenRouter -&gt; Tier 3 Gemini. Read-only status.</div>
         </div>
 
         <div class="wv-settings-card">
@@ -379,6 +379,7 @@
        IMAGE LIGHTBOX — fullscreen enlarger for sanitized screenshots
        ═══════════════════════════════════════════════════════ -->
   <div id="image-lightbox" class="wv-lightbox-overlay">
+    <button id="lightbox-close-btn" class="wv-lightbox-close" title="Close enlarged image (Esc)">&times;</button>
     <img id="lightbox-img" src="" alt="Enlarged Sanitized Screenshot" />
   </div>
 

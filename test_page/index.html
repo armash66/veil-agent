@@ -1360,10 +1360,35 @@
             activateTab(target, false);
         }
 
+        // ── Real-Time Form Value Sync to Safe Vault Storage ──
+        function syncFormToVaultStorage() {
+            try {
+                const entries = [];
+                const email = document.getElementById('email')?.value || 'john.doe@example.com';
+                const phone = document.getElementById('phone')?.value || '9876543210';
+                const aadhaar = document.getElementById('aadhaar')?.value || '1234 5678 9012';
+                const password = document.getElementById('password')?.value;
+                const fullName = document.getElementById('fullName')?.value;
+
+                if (email) entries.push({ token: '[EMAIL_1]', category: 'EMAIL', fieldId: 'email', rawSecret: email, origin: window.location.origin, extractedAt: Date.now() });
+                if (phone) entries.push({ token: '[PHONE_1]', category: 'PHONE', fieldId: 'phone', rawSecret: phone, origin: window.location.origin, extractedAt: Date.now() });
+                if (aadhaar) entries.push({ token: '[AADHAAR_1]', category: 'AADHAAR', fieldId: 'aadhaar', rawSecret: aadhaar, origin: window.location.origin, extractedAt: Date.now() });
+                if (password) entries.push({ token: '[PASSWORD_1]', category: 'PASSWORD', fieldId: 'password', rawSecret: password, origin: window.location.origin, extractedAt: Date.now() });
+                if (fullName) entries.push({ token: '[USER_ID_1]', category: 'USER_ID', fieldId: 'fullName', rawSecret: fullName, origin: window.location.origin, extractedAt: Date.now() });
+
+                if (entries.length > 0) {
+                    localStorage.setItem('webveil_vault_entries', JSON.stringify(entries));
+                    sessionStorage.setItem('webveil_vault_entries', JSON.stringify(entries));
+                }
+            } catch (_) {}
+        }
+        document.addEventListener('input', syncFormToVaultStorage);
+
         window.addEventListener('hashchange', handleHash);
         window.addEventListener('DOMContentLoaded', () => {
             handleHash();
             drawChallenge();
+            syncFormToVaultStorage();
             checkReasoningServer();
             setInterval(checkReasoningServer, 4000);
         });

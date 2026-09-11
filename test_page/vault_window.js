@@ -16,40 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const hasChromeExtension = typeof chrome !== 'undefined' && chrome.tabs && typeof chrome.tabs.query === 'function';
 
-  const DEMO_ENTRIES = [
-    {
-      token: '__VEIL_TOKEN_aadhaar_8f92__',
-      category: 'PII_GOVT_ID',
-      fieldId: 'aadhaar_number',
-      rawSecret: '4123 9876 5432',
-      origin: 'http://127.0.0.1:8080'
-    },
-    {
-      token: '__VEIL_TOKEN_card_9c41__',
-      category: 'FINANCIAL_PAN',
-      fieldId: 'card_number',
-      rawSecret: '4532 8901 2345 6789',
-      origin: 'http://127.0.0.1:8080'
-    },
-    {
-      token: '__VEIL_TOKEN_cvv_3b17__',
-      category: 'CARD_SECURITY_CODE',
-      fieldId: 'cvv',
-      rawSecret: '842',
-      origin: 'http://127.0.0.1:8080'
-    },
-    {
-      token: '__VEIL_TOKEN_secret_e2a0__',
-      category: 'ISRO_AUTH_KEY',
-      fieldId: 'access_key',
-      rawSecret: 'isro_sat_node_key_2026',
-      origin: 'http://127.0.0.1:8080'
-    }
-  ];
-
   function logAttack(msg, isError = false) {
     const timestamp = new Date().toLocaleTimeString();
-    const prefix = isError ? '❌ [ALERT]' : '✅ [VERIFIED]';
+    const prefix = isError ? '[ALERT]' : '[VERIFIED]';
     attackLog.innerHTML += `\n[${timestamp}] ${prefix} ${msg}`;
     attackLog.scrollTop = attackLog.scrollHeight;
   }
@@ -60,59 +29,106 @@ document.addEventListener('DOMContentLoaded', () => {
         resolve(null);
         return;
       }
-      chrome.tabs.query({ active: true }, (tabs) => {
-        const webTab = tabs.find(t => t.url && !t.url.startsWith('chrome-extension://'));
-        if (webTab) {
-          activeTabId = webTab.id;
-          resolve(webTab);
-        } else {
-          chrome.tabs.query({}, (allTabs) => {
-            const candidate = allTabs.find(t => t.url && !t.url.startsWith('chrome-extension://') && !t.url.startsWith('chrome://'));
-            if (candidate) activeTabId = candidate.id;
-            resolve(candidate || null);
-          });
-        }
-      });
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramTabId = urlParams.get('tabId') ? parseInt(urlParams.get('tabId'), 10) : null;
+      if (paramTabId) {
+        chrome.tabs.get(paramTabId, (tab) => {
+          if (!chrome.runtime.lastError && tab) {
+            activeTabId = tab.id;
+            resolve(tab);
+          } else {
+            fallbackFind();
+          }
+        });
+        return;
+      }
+
+      fallbackFind();
+
+      function fallbackFind() {
+        chrome.tabs.query({ active: true }, (tabs) => {
+          const webTab = (tabs || []).find(t => t.url && !t.url.startsWith('chrome-extension://'));
+          if (webTab) {
+            activeTabId = webTab.id;
+            resolve(webTab);
+          } else {
+            chrome.tabs.query({}, (allTabs) => {
+              const candidate = (allTabs || []).find(t => t.url && !t.url.startsWith('chrome-extension://') && !t.url.startsWith('chrome://'));
+              if (candidate) activeTabId = candidate.id;
+              resolve(candidate || null);
+            });
+          }
+        });
+      }
     });
   }
 
   async function loadVault() {
-    tableContainer.innerHTML = '<div class="empty-state">Connecting to Isolated World vault...</div>';
+    tableContainer.innerHTML = '<div class="empty-state">Connecting to Isolated World client vault...</div>';
 
-    if (!hasChromeExtension) {
-      // Running in web evaluator demo mode
-      setTimeout(() => {
-        vaultEntries = DEMO_ENTRIES;
-        renderTable(vaultEntries, 'http://127.0.0.1:8080');
-      }, 150);
-      return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const originParam = urlParams.get('origin') || null;
+
+    // 1. Immediately render cached live entries from chrome.storage.local if present
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.get(['webveil_vault_entries', 'webveil_vault_origin'], (data) => {
+        if (data && Array.isArray(data.webveil_vault_entries) && data.webveil_vault_entries.length > 0) {
+          vaultEntries = data.webveil_vault_entries;
+          renderTable(vaultEntries, data.webveil_vault_origin || originParam || 'Active Page');
+        }
+      });
     }
 
-    const tab = await findTargetTab();
-    if (!tab) {
-      tableContainer.innerHTML = '<div class="empty-state">No active webpage tab found. Open a target page (e.g. KYC form) and click Refresh.</div>';
-      return;
-    }
+    // 2. Query target tab content script for live in-memory vault entries
+    if (hasChromeExtension) {
+      const tab = await findTargetTab();
+      if (tab && tab.id) {
+        chrome.tabs.sendMessage(tab.id, { action: 'GET_VAULT_ENTRIES' }, (response) => {
+          if (!chrome.runtime.lastError && response && Array.isArray(response.entries) && response.entries.length > 0) {
+            vaultEntries = response.entries;
+            renderTable(vaultEntries, response.origin || tab.url || originParam || 'Active Page');
+            try {
+              chrome.storage.local.set({
+                webveil_vault_entries: response.entries,
+                webveil_vault_origin: response.origin || tab.url
+              });
+            } catch (_) {}
+            return;
+          }
 
-    chrome.tabs.sendMessage(tab.id, { action: 'GET_VAULT_ENTRIES' }, (response) => {
-      if (chrome.runtime.lastError || !response || !response.entries) {
-        // Graceful fallback to demo entries
-        vaultEntries = DEMO_ENTRIES;
-        renderTable(vaultEntries, tab.url || 'http://127.0.0.1:8080');
+          if (vaultEntries.length === 0) {
+            renderTable([], tab.url || originParam || 'Active Page');
+          }
+        });
         return;
       }
+    }
 
-      vaultEntries = response.entries;
-      renderTable(vaultEntries, response.origin);
-    });
+    // 3. Web mode fallback (read real values from localStorage if opened from evaluator test server)
+    try {
+      const raw = localStorage.getItem('webveil_vault_entries') || sessionStorage.getItem('webveil_vault_entries');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          vaultEntries = parsed;
+          renderTable(vaultEntries, window.location.origin);
+          return;
+        }
+      }
+    } catch (_) {}
+
+    if (vaultEntries.length === 0) {
+      renderTable([], originParam || window.location.origin);
+    }
   }
 
   function renderTable(entries, origin) {
     if (!entries || entries.length === 0) {
       tableContainer.innerHTML = `
         <div class="empty-state">
-          No sensitive data currently locked in vault for origin <strong>${origin || 'current page'}</strong>.<br>
-          Run an agent task on a form with credentials or PII.
+          No sensitive data currently locked in vault for <strong>${origin || 'current page'}</strong>.<br>
+          Fill out a form (e.g. KYC verification) or run an agent task on a page with PII to lock real-time credentials.
         </div>`;
       return;
     }
@@ -150,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </button>
           </td>
           <td><code>${escapeHtml(entry.origin)}</code></td>
-          <td><span style="color:#34d399; font-weight:600;">🔒 Isolated Scope</span></td>
+          <td><span class="status-pill status-isolated"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Isolated Scope</span></td>
         </tr>
       `;
     });

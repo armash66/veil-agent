@@ -1030,12 +1030,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // Wire open vault window button
     const vaultBtn = card.querySelector('.wv-btn-vault-open');
     if (vaultBtn) {
-      vaultBtn.addEventListener('click', (e) => {
+      vaultBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
+        let targetTabId = null;
+        let targetOrigin = null;
         try {
-          chrome.runtime.sendMessage({ action: 'OPEN_VAULT_WINDOW' });
+          const t = await getCurrentTab();
+          if (t) {
+            targetTabId = t.id;
+            targetOrigin = t.url ? new URL(t.url).origin : null;
+          }
+        } catch (_) {}
+        try {
+          chrome.runtime.sendMessage({
+            action: 'OPEN_VAULT_WINDOW',
+            tabId: targetTabId,
+            origin: targetOrigin
+          });
         } catch (_) {
-          window.open('vault_window.html', '_blank', 'width=740,height=580');
+          const qs = targetTabId ? `?tabId=${targetTabId}&origin=${encodeURIComponent(targetOrigin || '')}` : '';
+          window.open('vault_window.html' + qs, '_blank', 'width=780,height=620');
         }
       });
     }
@@ -1243,14 +1257,33 @@ document.addEventListener('DOMContentLoaded', () => {
         updateReasoningStage('Scanning for sensitive data', `PII scan complete (${piiResult.count || 0} fields protected)`);
 
         if (piiResult.tokens && piiResult.tokens.length > 0) {
+          const liveVaultEntries = [];
           for (let i = 0; i < piiResult.tokens.length; i++) {
             const t = piiResult.tokens[i];
             resultData.protectedCount += 1;
             resultData.tokens.push({
               replacement: t.replacement,
-              category: t.category
+              category: t.category,
+              original: t.original,
+              fieldId: t.fieldId || t.nodeId
+            });
+            liveVaultEntries.push({
+              token: t.replacement,
+              category: t.category,
+              fieldId: t.fieldId || t.category?.toLowerCase() || 'field',
+              rawSecret: t.original,
+              origin: tab.url ? new URL(tab.url).origin : window.location.origin,
+              extractedAt: Date.now()
             });
           }
+          try {
+            chrome.storage.local.set({
+              webveil_vault_entries: liveVaultEntries,
+              webveil_vault_origin: tab.url ? new URL(tab.url).origin : window.location.origin,
+              webveil_vault_tab_id: tab.id,
+              webveil_vault_updated_at: Date.now()
+            });
+          } catch (_) {}
         }
         activityTimeline.push(piiResult.count > 0 ? `Shielded ${piiResult.count} sensitive fields` : 'Page privacy verified');
 
@@ -1890,11 +1923,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (openVaultWindowBtn) {
-    openVaultWindowBtn.addEventListener('click', () => {
+    openVaultWindowBtn.addEventListener('click', async () => {
+      let targetTabId = null;
+      let targetOrigin = null;
       try {
-        chrome.runtime.sendMessage({ action: 'OPEN_VAULT_WINDOW' });
+        const t = await getCurrentTab();
+        if (t) {
+          targetTabId = t.id;
+          targetOrigin = t.url ? new URL(t.url).origin : null;
+        }
+      } catch (_) {}
+      try {
+        chrome.runtime.sendMessage({
+          action: 'OPEN_VAULT_WINDOW',
+          tabId: targetTabId,
+          origin: targetOrigin
+        });
       } catch (_) {
-        window.open('vault_window.html', '_blank', 'width=740,height=580');
+        const qs = targetTabId ? `?tabId=${targetTabId}&origin=${encodeURIComponent(targetOrigin || '')}` : '';
+        window.open('vault_window.html' + qs, '_blank', 'width=780,height=620');
       }
     });
   }
@@ -2162,11 +2209,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Image Lightbox Close ──
   const imageLightbox = document.getElementById('image-lightbox');
+  const lightboxCloseBtn = document.getElementById('lightbox-close-btn');
   if (imageLightbox) {
-    imageLightbox.addEventListener('click', () => {
-      imageLightbox.classList.remove('visible');
+    imageLightbox.addEventListener('click', (e) => {
+      if (e.target === imageLightbox || e.target.id === 'lightbox-close-btn') {
+        imageLightbox.classList.remove('visible');
+      }
     });
   }
+  if (lightboxCloseBtn) {
+    lightboxCloseBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (imageLightbox) imageLightbox.classList.remove('visible');
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (imageLightbox && imageLightbox.classList.contains('visible')) {
+        imageLightbox.classList.remove('visible');
+      }
+      if (payloadModal && payloadModal.classList.contains('visible')) {
+        payloadModal.classList.remove('visible');
+      }
+    }
+  });
 
   // ── Payload Search Bar ──
   const payloadSearchInput = document.getElementById('payload-search-input');

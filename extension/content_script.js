@@ -31,21 +31,45 @@
     }
 
     storeSecret(rawSecret, node, origin, specificToken = null) {
-      if (!rawSecret || !node) return null;
+      if (!rawSecret) return null;
 
-      const token = specificToken || this.generateToken(node.type || node.name || 'SECRET');
-      const fingerprint = this._computeFingerprint(node);
+      const token = specificToken || this.generateToken(node?.type || node?.name || 'SECRET');
+      const fingerprint = node ? this._computeFingerprint(node) : '';
+      const fieldId = node ? (node.id || node.name || node.getAttribute?.('aria-label') || node.tagName?.toLowerCase() || 'field') : 'field';
+      const category = token.replace(/[\[\]0-9_]/g, '') || 'SENSITIVE';
 
       this._vaultMap.set(token, {
         rawSecret,
         origin: origin || window.location.origin,
         extractedAt: Date.now(),
         fingerprint,
-        nodeRef: new WeakRef(node),
+        fieldId,
+        category,
+        nodeRef: node ? new WeakRef(node) : null,
       });
 
-      this._nodeFingerprints.set(token, fingerprint);
+      if (fingerprint) {
+        this._nodeFingerprints.set(token, fingerprint);
+      }
+
+      this._syncStorage();
       return token;
+    }
+
+    _syncStorage() {
+      try {
+        const entries = this.getEntries();
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.set({
+            webveil_vault_entries: entries,
+            webveil_vault_origin: window.location.origin,
+            webveil_vault_updated_at: Date.now()
+          });
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('webveil_vault_entries', JSON.stringify(entries));
+        }
+      } catch (_) {}
     }
 
     getEntries() {
@@ -54,11 +78,11 @@
         const liveNode = data.nodeRef ? data.nodeRef.deref() : null;
         entries.push({
           token,
-          origin: data.origin,
-          extractedAt: data.extractedAt,
-          fingerprint: data.fingerprint,
-          fieldId: liveNode ? (liveNode.id || liveNode.name || liveNode.tagName.toLowerCase()) : 'DOM Node',
-          category: token.replace(/[\[\]0-9_]/g, ''),
+          origin: data.origin || window.location.origin,
+          extractedAt: data.extractedAt || Date.now(),
+          fingerprint: data.fingerprint || '',
+          fieldId: liveNode ? (liveNode.id || liveNode.name || liveNode.tagName.toLowerCase()) : (data.fieldId || 'DOM Node'),
+          category: data.category || token.replace(/[\[\]0-9_]/g, '') || 'SENSITIVE',
           rawSecret: data.rawSecret,
           length: data.rawSecret ? data.rawSecret.length : 0,
         });
@@ -881,9 +905,18 @@
         sendResponse({ success: true, detail: 'Firewall and vault reset for new session' });
 
       } else if (request.action === 'GET_VAULT_ENTRIES') {
+        let entries = vault.getEntries();
+        // If vault has no entries yet, dynamically inspect current page inputs and lock them in real-time
+        if (entries.length === 0) {
+          try {
+            const currentNodes = extractAndPruneDOM();
+            detectPII(currentNodes);
+            entries = vault.getEntries();
+          } catch (_) {}
+        }
         sendResponse({
           success: true,
-          entries: vault.getEntries(),
+          entries: entries,
           realm: 'Chrome Isolated World (Extension Window Context)',
           origin: window.location.origin,
           url: window.location.href,
