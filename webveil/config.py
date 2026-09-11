@@ -34,11 +34,11 @@ class WebVeilConfig:
         self.ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
         self.gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-        self.openrouter_model: str = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")
+        self.openrouter_model: str = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
 
         # Agent settings
         self.max_steps: int = int(os.getenv("WEBVEIL_MAX_STEPS", "20"))
-        self.max_actions_per_plan: int = int(os.getenv("WEBVEIL_MAX_ACTIONS_PER_PLAN", "5"))
+        self.max_actions_per_plan: int = int(os.getenv("WEBVEIL_MAX_ACTIONS_PER_PLAN", "15"))
         self.headless: bool = os.getenv("WEBVEIL_HEADLESS", "false").lower() == "true"
 
         # Dashboard

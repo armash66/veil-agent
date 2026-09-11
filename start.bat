@@ -48,26 +48,23 @@ echo  STARTING WEBVEIL SERVICES
 echo ---------------------------------------------------------------------
 
 :: 2. Reasoning Engine (Port 8000)
-curl.exe -s -f http://127.0.0.1:8000/api/health >nul 2>nul
-if !ERRORLEVEL! equ 0 (
-    echo [OK] Reasoning Engine is ALREADY ONLINE on Port 8000.
+echo [..] Starting WebVeil Reasoning Engine on Port 8000...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000.*LISTENING"') do taskkill /f /pid %%a >nul 2>nul
+timeout /t 1 /nobreak >nul 2>nul
+start "WebVeil Reasoning Server" /min "%PYTHON_EXE%" -m webveil.api.reasoning_server
+
+set "SERVER_READY=0"
+for /l %%i in (1,1,10) do (
+    if !SERVER_READY! equ 0 (
+        timeout /t 1 /nobreak >nul 2>nul
+        curl.exe -s -f http://127.0.0.1:8000/api/health >nul 2>nul
+        if !ERRORLEVEL! equ 0 set "SERVER_READY=1"
+    )
+)
+if !SERVER_READY! equ 1 (
+    echo [OK] Reasoning Engine is ONLINE on Port 8000!
 ) else (
-    echo [..] Starting WebVeil Reasoning Engine on Port 8000...
-    start "WebVeil Reasoning Server" /min "%PYTHON_EXE%" -m webveil.api.reasoning_server
-    
-    set "SERVER_READY=0"
-    for /l %%i in (1,1,10) do (
-        if !SERVER_READY! equ 0 (
-            timeout /t 1 /nobreak >nul 2>nul
-            curl.exe -s -f http://127.0.0.1:8000/api/health >nul 2>nul
-            if !ERRORLEVEL! equ 0 set "SERVER_READY=1"
-        )
-    )
-    if !SERVER_READY! equ 1 (
-        echo [OK] Reasoning Engine is ONLINE on Port 8000!
-    ) else (
-        echo [WARNING] Reasoning Engine is starting up in background.
-    )
+    echo [WARNING] Reasoning Engine is starting up in background.
 )
 
 :: 3. 5 Test Cases Page (Port 8080)
