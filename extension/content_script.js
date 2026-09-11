@@ -159,7 +159,7 @@
   // Expose ONLY inside content script scope for verification testing
   window.__WEBVEIL_ISOLATED_VAULT__ = vault;
 
-  const DOM_OBSERVER_SELECTORS = 'input, button, a, select, textarea, label, h1, h2, h3, h4, form, p, span, td, th, li, img[alt], canvas';
+  const DOM_OBSERVER_SELECTORS = 'input, button, a, select, textarea, label, h1, h2, h3, h4, h5, h6, form, p, span, td, th, li, strong, b, img[alt], canvas';
 
   function extractAndPruneDOM() {
     const allElements = Array.from(document.querySelectorAll(DOM_OBSERVER_SELECTORS));
@@ -265,8 +265,8 @@
     // 3. Structural headings & labels provide high-level orientation (up to 40).
     // 4. Passive text nodes (paragraphs, spans) are strictly capped (max 25).
     const MAX_VIEWPORT_LINKS = 100;
-    const MAX_STRUCTURAL_NODES = 40;
-    const MAX_PASSIVE_NODES = 25;
+    const MAX_STRUCTURAL_NODES = 50;
+    const MAX_PASSIVE_NODES = 100;
 
     const keptLinks = inViewportLinks.slice(0, MAX_VIEWPORT_LINKS);
     if (keptLinks.length + formControlNodes.length < 40 && offscreenLinks.length > 0) {
@@ -1017,6 +1017,11 @@
           const canvases = document.querySelectorAll('canvas');
           canvases.forEach(c => {
             try {
+              const rect = c.getBoundingClientRect();
+              const style = window.getComputedStyle(c);
+              if (style.display === 'none' || style.visibility === 'hidden' || rect.width === 0 || rect.height === 0) {
+                return;
+              }
               const dataUrl = c.toDataURL('image/png');
               if (dataUrl && dataUrl.length > 50) {
                 canvasImages.push({ id: c.id || 'canvas', data_url: dataUrl });
