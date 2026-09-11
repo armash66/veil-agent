@@ -121,6 +121,31 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${clean}/health`;
   }
 
+  function cleanThoughtText(text) {
+    if (!text || typeof text !== 'string') return '';
+    let cleaned = text.trim();
+
+    // If text has an explicit "Final Answer:", "Conclusion:", "Summary:", or "Recommendation:", extract that
+    const match = cleaned.match(/(?:final answer|conclusion|recommendation|summary):\s*([\s\S]+)/i);
+    if (match && match[1].trim().length > 20) {
+      return match[1].trim();
+    }
+
+    // Remove common LLM CoT preambles
+    cleaned = cleaned.replace(/^(?:let me analyze|let's analyze|here is (?:my|the) (?:thinking|analysis|thought process)|looking at the (?:dom|page|content)|i need to look at|1\.\s+analyze)[^\n.]*?(?:\n\n|\.\s+)/i, '');
+    cleaned = cleaned.replace(/^(?:i will|i should) (?:first|start by|look at|inspect)[^\n.]*?(?:\n\n|\.\s+)/i, '');
+
+    // Filter lines that are purely internal self-talk
+    const lines = cleaned.split('\n');
+    const filtered = lines.filter(l => {
+      const low = l.trim().toLowerCase();
+      return !low.startsWith('let me analyze') && !low.startsWith('looking at the dom') && !low.startsWith('the user wants to know');
+    });
+
+    const res = filtered.join('\n').trim();
+    return res || text.trim();
+  }
+
   // ═══════════════════════════════════════════════════════════
   // REASONING SERVER HEALTH POLLING (5s interval)
   // ═══════════════════════════════════════════════════════════
@@ -1490,8 +1515,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Show LLM response text
         if (actionPlan && actionPlan.thought) {
-          finalThought = actionPlan.thought;
-          addMessage(session, { type: 'agent', text: actionPlan.thought });
+          const cleanedText = cleanThoughtText(actionPlan.thought);
+          finalThought = cleanedText;
+          addMessage(session, { type: 'agent', text: cleanedText });
         }
 
         // ── STEP 5: Action Execution via Content Script Firewall ──
@@ -1609,7 +1635,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const activityData = {
         status: 'completed',
         title: 'Task Completed',
-        summary: finalThought || actionPlan?.thought || `Agent finished task with privacy protection.`,
+        summary: cleanThoughtText(finalThought || actionPlan?.thought || `Agent finished task with privacy protection.`),
         actions: totalActionsExecuted,
         protectedCount: totalProtected,
         tokens: resultData.tokens,

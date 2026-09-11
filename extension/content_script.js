@@ -187,10 +187,13 @@
                             el.getAttribute('role') === 'button' ||
                             el.hasAttribute('onclick');
       const isLink = tag === 'a';
-      const isStructural = ['h1', 'h2', 'h3', 'h4', 'label'].includes(tag);
+      const isStructural = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'label'].includes(tag);
+      const isPrice = /[\u20b9$€£]|Rs\.?/i.test(text) ||
+                      (el.className && typeof el.className === 'string' && el.className.toLowerCase().includes('price')) ||
+                      (el.id && el.id.toLowerCase().includes('price'));
 
-      // If not interactive, not structural, not canvas, and has no meaningful text, skip
-      if (!isFormControl && !isLink && !isStructural && !isCanvas && (!text || text.length <= 3)) {
+      // If not interactive, not structural, not canvas, not price, and has no meaningful text, skip
+      if (!isFormControl && !isLink && !isStructural && !isCanvas && !isPrice && (!text || text.length <= 2)) {
         return;
       }
 
@@ -250,7 +253,7 @@
         } else {
           offscreenLinks.push(node);
         }
-      } else if (isStructural || isCanvas) {
+      } else if (isStructural || isCanvas || isPrice) {
         structuralNodes.push(node);
       } else {
         // Avoid duplicate passive nodes inside links or buttons
