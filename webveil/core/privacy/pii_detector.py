@@ -15,8 +15,8 @@ class LocalPIIDetector:
 
     # Regex patterns
     EMAIL_REGEX = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
-    # Phone regex: requires explicit +91 / 0 prefix or standard phone separators (e.g. 123-456-7890 or +91 9876543210) to avoid false positives on arbitrary 10-digit IDs
-    PHONE_REGEX = re.compile(r'(?:\+91[\-\s]?|0)?[6-9]\d{9}|\b\d{3}[\-\s]\d{3}[\-\s]\d{4}\b')
+    # Phone regex: handles +91 with 5-5 split (+91 98765 43210), 10-digit continuous, and standard separators
+    PHONE_REGEX = re.compile(r'(?:\+91[\-\s]?)?[6-9]\d{4}[\-\s]?\d{5}\b|(?:\+91[\-\s]?|0)?[6-9]\d{9}\b|(?:\+1[\-\s]?)?\(?\d{3}\)?[\-\s]?\d{3}[\-\s]?\d{4}\b|\b\d{3}[\-\s]\d{3}[\-\s]\d{4}\b')
     AADHAAR_REGEX = re.compile(r'\b[1-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}\b')
     CREDIT_CARD_REGEX = re.compile(r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b')
     SSN_REGEX = re.compile(r'\b\d{3}-\d{2}-\d{4}\b')
@@ -161,6 +161,34 @@ class LocalPIIDetector:
                     bounding_box=node.bounding_box,
                     context="DOM Email Metadata"
                 ))
+
+        if any(k in node_meta for k in ['useraccountname', 'accountname', 'fullname', 'customername', 'accountholder']):
+            val = (node.value or node.text_content or '').strip()
+            if val and 3 <= len(val) <= 40 and not val.startswith('['):
+                if not any(m.category == PIICategory.NAME for m in matches):
+                    ph = self._generate_placeholder(PIICategory.NAME)
+                    matches.append(PIIMatch(
+                        category=PIICategory.NAME,
+                        raw_value=val,
+                        placeholder=ph,
+                        source_node_id=node.node_id,
+                        bounding_box=node.bounding_box,
+                        context="DOM Name Metadata"
+                    ))
+
+        if any(k in node_meta for k in ['phone', 'mobile', 'tel', 'contact']):
+            val = (node.value or node.text_content or '').strip()
+            if val and len(val) >= 7 and re.search(r'\d{4}', val) and not val.startswith('['):
+                if not any(m.category == PIICategory.PHONE for m in matches):
+                    ph = self._generate_placeholder(PIICategory.PHONE)
+                    matches.append(PIIMatch(
+                        category=PIICategory.PHONE,
+                        raw_value=val,
+                        placeholder=ph,
+                        source_node_id=node.node_id,
+                        bounding_box=node.bounding_box,
+                        context="DOM Phone Metadata"
+                    ))
 
         return matches
 

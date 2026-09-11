@@ -297,7 +297,7 @@
   // ═══════════════════════════════════════════════════════════
   const PII_PATTERNS = {
     EMAIL:       /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-    PHONE:       /(?:\+91[\-\s]?|0)?[6-9]\d{9}|\b\d{3}[\-\s]\d{3}[\-\s]\d{4}\b/g,
+    PHONE:       /(?:\+91[\-\s]?)?[6-9]\d{4}[\-\s]?\d{5}\b|(?:\+91[\-\s]?|0)?[6-9]\d{9}\b|(?:\+1[\-\s]?)?\(?\d{3}\)?[\-\s]?\d{3}[\-\s]?\d{4}\b|\b\d{3}[\-\s]\d{3}[\-\s]\d{4}\b/g,
     AADHAAR:     /\b[1-9]\d{3}[\s\-]?\d{4}[\s\-]?\d{4}\b/g,
     CREDIT_CARD: /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b/g,
     SSN:         /\b\d{3}-\d{2}-\d{4}\b/g,
@@ -309,6 +309,7 @@
     Object.keys(PII_PATTERNS).forEach(cat => { piiCounters[cat] = 0; });
     piiCounters['PASSWORD'] = 0;
     piiCounters['USER_ID'] = 0;
+    piiCounters['PERSON'] = 0;
   }
 
   function generatePiiToken(category) {
@@ -433,12 +434,36 @@
         return; // Don't further scan password fields
       }
 
-      // User ID / Username / Name input detection
-      const fieldIdName = `${node.element_name || ''} ${node.element_id || ''} ${node.autocomplete || ''}`.toLowerCase();
+      // Customer / Person / Account Name detection (both inputs and static text nodes)
+      const fieldIdName = `${node.element_name || ''} ${node.element_id || ''} ${node.autocomplete || ''} ${node.aria_label || ''}`.toLowerCase();
+      const isPersonField = fieldIdName.includes('useraccountname') || fieldIdName.includes('accountname') || 
+                            fieldIdName.includes('fullname') || fieldIdName.includes('customername') ||
+                            fieldIdName.includes('accountholder') || fieldIdName.includes('profilename');
+      
+      const rawNameCandidate = (node.tag_name === 'input' ? node.value : node.text_content || '').trim();
+      if (isPersonField && rawNameCandidate && !seenValues.has(rawNameCandidate) && rawNameCandidate.length >= 3 && rawNameCandidate.length <= 40) {
+        if (!rawNameCandidate.startsWith('[') && !['submit', 'search', 'accept', 'dismiss', 'reset'].includes(rawNameCandidate.toLowerCase())) {
+          seenValues.add(rawNameCandidate);
+          const token = generatePiiToken('PERSON');
+          tokens.push({ original: rawNameCandidate, replacement: token, category: 'PERSON', nodeId: node.node_id });
+          replacements.push({ original: rawNameCandidate, replacement: token });
+          if (nodeBbox) {
+            piiRegions.push({
+              type: 'PERSON',
+              label: token,
+              replacement: token,
+              bbox: nodeBbox
+            });
+          }
+          highlightMatchedElement(node.node_id, matchIndex * 80);
+          matchIndex++;
+        }
+      }
+
+      // User ID / Username input detection
       const isUserIdField = node.tag_name === 'input' && (
         fieldIdName.includes('username') || fieldIdName.includes('userid') || 
-        fieldIdName.includes('login') || fieldIdName.includes('fullname') ||
-        node.autocomplete === 'username'
+        fieldIdName.includes('login') || node.autocomplete === 'username'
       );
       if (isUserIdField && node.value && !seenValues.has(node.value) && node.element_type !== 'password' && node.element_type !== 'checkbox' && node.element_type !== 'submit') {
         seenValues.add(node.value);
@@ -488,7 +513,29 @@
         }
       });
 
-      // Metadata heuristic: autocomplete/name/id containing email/phone hints
+      // Metadata heuristic: phone hints if regex missed it
+      if ((fieldIdName.includes('phone') || fieldIdName.includes('mobile') || fieldIdName.includes('tel') || fieldIdName.includes('contact')) && !matchedInNode) {
+        const phoneCandidate = (node.tag_name === 'input' ? node.value : node.text_content || '').trim();
+        if (phoneCandidate && !seenValues.has(phoneCandidate) && phoneCandidate.length >= 7 && /\d{4}/.test(phoneCandidate)) {
+          seenValues.add(phoneCandidate);
+          const token = generatePiiToken('PHONE');
+          tokens.push({ original: phoneCandidate, replacement: token, category: 'PHONE', nodeId: node.node_id });
+          replacements.push({ original: phoneCandidate, replacement: token });
+          if (nodeBbox) {
+            piiRegions.push({
+              type: 'PHONE',
+              label: token,
+              replacement: token,
+              bbox: nodeBbox
+            });
+          }
+          highlightMatchedElement(node.node_id, matchIndex * 80);
+          matchIndex++;
+          matchedInNode = true;
+        }
+      }
+
+      // Metadata heuristic: autocomplete/name/id containing email hints
       const meta = `${node.element_name} ${node.element_id} ${node.autocomplete} ${node.aria_label}`.toLowerCase();
       if ((meta.includes('email') || meta.includes('mail')) && node.value && !seenValues.has(node.value)) {
         // Check if value looks like it could be an email but wasn't caught by regex
