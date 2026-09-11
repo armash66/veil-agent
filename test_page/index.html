@@ -255,12 +255,12 @@
         }
 
         .ps-panel {
-            display: none;
+            display: none !important;
             animation: fadeIn 180ms ease;
         }
 
         .ps-panel.active {
-            display: block;
+            display: block !important;
         }
 
         @keyframes fadeIn {
@@ -1910,7 +1910,9 @@
 
             // Update panels
             panels.forEach(panel => {
-                panel.classList.toggle('active', panel.id === `panel-${tabKey}`);
+                const isActive = (panel.id === `panel-${tabKey}`);
+                panel.classList.toggle('active', isActive);
+                panel.style.display = isActive ? 'block' : 'none';
             });
 
             // Update prompt bar
@@ -2021,15 +2023,6 @@
         }
         window.checkCanvasAnswer = checkCanvasAnswer;
         window.activateTab = activateTab;
-
-        // Auto-activate panels when targeted by agent or user
-        document.addEventListener('focusin', (e) => {
-            const panel = e.target.closest?.('.ps-panel');
-            if (panel && !panel.classList.contains('active')) {
-                const tabKey = panel.id.replace('panel-', '');
-                if (typeof activateTab === 'function') activateTab(tabKey, false);
-            }
-        }, true);
 
         // ── Attack Verification Logic ──
         const logBox = document.getElementById('logBox');

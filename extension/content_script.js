@@ -577,12 +577,12 @@
     // 3. Fallback match by element ID or action intent hints
     const thoughtLow = ((action.thought || '') + ' ' + (action.text || '') + ' ' + (action.value || '')).toLowerCase();
     if (!targetEl || (targetEl && targetEl.getBoundingClientRect().width === 0 && targetEl.getBoundingClientRect().height === 0)) {
-      if (nodeId === 112 || thoughtLow.includes('gamma')) {
-        const gammaBtn = document.getElementById('btnGamma') || document.querySelector('.btn-canvas[id*="Gamma" i]');
-        if (gammaBtn) targetEl = gammaBtn;
-      } else if (action.element_id) {
+      if (action.element_id) {
         const byId = document.getElementById(action.element_id);
         if (byId) targetEl = byId;
+      } else if (thoughtLow.includes('gamma') && (action.action || '').toUpperCase() === 'CLICK') {
+        const gammaBtn = document.getElementById('btnGamma') || document.querySelector('.btn-canvas[id*="Gamma" i]');
+        if (gammaBtn) targetEl = gammaBtn;
       }
     }
 
@@ -590,15 +590,12 @@
       return { targetEl: null, freshElements };
     }
 
-    // 4. Auto-unhide container: If target element is inside a hidden tab or panel (e.g. .ps-panel), activate it!
+    // 4. Auto-unhide container: If target element is inside a hidden tab or panel (e.g. .ps-panel), activate it via tab switcher!
     let rect = targetEl.getBoundingClientRect();
     let style = window.getComputedStyle(targetEl);
     if (rect.width < 5 || rect.height < 5 || style.display === 'none') {
       const hiddenAncestor = targetEl.closest('.ps-panel, [role="tabpanel"], .tab-pane, .tab-content, [hidden]');
       if (hiddenAncestor) {
-        hiddenAncestor.removeAttribute('hidden');
-        hiddenAncestor.classList.add('active');
-        hiddenAncestor.style.display = 'block';
         if (hiddenAncestor.id && hiddenAncestor.id.startsWith('panel-')) {
           const tabKey = hiddenAncestor.id.replace('panel-', '');
           const tabBtn = document.querySelector(`.bench-tab-btn[data-tab="${tabKey}"]`);
@@ -606,8 +603,10 @@
             try { tabBtn.click(); } catch (_) {}
           }
           if (typeof window.activateTab === 'function') {
-            try { window.activateTab(tabKey); } catch (_) {}
+            try { window.activateTab(tabKey, false); } catch (_) {}
           }
+        } else {
+          hiddenAncestor.removeAttribute('hidden');
         }
       }
     }
