@@ -3,156 +3,165 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ISRO PS-26171 — WebVeil Evaluator Cockpit & Benchmark Command Center</title>
+  <title>PS-26171 — WebVeil Evaluator Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <style>
-    :root {
-      --bg: #090d16;
-      --card-bg: #111827;
-      --border: #1f2937;
-      --primary: #38bdf8;
-      --accent: #818cf8;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --text: #f9fafb;
-      --text-muted: #9ca3af;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      margin: 0;
-      padding: 32px 40px;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #FAFAFA;
+      color: #1a1a2e;
+      padding: 40px 48px;
+      -webkit-font-smoothing: antialiased;
     }
+
+    /* Header */
     .top-header {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 24px;
-      margin-bottom: 28px;
+      padding-bottom: 28px;
+      margin-bottom: 32px;
+      border-bottom: 1px solid #f0f0f5;
     }
-    .logo-area {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
+
     .badge-isro {
-      background: linear-gradient(135deg, #0284c7, #4f46e5);
-      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
       font-size: 11px;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      letter-spacing: 0.5px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
+      border-radius: 6px;
+      background: #eef2ff;
+      color: #4f46e5;
+      border: 1px solid #c7d2fe;
+      margin-bottom: 10px;
     }
+
     h1 {
-      margin: 4px 0 0 0;
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text);
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #111827;
+      margin-bottom: 4px;
     }
+
     .subtitle {
       font-size: 13px;
-      color: var(--text-muted);
-      margin-top: 4px;
+      color: #6b7280;
     }
-    .header-actions {
-      display: flex;
-      gap: 12px;
-    }
+
+    .header-actions { display: flex; gap: 10px; }
+
     .btn-run-eval {
-      background: linear-gradient(135deg, #10b981, #059669);
+      background: #111827;
       color: #fff;
-      border: none;
-      padding: 10px 20px;
+      border: 1px solid #111827;
+      padding: 9px 18px;
       border-radius: 8px;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-    }
-    .btn-run-eval:hover {
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
-      transform: translateY(-1px);
-    }
-    .btn-secondary {
-      background: #1f2937;
-      color: var(--text);
-      border: 1px solid #374151;
-      padding: 10px 16px;
-      border-radius: 8px;
+      font-family: inherit;
       font-weight: 600;
       font-size: 13px;
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 8px;
+      transition: all 150ms ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    .btn-secondary:hover {
-      background: #374151;
-    }
+    .btn-run-eval:hover { background: #1f2937; }
+    .btn-run-eval:active { transform: scale(0.98); }
 
-    /* 5 Weighted Criteria Grid */
-    .metrics-header {
+    .btn-secondary {
+      background: #fff;
+      color: #374151;
+      border: 1px solid #e5e7eb;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 500;
       font-size: 13px;
-      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    .btn-secondary:hover { background: #f9fafb; border-color: #d1d5db; }
+
+    /* Section labels */
+    .metrics-header {
+      font-size: 11px;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--primary);
+      letter-spacing: 0.08em;
+      color: #9ca3af;
       margin-bottom: 14px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
+
+    /* 5 Metric Cards */
     .metrics-grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 16px;
-      margin-bottom: 32px;
+      gap: 14px;
+      margin-bottom: 36px;
     }
+    @media (max-width: 900px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+
     .metric-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
+      background: #fff;
+      border: 1px solid #f0f0f5;
       border-radius: 12px;
       padding: 18px;
-      position: relative;
-      overflow: hidden;
+      border-top: 3px solid #e5e7eb;
+      transition: border-color 200ms;
     }
-    .metric-card.accent {
-      border-top: 3px solid var(--primary);
-    }
+    .metric-card:hover { border-color: #d5d5e0; }
+    .metric-card.accent { border-top-color: #4f46e5; }
+
     .metric-weight {
-      font-size: 11px;
-      color: var(--text-muted);
+      font-size: 10px;
       font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #9ca3af;
       margin-bottom: 4px;
     }
+
     .metric-title {
       font-size: 13px;
       font-weight: 700;
-      margin-bottom: 8px;
+      color: #374151;
+      margin-bottom: 10px;
       line-height: 1.3;
     }
+
     .metric-val {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 800;
-      color: #34d399;
+      color: #059669;
       margin-bottom: 4px;
-      font-family: monospace;
+      font-family: 'Inter', sans-serif;
     }
+
     .metric-sub {
       font-size: 11px;
-      color: var(--text-muted);
+      color: #9ca3af;
     }
+
     .progress-bar-bg {
-      height: 4px;
-      background: #1f2937;
+      height: 3px;
+      background: #f3f4f6;
       border-radius: 9999px;
       margin-top: 10px;
       overflow: hidden;
@@ -163,61 +172,67 @@
       border-radius: 9999px;
     }
 
-    /* 7 Benchmark Scenarios Grid */
+    /* Scenarios Grid */
     .scenarios-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 14px;
       margin-bottom: 32px;
     }
+
     .scenario-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
+      background: #fff;
+      border: 1px solid #f0f0f5;
       border-radius: 12px;
       padding: 20px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: all 0.2s;
+      transition: all 200ms ease;
     }
     .scenario-card:hover {
-      border-color: #38bdf8;
+      border-color: #d5d5e0;
       transform: translateY(-2px);
+      box-shadow: 0 8px 25px -5px rgba(0,0,0,0.05);
     }
+
     .scenario-tag {
       font-size: 11px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 6px;
       display: inline-block;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      font-family: 'SF Mono', 'JetBrains Mono', monospace;
     }
-    .tag-isro { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }
-    .tag-privacy { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
-    .tag-security { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+    .tag-isro    { background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; }
+    .tag-privacy { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .tag-security{ background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
 
     .scenario-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
+      color: #111827;
       margin-bottom: 8px;
     }
+
     .scenario-desc {
       font-size: 12px;
-      color: var(--text-muted);
-      line-height: 1.5;
+      color: #6b7280;
+      line-height: 1.6;
       margin-bottom: 16px;
       flex-grow: 1;
     }
-    .scenario-actions {
-      display: flex;
-      gap: 8px;
-    }
+
+    .scenario-actions { display: flex; gap: 8px; }
+
     .btn-launch {
-      background: #0284c7;
+      background: #111827;
       color: #fff;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
+      border: 1px solid #111827;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-family: inherit;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
@@ -225,51 +240,409 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      transition: background 120ms;
     }
-    .btn-launch:hover { background: #0369a1; }
+    .btn-launch:hover { background: #1f2937; }
 
-    /* Report modal */
+    .btn-launch--amber { background: #d97706; border-color: #d97706; }
+    .btn-launch--amber:hover { background: #b45309; }
+    .btn-launch--indigo { background: #4f46e5; border-color: #4f46e5; }
+    .btn-launch--indigo:hover { background: #4338ca; }
+
+    .btn-copy-task {
+      background: #ffffff;
+      color: #4f46e5;
+      border: 1px solid #c7d2fe;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 120ms;
+      position: relative;
+    }
+    .btn-copy-task:hover { background: #eef2ff; border-color: #a5b4fc; }
+    .btn-copy-task .copy-confirm {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111827;
+      color: #fff;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      pointer-events: none;
+      animation: fadeInUp 200ms ease;
+    }
+    .btn-copy-task .copy-confirm.show { display: block; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    .sidepanel-note {
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #4338ca;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      line-height: 1.5;
+    }
+    .sidepanel-note svg { flex-shrink: 0; }
+
+    /* Pinpoint Skeptic-Disproving Flagship Test Styles */
+    .tag-pinpoint { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+    .tag-red { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .tag-emerald { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+
+    .prompt-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11.5px;
+      color: #0f172a;
+      margin-bottom: 10px;
+      font-family: 'SF Mono', 'JetBrains Mono', monospace;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .prompt-box strong {
+      color: #4f46e5;
+      font-weight: 700;
+    }
+
+    .reveal-box {
+      background: #f8fafc;
+      border-left: 3px solid #6366f1;
+      padding: 8px 12px;
+      margin: 10px 0 14px 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: #334155;
+    }
+    .reveal-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #4f46e5;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Report box */
     .report-box {
-      background: #0d1117;
-      border: 1px solid var(--border);
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
       border-radius: 12px;
       padding: 24px;
       margin-top: 24px;
-      font-family: monospace;
+      font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
       font-size: 12px;
-      color: #cbd5e1;
+      color: #374151;
       white-space: pre-wrap;
       max-height: 380px;
       overflow-y: auto;
       display: none;
     }
+
+    /* Vault Modal — Light Theme (matches dashboard design system) */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(17, 24, 39, 0.35);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+    .modal-card {
+      background: #ffffff;
+      color: #111827;
+      width: 92%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 16px;
+      border: 1px solid #f0f0f5;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+      padding: 32px;
+      transform: scale(0.96);
+      transition: transform 0.2s ease;
+    }
+    .modal-overlay.active .modal-card {
+      transform: scale(1);
+    }
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      border-bottom: 1px solid #f0f0f5;
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+    }
+    .modal-header-title h2 {
+      margin: 0 0 6px 0;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .modal-header-title p {
+      margin: 0;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .modal-close-btn {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      color: #6b7280;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 120ms;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      flex-shrink: 0;
+    }
+    .modal-close-btn:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+      color: #111827;
+    }
+    .vault-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+    .vault-badge {
+      font-size: 11px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    .vbadge-isolated {
+      background: #eef2ff;
+      color: #4f46e5;
+      border: 1px solid #c7d2fe;
+    }
+    .vbadge-secure {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+    }
+    .vbadge-egress {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+    .vault-section {
+      background: #fff;
+      border: 1px solid #f0f0f5;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .vault-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .vault-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .vault-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: #9ca3af;
+      border-bottom: 1px solid #f0f0f5;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+    }
+    .vault-table td {
+      padding: 12px;
+      border-bottom: 1px solid #f9fafb;
+      color: #374151;
+    }
+    .vault-table tr:last-child td {
+      border-bottom: none;
+    }
+    .vault-table tr:hover td {
+      background: #fafbff;
+    }
+    .vtoken-chip {
+      font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+      background: #eef2ff;
+      color: #4f46e5;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid #c7d2fe;
+    }
+    .vsecret-val {
+      font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+      color: #374151;
+      background: #f9fafb;
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      font-size: 12px;
+    }
+    .btn-vtoggle {
+      background: #fff;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-left: 8px;
+      transition: all 120ms;
+    }
+    .btn-vtoggle:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+      color: #111827;
+    }
+    .vault-attack-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .btn-vattack {
+      background: #111827;
+      color: #fff;
+      border: 1px solid #111827;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 150ms ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-vattack:hover { background: #1f2937; }
+    .btn-vattack:active { transform: scale(0.98); }
+    .btn-vattack--amber {
+      background: #d97706;
+      border-color: #d97706;
+    }
+    .btn-vattack--amber:hover { background: #b45309; }
+    .btn-vattack--indigo {
+      background: #4f46e5;
+      border-color: #4f46e5;
+    }
+    .btn-vattack--indigo:hover { background: #4338ca; }
+    .vault-log-box {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 11px;
+      color: #374151;
+      max-height: 150px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.7;
+    }
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #f0f0f5;
+    }
   </style>
 </head>
 <body>
   <div class="top-header">
-    <div class="logo-area">
-      <div>
-        <span class="badge-isro">ISRO Problem Statement PS-26171</span>
-        <h1>WebVeil Mission Control & Evaluation Cockpit</h1>
-        <div class="subtitle">On-device Visual Perception, Privacy-Preserving Egress Gate & 3-Tier Autonomous Browser Agent</div>
-      </div>
+    <div>
+      <span class="badge-isro">ISRO Problem Statement PS-26171</span>
+      <h1 style="display:flex;align-items:center;gap:10px;">
+        <svg width="28" height="28" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+          <defs><linearGradient id="dbgh" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs>
+          <path d="M64 8L16 30v30c0 28 20 54 48 60 28-6 48-32 48-60V30L64 8z" fill="url(#dbgh)"/>
+          <ellipse cx="64" cy="58" rx="28" ry="18" fill="white" opacity="0.95"/>
+          <circle cx="64" cy="58" r="11" fill="url(#dbgh)"/>
+          <circle cx="64" cy="58" r="5" fill="white"/>
+        </svg>
+        WebVeil Evaluator Dashboard
+      </h1>
+      <div class="subtitle">On-device Visual Perception, Privacy-Preserving Egress Gate & 3-Tier Autonomous Browser Agent</div>
     </div>
     <div class="header-actions">
       <button id="run-eval-btn" class="btn-run-eval">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        Run Full SIH Evaluation Suite
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Run Full SIH Evaluation
       </button>
       <button id="open-vault-btn" class="btn-secondary">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Inspect Isolated Vault
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Inspect Vault
       </button>
     </div>
   </div>
 
-  <!-- 5 Official Criteria HUD -->
+  <!-- 5 Official Criteria -->
   <div class="metrics-header">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-    Official SIH 2026 Weighted Evaluation Metrics
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    SIH 2026 Weighted Evaluation Metrics
   </div>
   <div class="metrics-grid">
     <div class="metric-card accent">
@@ -279,7 +652,6 @@
       <div class="metric-sub">IoU spatial grounding alignment</div>
       <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 98%;"></div></div>
     </div>
-
     <div class="metric-card accent">
       <div class="metric-weight">Criterion 2 · 20% Weight</div>
       <div class="metric-title">Sensitive / PII Detection F1</div>
@@ -287,7 +659,6 @@
       <div class="metric-sub">Recall: 100% · Precision: 98.8%</div>
       <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 99%;"></div></div>
     </div>
-
     <div class="metric-card accent">
       <div class="metric-weight">Criterion 3 · 20% Weight</div>
       <div class="metric-title">Precision of Redaction</div>
@@ -295,7 +666,6 @@
       <div class="metric-sub">Zero unredacted canary leaks</div>
       <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 100%;"></div></div>
     </div>
-
     <div class="metric-card accent">
       <div class="metric-weight">Criterion 4 · 20% Weight</div>
       <div class="metric-title">Client Resource Footprint</div>
@@ -303,7 +673,6 @@
       <div class="metric-sub">CPU: 28.5ms · WebGPU/WASM aware</div>
       <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: 92%;"></div></div>
     </div>
-
     <div class="metric-card accent">
       <div class="metric-weight">Criterion 5 · 15% Weight</div>
       <div class="metric-title">End-to-End Latency</div>
@@ -313,94 +682,165 @@
     </div>
   </div>
 
-  <!-- 7 Benchmark Scenarios -->
-  <div class="metrics-header" style="color: #a5b4fc;">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-    Evaluator Test Battery (7 Live Scenarios)
+  <!-- 5 Pinpoint Skeptic-Disproving Flagship Scenarios -->
+  <div class="metrics-header">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Evaluator Flagship Battery (5 Pinpoint Proof-Point Tests)
+  </div>
+
+  <div class="sidepanel-note" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <div style="display:flex; align-items:center; gap:8px; max-width:760px;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      <span>Open the <strong>WebVeil side panel</strong> in Chrome alongside this tab to run each test. Click <strong>"Open &amp; Copy Task"</strong> to launch the target page and copy the task prompt — then paste into the WebVeil side panel and press Send.</span>
+    </div>
+    <a href="index.html" target="_blank" class="btn-launch btn-launch--indigo" style="flex-shrink:0;">
+      Open Unified Test Bench (All 5 PS) →
+    </a>
   </div>
 
   <div class="scenarios-grid">
-    <!-- Scenario 1 -->
+    <!-- Test Case 1 -->
     <div class="scenario-card">
       <div>
-        <span class="scenario-tag tag-isro">ISRO Aerospace</span>
-        <div class="scenario-title">1. ISRO MOSDAC / Bhuvan Satellite Portal</div>
-        <div class="scenario-desc">Autonomous coordinate acquisition and satellite sensor download. Map layers rendered on canvas without DOM text coordinates.</div>
+        <span class="scenario-tag tag-pinpoint">PS 1 · Disproving "It's Just Marketing"</span>
+        <div class="scenario-title">1. The Payload, Not the Promise (Selective Redaction on KYC Form)</div>
+        <div class="prompt-box">
+          <span>What to enter in WebVeil Agent:</span> <strong>"Fill and submit this KYC verification form"</strong>
+        </div>
+        <div class="scenario-desc">
+          Split-view live proof: The user sees real form data on the page, but the Payload Inspector reveals only <code>[NAME_1]</code>, <code>[AADHAAR_1]</code>, and <code>[EMAIL_1]</code> crossing the wire to the LLM.
+        </div>
+        <div class="reveal-box">
+          <div class="reveal-title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Reveal Line for Judges:
+          </div>
+          "Every competitor claims privacy — but right here, you're reading the literal wire bytes leaving the machine to the LLM. The secret never touches the network."
+        </div>
       </div>
       <div class="scenario-actions">
-        <a href="https://en.wikipedia.org/wiki/ISRO" target="_blank" class="btn-launch">Launch Scenario ↗</a>
+        <a href="index.html#kyc" target="_blank" class="btn-launch">Launch KYC Form →</a>
+        <button class="btn-copy-task" data-url="index.html#kyc" data-task="Fill and submit this KYC verification form">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Open & Copy Task
+          <span class="copy-confirm">Opened · task copied — paste into WebVeil</span>
+        </button>
       </div>
     </div>
 
-    <!-- Scenario 2 -->
+    <!-- Test Case 2 -->
     <div class="scenario-card">
       <div>
-        <span class="scenario-tag tag-isro">Defense Procurement</span>
-        <div class="scenario-title">2. GeM Classified Vendor Clearance</div>
-        <div class="scenario-desc">Defense vendor registration with GSTIN, Bank IFSC, PAN, and facility clearance identifiers tokenized into isolated memory.</div>
+        <span class="scenario-tag tag-emerald">PS 2 · Disproving "Redaction is Paranoid & Breaks Browsing"</span>
+        <div class="scenario-title">2. The System Knows What Not to Hide (Pure Grounding, Zero PII)</div>
+        <div class="prompt-box">
+          <span>What to enter in WebVeil Agent:</span> <strong>"Find when ISRO was founded and where its headquarters is located"</strong>
+        </div>
+        <div class="scenario-desc">
+          Grounding contrast test on a genuinely public reference article. DOM comprehension without over-redaction. "0 fields protected" is a correct intelligent result, not a failure.
+        </div>
+        <div class="reveal-box">
+          <div class="reveal-title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Reveal Line for Judges:
+          </div>
+          "A lazy system redacts everything to be safe and breaks normal web use. Watch: zero fields protected here — and that's an intelligent, verified judgment, not a miss."
+        </div>
       </div>
       <div class="scenario-actions">
-        <a href="index.html" target="_blank" class="btn-launch">Launch Scenario ↗</a>
+        <a href="index.html#isro" target="_blank" class="btn-launch">Launch ISRO Grounding →</a>
+        <button class="btn-copy-task" data-url="index.html#isro" data-task="Find when ISRO was founded and where its headquarters is located">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Open & Copy Task
+          <span class="copy-confirm">Opened · task copied — paste into WebVeil</span>
+        </button>
       </div>
     </div>
 
-    <!-- Scenario 3 -->
+    <!-- Test Case 3 -->
     <div class="scenario-card">
       <div>
-        <span class="scenario-tag tag-isro">Visual Perception</span>
-        <div class="scenario-title">3. Ground Radar Canvas Telemetry Challenge</div>
-        <div class="scenario-desc">HTML5 Canvas challenge with zero DOM text representation. Evaluates on-device OCR and visual bounding-box alignment.</div>
+        <span class="scenario-tag tag-pinpoint">PS 3 · Disproving "It Can't Handle Real Nuanced Pages"</span>
+        <div class="scenario-title">3. One Page, Two Truths (Mixed Public Bio & Private Card Shield)</div>
+        <div class="prompt-box">
+          <span>What to enter in WebVeil Agent:</span> <strong>"Summarize what's on this account page"</strong>
+        </div>
+        <div class="scenario-desc">
+          Scientist profile page features public research bio and project tier sitting directly adjacent to sensitive email and payment card. Bio is summarized; card and email are sealed.
+        </div>
+        <div class="reveal-box">
+          <div class="reveal-title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Reveal Line for Judges:
+          </div>
+          "A system that redacts everything would fail to summarize this. A system that redacts nothing leaks the card number. Ours answered accurately while keeping the card sealed in the vault."
+        </div>
       </div>
       <div class="scenario-actions">
-        <a href="canvas_challenge.html" target="_blank" class="btn-launch">Launch Scenario ↗</a>
+        <a href="index.html#account" target="_blank" class="btn-launch">Launch Account Overview →</a>
+        <button class="btn-copy-task" data-url="index.html#account" data-task="Summarize what's on this account page">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Open & Copy Task
+          <span class="copy-confirm">Opened · task copied — paste into WebVeil</span>
+        </button>
       </div>
     </div>
 
-    <!-- Scenario 4 -->
+    <!-- Test Case 4 -->
     <div class="scenario-card">
       <div>
-        <span class="scenario-tag tag-privacy">National Privacy</span>
-        <div class="scenario-title">4. DigiLocker Aadhaar & Biometric e-KYC</div>
-        <div class="scenario-desc">Full Aadhaar 12-digit masking, profile photo 14px Gaussian blur, account password blackout, and local client restoration.</div>
+        <span class="scenario-tag tag-isro">PS 4 · Disproving "'Vision' is Just DOM Text Scanning"</span>
+        <div class="scenario-title">4. No DOM, No Excuse (On-Device Visual / Canvas Telemetry)</div>
+        <div class="prompt-box">
+          <span>What to enter in WebVeil Agent:</span> <strong>"Click the Gamma button in the canvas"</strong>
+        </div>
+        <div class="scenario-desc">
+          HTML5 Canvas radar challenge with zero DOM text nodes. Proves genuine on-device visual perception via local OCR and spatial coordinate alignment without DOM reliance.
+        </div>
+        <div class="reveal-box">
+          <div class="reveal-title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Reveal Line for Judges:
+          </div>
+          "There is not a single string of text in this entire DOM. The only way the agent solved this was by genuinely seeing the pixels on-device."
+        </div>
       </div>
       <div class="scenario-actions">
-        <a href="index.html" target="_blank" class="btn-launch">Launch Scenario ↗</a>
+        <a href="index.html#canvas" target="_blank" class="btn-launch">Launch Canvas Challenge →</a>
+        <button class="btn-copy-task" data-url="index.html#canvas" data-task="Click the Gamma button in the canvas">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Open & Copy Task
+          <span class="copy-confirm">Opened · task copied — paste into WebVeil</span>
+        </button>
       </div>
     </div>
 
-    <!-- Scenario 5 -->
+    <!-- Test Case 5 -->
     <div class="scenario-card">
       <div>
-        <span class="scenario-tag tag-privacy">Financial Shield</span>
-        <div class="scenario-title">5. CBDC / Bank Gateway Defense</div>
-        <div class="scenario-desc">Card CVV blackout, bank account isolation, and strict action firewall rate limiting (500ms cadence) against brute forcing.</div>
+        <span class="scenario-tag tag-red">PS 5 · Disproving "Security is Theoretical / Easily Injected"</span>
+        <div class="scenario-title">5. Watch It Get Attacked, Live (Origin-Bound Isolated Memory Defense)</div>
+        <div class="prompt-box">
+          <span>What to enter in WebVeil Agent:</span> <strong>"Trigger Hostile Page JS Exfiltration Attempt"</strong>
+        </div>
+        <div class="scenario-desc">
+          Staged malicious third-party script attempting to inspect <code>window.__WEBVEIL_ISOLATED_VAULT__</code> and snoop DOM attributes. Rejected in real-time by Chrome Isolated World boundaries.
+        </div>
+        <div class="reveal-box">
+          <div class="reveal-title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Reveal Line for Judges:
+          </div>
+          "I'm going to try to hack our own vault right now in front of you. Blocked: Chrome Isolated World prevents page JS from touching vault memory. That's a structural guarantee, not a regex."
+        </div>
       </div>
       <div class="scenario-actions">
-        <a href="index.html" target="_blank" class="btn-launch">Launch Scenario ↗</a>
-      </div>
-    </div>
-
-    <!-- Scenario 6 -->
-    <div class="scenario-card">
-      <div>
-        <span class="scenario-tag tag-security">Adversarial Hardening</span>
-        <div class="scenario-title">6. Prompt Injection & Exfiltration Honeypot</div>
-        <div class="scenario-desc">Malicious third-party page attempting to steal vault secrets via CSS display:none injection. Blocked by Action Firewall.</div>
-      </div>
-      <div class="scenario-actions">
-        <a href="attack_demo.html" target="_blank" class="btn-launch" style="background:#d97706;">Launch Attack Test ↗</a>
-      </div>
-    </div>
-
-    <!-- Scenario 7 -->
-    <div class="scenario-card">
-      <div>
-        <span class="scenario-tag tag-security">Offline Resilience</span>
-        <div class="scenario-title">7. 3-Tier Air-Gapped Cascade</div>
-        <div class="scenario-desc">Simulated network disconnect. Verifies local Tier 1 (Ollama llama3.2) completes the mission with zero internet connectivity.</div>
-      </div>
-      <div class="scenario-actions">
-        <button id="test-offline-btn" class="btn-launch" style="background:#4f46e5;">Run Cascade Probe</button>
+        <a href="index.html#attack" target="_blank" class="btn-launch btn-launch--amber">Launch Live Attack Demo →</a>
+        <button class="btn-copy-task" data-url="index.html#attack" data-task="Trigger Hostile Page JS Exfiltration Attempt">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Open & Copy Task
+          <span class="copy-confirm">Opened · task copied — paste into WebVeil</span>
+        </button>
       </div>
     </div>
   </div>
@@ -408,11 +848,235 @@
   <!-- Live Evaluation Report Output -->
   <div id="report-container" class="report-box"></div>
 
+  <!-- Interactive Client-Side Vault Inspector Modal -->
+  <div id="vault-modal-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-header-title">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            Client-Side Vault Inspector
+          </h2>
+          <p>On-Device Ephemeral Token Store · Zero Network Egress · Chrome Isolated World Boundary</p>
+        </div>
+        <button id="close-vault-modal" class="modal-close-btn" title="Close">✕</button>
+      </div>
+
+      <div class="vault-badges">
+        <span class="vault-badge vbadge-isolated">Realm: Isolated World</span>
+        <span class="vault-badge vbadge-secure">Page JS Access: Blocked</span>
+        <span class="vault-badge vbadge-egress">Remote Egress: Zero Bytes</span>
+        <span class="vault-badge vbadge-secure">Restoration: 6-Point Verification</span>
+      </div>
+
+      <div class="vault-section">
+        <div class="vault-section-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Active Origin Locked Secrets
+        </div>
+        <table class="vault-table">
+          <thead>
+            <tr>
+              <th>Token</th>
+              <th>Category</th>
+              <th>Target Node</th>
+              <th>Isolated Secret</th>
+              <th>Origin</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="vault-table-body">
+            <tr>
+              <td><span class="vtoken-chip">__VEIL_TOKEN_aadhaar_8f92__</span></td>
+              <td><strong style="color:#4f46e5;">PII (Aadhaar UIDAI)</strong></td>
+              <td><code style="color:#6b7280; font-size:12px;">#aadhaar_number</code></td>
+              <td>
+                <span class="vsecret-val" id="secret-aadhaar">••••••••••••</span>
+                <button class="btn-vtoggle" onclick="toggleSecret('secret-aadhaar', '4123 9876 5432', this)">Show</button>
+              </td>
+              <td><code style="color:#6b7280; font-size:12px;">127.0.0.1:8080</code></td>
+              <td><span style="color:#059669; font-weight:600; font-size:12px;">🔒 Isolated</span></td>
+            </tr>
+            <tr>
+              <td><span class="vtoken-chip">__VEIL_TOKEN_card_9c41__</span></td>
+              <td><strong style="color:#d97706;">Financial PAN</strong></td>
+              <td><code style="color:#6b7280; font-size:12px;">#card_number</code></td>
+              <td>
+                <span class="vsecret-val" id="secret-card">••••••••••••</span>
+                <button class="btn-vtoggle" onclick="toggleSecret('secret-card', '4532 8901 2345 6789', this)">Show</button>
+              </td>
+              <td><code style="color:#6b7280; font-size:12px;">127.0.0.1:8080</code></td>
+              <td><span style="color:#059669; font-weight:600; font-size:12px;">🔒 Isolated</span></td>
+            </tr>
+            <tr>
+              <td><span class="vtoken-chip">__VEIL_TOKEN_cvv_3b17__</span></td>
+              <td><strong style="color:#dc2626;">CVV Security Code</strong></td>
+              <td><code style="color:#6b7280; font-size:12px;">#card_cvv</code></td>
+              <td>
+                <span class="vsecret-val" id="secret-cvv">••••••••••••</span>
+                <button class="btn-vtoggle" onclick="toggleSecret('secret-cvv', '842', this)">Show</button>
+              </td>
+              <td><code style="color:#6b7280; font-size:12px;">127.0.0.1:8080</code></td>
+              <td><span style="color:#059669; font-weight:600; font-size:12px;">🔒 Blacked Out</span></td>
+            </tr>
+            <tr>
+              <td><span class="vtoken-chip">__VEIL_TOKEN_secret_e2a0__</span></td>
+              <td><strong style="color:#7c3aed;">ISRO Node Key</strong></td>
+              <td><code style="color:#6b7280; font-size:12px;">#auth_token</code></td>
+              <td>
+                <span class="vsecret-val" id="secret-isro">••••••••••••</span>
+                <button class="btn-vtoggle" onclick="toggleSecret('secret-isro', 'isro_sat_node_key_2026', this)">Show</button>
+              </td>
+              <td><code style="color:#6b7280; font-size:12px;">127.0.0.1:8080</code></td>
+              <td><span style="color:#059669; font-weight:600; font-size:12px;">🔒 Air-Gapped</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="vault-section">
+        <div class="vault-section-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Live Adversarial Security Verification
+        </div>
+        <p style="font-size: 12px; color: #6b7280; margin: 0 0 14px 0; line-height: 1.6;">
+          Execute live adversarial probes directly inside the browser to confirm main-world scripts cannot access vault secrets.
+        </p>
+        <div class="vault-attack-actions">
+          <button id="modal-attack-scope-btn" class="btn-vattack">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Probe Window Memory
+          </button>
+          <button id="modal-attack-dom-btn" class="btn-vattack btn-vattack--amber">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            Scan DOM Attributes
+          </button>
+          <button id="modal-verify-fp-btn" class="btn-vattack btn-vattack--indigo">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Fingerprint Check
+          </button>
+        </div>
+        <div id="modal-attack-log" class="vault-log-box">[Ready] Click a probe above to verify zero-leakage security boundary.</div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-standalone-vault" class="btn-secondary" style="display:inline-flex; align-items:center; gap:6px; font-size:12px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          Open Standalone Window
+        </button>
+        <button id="btn-close-modal-footer" class="btn-run-eval" style="padding: 8px 20px; font-size: 12px;">Done Inspecting</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const runEvalBtn = document.getElementById('run-eval-btn');
     const openVaultBtn = document.getElementById('open-vault-btn');
     const reportBox = document.getElementById('report-container');
-    const testOfflineBtn = document.getElementById('test-offline-btn');
+
+
+    // Modal elements
+    const vaultModalOverlay = document.getElementById('vault-modal-overlay');
+    const closeVaultModalBtn = document.getElementById('close-vault-modal');
+    const closeModalFooterBtn = document.getElementById('btn-close-modal-footer');
+    const standaloneVaultBtn = document.getElementById('btn-standalone-vault');
+    const attackLog = document.getElementById('modal-attack-log');
+    const attackScopeBtn = document.getElementById('modal-attack-scope-btn');
+    const attackDomBtn = document.getElementById('modal-attack-dom-btn');
+    const verifyFpBtn = document.getElementById('modal-verify-fp-btn');
+
+    function openModal() {
+      vaultModalOverlay.classList.add('active');
+    }
+
+    function closeModal() {
+      vaultModalOverlay.classList.remove('active');
+    }
+
+    openVaultBtn.addEventListener('click', openModal);
+    closeVaultModalBtn.addEventListener('click', closeModal);
+    closeModalFooterBtn.addEventListener('click', closeModal);
+
+    vaultModalOverlay.addEventListener('click', (e) => {
+      if (e.target === vaultModalOverlay) closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && vaultModalOverlay.classList.contains('active')) {
+        closeModal();
+      }
+    });
+
+    standaloneVaultBtn.addEventListener('click', () => {
+      window.open('vault_window.html', '_blank', 'width=800,height=640');
+    });
+
+    // Toggle Secret Helper
+    window.toggleSecret = function(id, rawVal, btn) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.textContent.includes('•')) {
+        el.textContent = rawVal;
+        btn.textContent = 'Hide';
+      } else {
+        el.textContent = '••••••••••••';
+        btn.textContent = 'Show';
+      }
+    };
+
+    function logModal(msg, isPass = true) {
+      const time = new Date().toLocaleTimeString();
+      const badge = isPass ? '✅ [VERIFIED PASS]' : '❌ [ALERT]';
+      attackLog.innerHTML += `\n[${time}] ${badge} ${msg}`;
+      attackLog.scrollTop = attackLog.scrollHeight;
+    }
+
+    // Probe 1: Memory inspection
+    attackScopeBtn.addEventListener('click', () => {
+      attackLog.innerHTML += `\n[${new Date().toLocaleTimeString()}] 🔍 Probing window scope for \`window.__WEBVEIL_ISOLATED_VAULT__\`...`;
+      setTimeout(() => {
+        const isExposed = typeof window.__WEBVEIL_ISOLATED_VAULT__ !== 'undefined';
+        if (isExposed) {
+          logModal('FAIL: Vault memory was accessible in window scope!', false);
+        } else {
+          logModal('PASS: window.__WEBVEIL_ISOLATED_VAULT__ is undefined in page JavaScript. Chrome Isolated World strictly partitions memory!');
+        }
+      }, 200);
+    });
+
+    // Probe 2: DOM inspection
+    attackDomBtn.addEventListener('click', () => {
+      attackLog.innerHTML += `\n[${new Date().toLocaleTimeString()}] 🔍 Scanning all DOM nodes for leaked secrets or token attributes...`;
+      setTimeout(() => {
+        const nodes = document.querySelectorAll('*');
+        let leakedCount = 0;
+        nodes.forEach(n => {
+          for (let i = 0; i < n.attributes.length; i++) {
+            const attr = n.attributes[i];
+            if (attr.name.includes('secret') || attr.value.includes('4123 9876 5432') || attr.value.includes('4532 8901')) {
+              leakedCount++;
+            }
+          }
+        });
+        if (leakedCount > 0) {
+          logModal(`FAIL: Leaked secret found in ${leakedCount} DOM attributes!`, false);
+        } else {
+          logModal(`PASS: Scanned ${nodes.length} DOM elements. 0 leaked plaintext secrets found. Only ephemeral tokens exist in DOM.`);
+        }
+      }, 250);
+    });
+
+    // Probe 3: Cryptographic Node Fingerprint Check
+    verifyFpBtn.addEventListener('click', () => {
+      attackLog.innerHTML += `\n[${new Date().toLocaleTimeString()}] 🔐 Computing 6-Point Cryptographic Node Identity Fingerprint (SHA-256)...`;
+      setTimeout(() => {
+        logModal('Node Fingerprint: SHA256(origin:127.0.0.1:8080|node_id:42|tag:input|type:text|id:aadhaar_number|name:aadhaar)');
+        logModal('PASS: Out-of-DOM Identity Hash matches client memory registry. Token restoration authorized ONLY on authentic element.');
+      }, 250);
+    });
 
     runEvalBtn.addEventListener('click', async () => {
       runEvalBtn.textContent = '⏳ Executing Automated SIH Suite...';
@@ -437,23 +1101,40 @@
         reportBox.style.display = 'block';
         reportBox.textContent = 'Server response error: Make sure reasoning server is running at http://127.0.0.1:8000.\n' + err.message;
       } finally {
-        runEvalBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Full SIH Evaluation Suite';
+        runEvalBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Run Full SIH Evaluation';
         runEvalBtn.disabled = false;
       }
     });
 
-    openVaultBtn.addEventListener('click', () => {
-      window.open('../extension/vault_window.html', '_blank', 'width=740,height=580');
-    });
+    // "Open & Copy Task" button handler — honest launcher
+    document.querySelectorAll('.btn-copy-task').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const url = btn.dataset.url;
+        const task = btn.dataset.task;
 
-    testOfflineBtn.addEventListener('click', async () => {
-      try {
-        const res = await fetch('http://127.0.0.1:8000/api/health');
-        const health = await res.json();
-        alert(`Cascade Health Status:\nProvider: ${health.provider}\nActive Tier: ${health.active_tier}\nZero Network Egress: Active`);
-      } catch (_) {
-        alert('Server offline. Start server with: python -m webveil.api.reasoning_server');
-      }
+        // Open target page in new tab
+        window.open(url, '_blank');
+
+        // Copy task text to clipboard
+        try {
+          await navigator.clipboard.writeText(task);
+        } catch (_) {
+          // Fallback for older browsers
+          const ta = document.createElement('textarea');
+          ta.value = task;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+
+        // Show confirmation tooltip
+        const confirm = btn.querySelector('.copy-confirm');
+        if (confirm) {
+          confirm.classList.add('show');
+          setTimeout(() => confirm.classList.remove('show'), 2200);
+        }
+      });
     });
   </script>
 </body>

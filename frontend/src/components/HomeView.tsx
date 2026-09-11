@@ -1,5 +1,6 @@
 import React from 'react';
 import PromptComposer from './PromptComposer';
+import { WebVeilLogo } from './WebVeilLogo';
 
 interface HomeViewProps {
   onSubmitPrompt: (prompt: string) => void;
@@ -16,8 +17,8 @@ export function HomeView({ onSubmitPrompt }: HomeViewProps) {
   return (
     <div className="w-full max-w-[760px] mx-auto pt-[17vh] flex flex-col items-center px-4">
       {/* Branding Logo */}
-      <div className="w-[20px] h-[20px] rounded-full border-2 border-[#16A8C7] flex items-center justify-center mb-5">
-        <div className="w-[6px] h-[6px] rounded-full bg-[#16A8C7]" />
+      <div className="mb-5 drop-shadow-sm">
+        <WebVeilLogo size={36} />
       </div>
 
       {/* Heading */}

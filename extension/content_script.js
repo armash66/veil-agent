@@ -135,7 +135,7 @@
   // Expose ONLY inside content script scope for verification testing
   window.__WEBVEIL_ISOLATED_VAULT__ = vault;
 
-  const DOM_OBSERVER_SELECTORS = 'input, button, a, select, textarea, label, h1, h2, h3, h4, form, p, span, td, th, li, img[alt]';
+  const DOM_OBSERVER_SELECTORS = 'input, button, a, select, textarea, label, h1, h2, h3, h4, form, p, span, td, th, li, img[alt], canvas';
 
   function extractAndPruneDOM() {
     const allElements = Array.from(document.querySelectorAll(DOM_OBSERVER_SELECTORS));
@@ -156,14 +156,15 @@
 
       const tag = el.tagName.toLowerCase();
       const text = (el.innerText || el.textContent || '').trim();
+      const isCanvas = tag === 'canvas';
       const isFormControl = ['input', 'button', 'select', 'textarea', 'form'].includes(tag) ||
                             el.getAttribute('role') === 'button' ||
                             el.hasAttribute('onclick');
       const isLink = tag === 'a';
       const isStructural = ['h1', 'h2', 'h3', 'h4', 'label'].includes(tag);
 
-      // If not interactive, not structural, and has no meaningful text, skip
-      if (!isFormControl && !isLink && !isStructural && (!text || text.length <= 3)) {
+      // If not interactive, not structural, not canvas, and has no meaningful text, skip
+      if (!isFormControl && !isLink && !isStructural && !isCanvas && (!text || text.length <= 3)) {
         return;
       }
 
@@ -176,7 +177,7 @@
       const node = {
         node_id: idx,
         tag_name: tag,
-        element_type: el.type || '',
+        element_type: isCanvas ? 'canvas' : (el.type || ''),
         element_name: el.name || '',
         element_id: el.id || '',
         text_content: text.substring(0, 200),
@@ -186,6 +187,7 @@
         aria_label: el.getAttribute('aria-label') || '',
         is_interactive: isFormControl || isLink,
         is_avatar: !!isAvatar,
+        is_canvas: isCanvas,
         bounding_box: {
           x: Math.round(rect.x),
           y: Math.round(rect.y),
@@ -210,7 +212,7 @@
         } else {
           offscreenLinks.push(node);
         }
-      } else if (isStructural) {
+      } else if (isStructural || isCanvas) {
         structuralNodes.push(node);
       } else {
         // Avoid duplicate passive nodes inside links or buttons
@@ -850,7 +852,19 @@
 
       } else if (request.action === 'PRUNE_DOM') {
         const nodes = extractAndPruneDOM();
-        sendResponse({ nodes, count: nodes.length });
+        const canvasImages = [];
+        try {
+          const canvases = document.querySelectorAll('canvas');
+          canvases.forEach(c => {
+            try {
+              const dataUrl = c.toDataURL('image/png');
+              if (dataUrl && dataUrl.length > 50) {
+                canvasImages.push({ id: c.id || 'canvas', data_url: dataUrl });
+              }
+            } catch (_) {}
+          });
+        } catch (_) {}
+        sendResponse({ nodes, count: nodes.length, canvasImages });
 
       } else if (request.action === 'DETECT_PII') {
         const nodesToScan = request.nodes || extractAndPruneDOM();

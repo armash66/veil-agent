@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Settings, X } from 'lucide-react';
+import { WebVeilLogo } from './WebVeilLogo';
 
 export function Header() {
   const [showSettings, setShowSettings] = useState(false);
@@ -8,10 +9,8 @@ export function Header() {
     <>
       <header className="h-[64px] w-full bg-[#FAFAF8] border-b border-[#E7E7E2] px-6 flex items-center justify-between flex-shrink-0">
         {/* Left: WebVeil logo + wordmark */}
-        <div className="flex items-center gap-2">
-          <div className="w-[20px] h-[20px] rounded-full border-2 border-[#16A8C7] flex items-center justify-center">
-            <div className="w-[6px] h-[6px] rounded-full bg-[#16A8C7]" />
-          </div>
+        <div className="flex items-center gap-2.5">
+          <WebVeilLogo size={22} />
           <span className="text-[18px] font-semibold text-[#181817] tracking-tight">WebVeil</span>
         </div>
 

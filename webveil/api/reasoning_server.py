@@ -32,10 +32,13 @@ from pydantic import BaseModel
 
 from webveil.config import config
 from webveil.reasoning.provider import create_provider
+from webveil.core.perception.ocr import OCREngine
 from webveil.core.models.schema import (
     ActionPlan, ActionType, BrowserAction,
     SanitizedWorldModel, DOMNode as CoreDOMNode,
 )
+
+_ocr_engine = OCREngine(enabled=True)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("WebVeilReasoningServer")
@@ -77,6 +80,8 @@ class ReasonRequest(BaseModel):
     instructions: Optional[str] = None
     sanitized_screenshot_b64: Optional[str] = None
     visual_telemetry: Optional[Dict[str, Any]] = None
+    ocr_summary: Optional[str] = ""
+    canvas_images: Optional[List[Dict[str, Any]]] = None
 
 class ActionResponse(BaseModel):
     action: str
@@ -255,6 +260,37 @@ async def reason(request: ReasonRequest):
         visual_summary = f"Local vision ({backend}): {visual_count} regions ({inf_ms}ms)"
         logger.info(f"[Reason] Visual Telemetry: backend={backend} | latency={inf_ms}ms | regions={visual_count}")
 
+    # Extract OCR from canvas images or screenshot if available
+    ocr_summary = (request.ocr_summary or "").strip()
+    if not ocr_summary and request.visual_telemetry and isinstance(request.visual_telemetry, dict):
+        ocr_summary = (request.visual_telemetry.get("ocr_summary") or "").strip()
+
+    if not ocr_summary and _ocr_engine.available:
+        extracted_texts = []
+        # Check canvas images first
+        if request.canvas_images and isinstance(request.canvas_images, list):
+            for c_img in request.canvas_images:
+                raw_b64 = c_img.get("data_url") or c_img.get("b64") or ""
+                if "," in raw_b64:
+                    raw_b64 = raw_b64.split(",", 1)[1]
+                if raw_b64:
+                    regions = _ocr_engine.extract(raw_b64)
+                    if regions:
+                        extracted_texts.extend([r.text for r in regions])
+
+        # Check screenshot if canvas images had no text
+        if not extracted_texts and request.sanitized_screenshot_b64:
+            s_b64 = request.sanitized_screenshot_b64
+            if "," in s_b64:
+                s_b64 = s_b64.split(",", 1)[1]
+            regions = _ocr_engine.extract(s_b64)
+            if regions:
+                extracted_texts.extend([r.text for r in regions])
+
+        if extracted_texts:
+            ocr_summary = " ".join(extracted_texts).strip()
+            logger.info(f"[Reason] Extracted OCR visual text: '{ocr_summary}'")
+
     # Build SanitizedWorldModel directly for the provider
     sanitized_model = SanitizedWorldModel(
         url=request.url,
@@ -263,7 +299,7 @@ async def reason(request: ReasonRequest):
         sanitized_dom=core_nodes,
         formatted_dom=formatted_dom,
         a11y_summary="",
-        ocr_summary="",
+        ocr_summary=ocr_summary,
         visual_summary=visual_summary,
         visual_regions_count=visual_count,
         redacted_screenshot_b64=request.sanitized_screenshot_b64,

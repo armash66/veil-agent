@@ -1,239 +1,487 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   WEBVEIL LAUNCHER — PREMIUM MINIMALIST DESIGN SYSTEM
+   Inspired by Linear, Vercel, Stripe dashboard aesthetics.
+   One unifying idea: restrained surfaces, bold typography hierarchy,
+   generous whitespace, and accent-driven navigation.
+───────────────────────────────────────────────────────────────────────────── */
+
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
-  
+  * { box-sizing: border-box; }
+
   html, body, #root {
     width: 100%;
     min-height: 100vh;
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    background-color: #07090e;
-    color: #f1f5f9;
+    background-color: #FAFAFA;
+    color: #1a1a2e;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-size: 15px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   1. Living Background: Ambient Drifting Mesh (Looping Animation #1)
+   1. Layout Shell
 ───────────────────────────────────────────────────────────────────────────── */
-.bg-mesh-container {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-  background-color: #07090e;
+.wv-shell {
+  display: flex;
+  min-height: 100vh;
 }
 
-.mesh-blob {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(100px);
-  opacity: 0.16;
-  will-change: transform;
+.wv-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid #ebebf0;
+  background: #ffffff;
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 20;
 }
 
-.mesh-blob-1 {
-  top: -10%;
-  left: 15%;
-  width: 580px;
-  height: 580px;
-  background: radial-gradient(circle, #4f46e5 0%, rgba(79, 70, 229, 0) 70%);
-  animation: drift-mesh-1 26s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+.wv-content {
+  flex: 1;
+  min-width: 0;
+  padding: 40px 48px;
+  max-width: 960px;
 }
 
-.mesh-blob-2 {
-  top: 35%;
-  right: 10%;
-  width: 520px;
-  height: 520px;
-  background: radial-gradient(circle, #06b6d4 0%, rgba(6, 182, 212, 0) 70%);
-  animation: drift-mesh-2 30s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
-}
-
-.mesh-blob-3 {
-  bottom: -15%;
-  left: 30%;
-  width: 650px;
-  height: 650px;
-  background: radial-gradient(circle, #7c3aed 0%, rgba(124, 58, 237, 0) 70%);
-  animation: drift-mesh-3 28s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
-}
-
-@keyframes drift-mesh-1 {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(60px, 80px, 0) scale(1.12); }
-  100% { transform: translate3d(-50px, 40px, 0) scale(0.92); }
-}
-
-@keyframes drift-mesh-2 {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(-70px, -60px, 0) scale(1.1); }
-  100% { transform: translate3d(40px, 90px, 0) scale(0.95); }
-}
-
-@keyframes drift-mesh-3 {
-  0% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(-50px, -70px, 0) scale(1.08); }
-  100% { transform: translate3d(70px, -40px, 0) scale(0.96); }
+@media (max-width: 768px) {
+  .wv-shell { flex-direction: column; }
+  .wv-sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid #ebebf0;
+    padding: 20px;
+    flex-direction: row;
+    align-items: center;
+  }
+  .wv-content { padding: 24px 20px; }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   2. The One Glass Recipe (Applied Everywhere)
+   2. Sidebar Navigation — Left-Border Active Indicator (Linear-style)
 ───────────────────────────────────────────────────────────────────────────── */
-.wv-glass-panel {
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  transition: transform 250ms ease-out, border-color 250ms ease-out, box-shadow 250ms ease-out;
-}
-
-.wv-glass-interactive:hover {
-  transform: translateY(-4px);
-  border-color: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   3. Neumorphic Interactive Controls (Only on interactive controls)
-───────────────────────────────────────────────────────────────────────────── */
-.neu-control {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 5px 5px 12px rgba(0, 0, 0, 0.4), -3px -3px 8px rgba(255, 255, 255, 0.04);
-  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.neu-control:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-.neu-control:active {
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -2px -2px 6px rgba(255, 255, 255, 0.05);
-  transform: translateY(1px);
-}
-
-.neu-control-primary {
-  background: rgba(99, 102, 241, 0.25);
-  border: 1px solid rgba(129, 140, 248, 0.35);
-  box-shadow: 5px 5px 12px rgba(0, 0, 0, 0.4), -3px -3px 8px rgba(255, 255, 255, 0.04);
-  color: #ffffff;
-  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.neu-control-primary:hover {
-  background: rgba(99, 102, 241, 0.35);
-  border-color: rgba(129, 140, 248, 0.55);
-}
-
-.neu-control-primary:active {
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -2px -2px 6px rgba(255, 255, 255, 0.08);
-  transform: translateY(1px);
-}
-
-/* Sidebar Active Tab: Inset Neumorphic Toggle State (Matching Button :active) */
-.neu-tab-active {
-  background: rgba(99, 102, 241, 0.2);
-  border: 1px solid rgba(129, 140, 248, 0.35);
-  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -2px -2px 6px rgba(255, 255, 255, 0.06);
-  color: #ffffff;
-}
-
-/* Neumorphic recessed well for status indicator */
-.neu-status-well {
-  width: 22px;
-  height: 22px;
-  border-radius: 9999px;
-  background: rgba(8, 11, 18, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.65), inset -1px -1px 3px rgba(255, 255, 255, 0.04);
+.wv-nav-item {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  transition: all 150ms ease;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  position: relative;
 }
 
-/* Status dots with breathing glow (Looping Animation #2) */
-.neu-status-dot-online {
-  width: 8px;
-  height: 8px;
-  border-radius: 9999px;
-  background-color: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.85);
-  animation: pulse-glow-emerald 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.wv-nav-item:hover {
+  color: #374151;
+  background: #f9fafb;
 }
 
-.neu-status-dot-offline {
-  width: 8px;
-  height: 8px;
-  border-radius: 9999px;
-  background-color: #ef4444;
-  box-shadow: 0 0 8px rgba(239, 68, 68, 0.85);
-  animation: pulse-glow-rose 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.wv-nav-item--active {
+  color: #4f46e5;
+  background: #f5f3ff;
+  font-weight: 600;
 }
 
-@keyframes pulse-glow-emerald {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.95), 0 0 14px rgba(16, 185, 129, 0.55);
-  }
-  50% {
-    opacity: 0.5;
-    box-shadow: 0 0 3px rgba(16, 185, 129, 0.4), 0 0 7px rgba(16, 185, 129, 0.2);
-  }
+.wv-nav-item--active::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #4f46e5;
 }
 
-@keyframes pulse-glow-rose {
-  0%, 100% {
-    opacity: 1;
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.95), 0 0 14px rgba(239, 68, 68, 0.55);
-  }
-  50% {
-    opacity: 0.5;
-    box-shadow: 0 0 3px rgba(239, 68, 68, 0.4), 0 0 7px rgba(239, 68, 68, 0.2);
+@media (max-width: 768px) {
+  .wv-nav-item--active::before { display: none; }
+  .wv-nav-item--active {
+    border-bottom: 2px solid #4f46e5;
+    border-radius: 8px 8px 0 0;
   }
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   4. One Motion System: Staggered Fade + Slide Reveal
-   Curve: 600ms cubic-bezier(0.16, 1, 0.3, 1)
+   3. Typography — Bold Hierarchy
 ───────────────────────────────────────────────────────────────────────────── */
-@keyframes revealUp {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.wv-page-title {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #111827;
+}
+
+.wv-gradient-text {
+  background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 50%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.wv-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.wv-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.65;
+  max-width: 640px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. Cards — Borderless + Hover Lift (Vercel-style)
+───────────────────────────────────────────────────────────────────────────── */
+.wv-card {
+  background: #ffffff;
+  border: 1px solid #f0f0f5;
+  border-radius: 12px;
+  transition: all 200ms ease;
+}
+
+.wv-card:hover {
+  border-color: #e0e0ea;
+}
+
+.wv-card--lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.06), 0 4px 10px -5px rgba(0, 0, 0, 0.03);
+  border-color: #d5d5e0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. Stat Cell — Large Number Display (Stripe-style)
+───────────────────────────────────────────────────────────────────────────── */
+.wv-stat {
+  padding: 16px 20px;
+  background: #fafafa;
+  border: 1px solid #f0f0f5;
+  border-radius: 10px;
+}
+
+.wv-stat__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.wv-stat__value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.wv-stat__sub {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. Buttons (Vercel-style)
+───────────────────────────────────────────────────────────────────────────── */
+.wv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+  transition: all 120ms ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.wv-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.wv-btn:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+.wv-btn--primary {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.wv-btn--primary:hover {
+  background: #1f2937;
+  border-color: #1f2937;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   7. Status Indicators
+───────────────────────────────────────────────────────────────────────────── */
+.wv-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.wv-dot--online {
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+  animation: pulse-soft 2.5s ease-in-out infinite;
+}
+
+.wv-dot--offline {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   8. Badges / Tags
+───────────────────────────────────────────────────────────────────────────── */
+.wv-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.wv-badge--emerald { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+.wv-badge--sky     { background: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; }
+.wv-badge--indigo  { background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; }
+.wv-badge--red     { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.wv-badge--amber   { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   9. Pillar Card — Feature Cards with Large Number (Stripe-style)
+───────────────────────────────────────────────────────────────────────────── */
+.wv-pillar {
+  position: relative;
+  padding: 28px 24px 24px;
+  background: #ffffff;
+  border: 1px solid #f0f0f5;
+  border-radius: 12px;
+  transition: all 250ms ease;
+  overflow: hidden;
+}
+
+.wv-pillar:hover {
+  border-color: #d5d5e0;
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.06);
+  transform: translateY(-3px);
+}
+
+.wv-pillar__number {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  font-size: 72px;
+  font-weight: 800;
+  color: #f3f4f6;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   10. Test Run — Timeline Card with Left Accent Border
+───────────────────────────────────────────────────────────────────────────── */
+.wv-run {
+  background: #ffffff;
+  border: 1px solid #f0f0f5;
+  border-radius: 12px;
+  border-left: 3px solid #10b981;
+  padding: 24px 28px;
+  transition: border-color 200ms ease;
+}
+
+.wv-run:hover {
+  border-color: #e0e0ea;
+  border-left-color: #10b981;
+}
+
+.wv-run--sky    { border-left-color: #0ea5e9; }
+.wv-run--sky:hover { border-left-color: #0ea5e9; }
+.wv-run--indigo { border-left-color: #6366f1; }
+.wv-run--indigo:hover { border-left-color: #6366f1; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   11. Problem Card — Collapsible Look
+───────────────────────────────────────────────────────────────────────────── */
+.wv-problem {
+  background: #ffffff;
+  border: 1px solid #f0f0f5;
+  border-radius: 12px;
+  padding: 24px;
+  border-top: 3px solid transparent;
+  transition: all 200ms ease;
+}
+
+.wv-problem:hover {
+  border-color: #e0e0ea;
+}
+
+.wv-problem--emerald { border-top-color: #10b981; }
+.wv-problem--red     { border-top-color: #ef4444; }
+.wv-problem--sky     { border-top-color: #0ea5e9; }
+.wv-problem--amber   { border-top-color: #f59e0b; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   12. Callout / Notice
+───────────────────────────────────────────────────────────────────────────── */
+.wv-callout {
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.wv-callout--info {
+  background: #f5f3ff;
+  border: 1px solid #e0e7ff;
+  color: #4338ca;
+}
+
+.wv-callout--muted {
+  background: #f9fafb;
+  border: 1px solid #f0f0f5;
+  color: #6b7280;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   13. Dividers & Utility
+───────────────────────────────────────────────────────────────────────────── */
+.wv-divider {
+  height: 1px;
+  background: #f0f0f5;
+  border: none;
+  margin: 0;
+}
+
+.wv-code {
+  font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 2px 6px;
+  color: #4f46e5;
+}
+
+.wv-code-block {
+  font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #374151;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   14. Reveal Animation
+───────────────────────────────────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .reveal-section {
-  animation: revealUp 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeInUp 350ms ease-out forwards;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.reveal-section > * {
+  animation: fadeInUp 350ms ease-out both;
 }
-::-webkit-scrollbar-track {
-  background: #07090e;
+
+.reveal-section > *:nth-child(1) { animation-delay: 0ms; }
+.reveal-section > *:nth-child(2) { animation-delay: 60ms; }
+.reveal-section > *:nth-child(3) { animation-delay: 120ms; }
+.reveal-section > *:nth-child(4) { animation-delay: 180ms; }
+.reveal-section > *:nth-child(5) { animation-delay: 240ms; }
+.reveal-section > *:nth-child(6) { animation-delay: 300ms; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   15. Custom Scrollbar
+───────────────────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   16. Step list (instructions)
+───────────────────────────────────────────────────────────────────────────── */
+.wv-step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
 }
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 9999px;
+
+.wv-step__num {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  flex-shrink: 0;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+
+.wv-step__content {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+  padding-top: 3px;
 }

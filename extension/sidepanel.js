@@ -57,19 +57,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const settingsBackBtn            = document.getElementById('settings-back-btn');
   const settingsServerUrl          = document.getElementById('settings-server-url');
   const runSecurityVerificationBtn = document.getElementById('run-security-verification-btn');
+  const settingsOllamaModel        = document.getElementById('settings-ollama-model');
+  const openVaultWindowBtn         = document.getElementById('open-vault-window-btn');
+  const clearAllSessionsBtn        = document.getElementById('clear-all-sessions-btn');
+  const clearConfirmRow            = document.getElementById('clear-confirm-row');
+  const confirmClearSessionsBtn    = document.getElementById('confirm-clear-sessions-btn');
+  const cancelClearSessionsBtn     = document.getElementById('cancel-clear-sessions-btn');
 
   // Modal
   const payloadModal  = document.getElementById('payload-modal');
   const modalJson     = document.getElementById('modal-json');
   const modalCloseBtn = document.getElementById('modal-close-btn');
 
-  // Server status indicator
-  const serverBadge         = document.getElementById('server-badge');
-  const serverBadgeText     = document.getElementById('server-badge-text');
+  // Server status indicators (non-clickable)
+  const landingStatusIndicator = document.getElementById('landing-status-indicator');
+  const landingStatusLabel     = document.getElementById('landing-status-label');
+  const convStatusIndicator    = document.getElementById('conv-status-indicator');
+  const convStatusLabel        = document.getElementById('conv-status-label');
+  // Settings model list
+  const settingsModelList      = document.getElementById('settings-model-list');
 
   // ═══════════════════════════════════════════════════════════
   // STATE
   // ═══════════════════════════════════════════════════════════
+  let currentSelectedModel = localStorage.getItem('webveil_selected_model') || 'Auto-Cascade (Local First)';
   let sessions = [];          // {id, title, createdAt, messages: [...], instructionFileId: ...}
   let activeSessionId = null;
   let instructionFiles = [];  // [{id, name, content, updatedAt}]
@@ -145,25 +156,31 @@ document.addEventListener('DOMContentLoaded', () => {
       currentActiveTier = tierName;
     }
 
-    const badges = document.querySelectorAll('.wv-server-badge');
-    badges.forEach(badge => {
-      const textEl = badge.querySelector('.wv-badge-text');
+    const shortName = typeof getDisplayModelName === 'function' 
+      ? getDisplayModelName(currentSelectedModel) 
+      : (currentSelectedModel || 'Cascade');
+
+    // Update non-clickable status indicators in headers
+    const indicators = [
+      { el: landingStatusIndicator, label: landingStatusLabel },
+      { el: convStatusIndicator, label: convStatusLabel }
+    ];
+    indicators.forEach(({ el, label }) => {
+      if (!el) return;
       if (online) {
-        badge.className = 'wv-server-badge online';
-        if (textEl) {
-          textEl.textContent = currentActiveTier || 'Connected';
-        }
-        badge.title = `Active Reasoning Tier: ${currentActiveTier} · Sanitized Egress Boundary Verified`;
+        el.className = 'wv-status-indicator online';
+        if (label) label.textContent = shortName;
+        el.title = `Active: ${currentSelectedModel}`;
       } else {
-        badge.className = 'wv-server-badge offline';
-        if (textEl) textEl.textContent = 'Offline';
-        badge.title = 'Reasoning server offline (Run: python -m webveil.api.reasoning_server)';
+        el.className = 'wv-status-indicator offline';
+        if (label) label.textContent = 'Offline';
+        el.title = 'Server offline';
       }
     });
 
     const settingsActiveTierBadge = document.getElementById('settings-active-tier-badge');
     if (settingsActiveTierBadge) {
-      settingsActiveTierBadge.textContent = online ? (currentActiveTier || 'Local (Ollama)') : 'Server Offline';
+      settingsActiveTierBadge.textContent = online ? (currentActiveTier || shortName) : 'Server Offline';
     }
 
     if (!isRunning) {
@@ -1024,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // AUTOMATED AGENT PIPELINE (Unified Reasoning Stream & Live Tokens)
   // ═══════════════════════════════════════════════════════════
   function getSelectedProviderAndModel() {
-    const label = (modelSelectName ? modelSelectName.textContent : '').trim().toLowerCase();
+    const label = ((currentSelectedModel || '') + ' ' + (modelSelectName ? modelSelectName.textContent : '')).trim().toLowerCase();
     if (label.includes('ollama')) {
       return { provider: 'ollama', model: 'llama3.1' };
     } else if (label.includes('nemotron') || label.includes('openrouter')) {
@@ -1152,6 +1169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let prunedNodes = [];
+    let canvasImages = [];
     let piiResult = { tokens: [], count: 0 };
     let sanitizedDom = [];
     let actionPlan = null;
@@ -1183,6 +1201,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const domResult = await sendTabMessage(tab.id, { action: 'PRUNE_DOM' });
         prunedNodes = domResult.nodes || [];
+        canvasImages = domResult.canvasImages || [];
         updateReasoningStage('Reading page', `DOM extraction complete (${prunedNodes.length} nodes)`);
         activityTimeline.push(`Scanned page DOM (${prunedNodes.length} elements)`);
       } catch (e) {
@@ -1342,6 +1361,8 @@ document.addEventListener('DOMContentLoaded', () => {
         title: tab.title,
         dom: sanitizedDom,
         sanitized_dom: sanitizedDom,
+        canvas_images: canvasImages,
+        ocr_summary: visualTelemetry?.ocrSummary || '',
         provider: pm.provider,
         model: pm.model,
         instruction_context: instructionContext,
@@ -1352,6 +1373,7 @@ document.addEventListener('DOMContentLoaded', () => {
           inference_ms: visualTelemetry.inferenceMs,
           regions_count: visualTelemetry.regionsCount,
           redactions_count: visualTelemetry.redactionsCount,
+          ocr_summary: visualTelemetry.ocrSummary || '',
         } : null,
         redaction_summary: {
           total_redacted: (piiResult.count || 0) + (visualTelemetry ? visualTelemetry.redactionsCount : 0),
@@ -1522,26 +1544,33 @@ document.addEventListener('DOMContentLoaded', () => {
     return new Promise((resolve) => {
       try {
         if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.query) {
-          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            // If the active tab is a valid web page (not sidepanel or restricted), use it
-            const isValidWebUrl = (u) => u && (u.startsWith('http://') || u.startsWith('https://'));
-            const isRestrictedUrl = (u) => !u || u.includes('sidepanel.html') || u.startsWith('chrome://') || u.startsWith('about:') || u.startsWith('edge://') || u.startsWith('devtools://');
+          const isRestrictedUrl = (u) => !u || u.includes('sidepanel.html') || u.startsWith('chrome://') || u.startsWith('about:') || u.startsWith('edge://') || u.startsWith('devtools://') || u.startsWith('chrome-extension://');
+          const isValidTargetUrl = (u) => u && !isRestrictedUrl(u) && (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('file://'));
 
-            if (tabs && tabs.length > 0 && isValidWebUrl(tabs[0].url)) {
-              resolve(tabs[0]);
-            } else {
-              chrome.tabs.query({}, (allTabs) => {
-                const targetTab = allTabs?.find(t => isValidWebUrl(t.url))
-                  || allTabs?.find(t => !isRestrictedUrl(t.url));
-                resolve(targetTab || (tabs && tabs.length > 0 ? tabs[0] : { id: 1, url: 'http://localhost/app', title: 'Local Web Page' }));
-              });
+          // 1. Try active tab in last focused window (the browser window with the webpage)
+          chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+            if (tabs && tabs.length > 0 && isValidTargetUrl(tabs[0].url)) {
+              return resolve(tabs[0]);
             }
+            // 2. Try active tab in current window
+            chrome.tabs.query({ active: true, currentWindow: true }, (currTabs) => {
+              if (currTabs && currTabs.length > 0 && isValidTargetUrl(currTabs[0].url)) {
+                return resolve(currTabs[0]);
+              }
+              // 3. Query all open tabs to find a valid web page
+              chrome.tabs.query({}, (allTabs) => {
+                const target = allTabs?.find(t => isValidTargetUrl(t.url));
+                if (target) return resolve(target);
+                const anyNonRestricted = allTabs?.find(t => !isRestrictedUrl(t.url));
+                resolve(anyNonRestricted || null);
+              });
+            });
           });
         } else {
-          resolve({ id: 1, url: 'http://localhost/app', title: 'Local Web Page' });
+          resolve(null);
         }
       } catch (_) {
-        resolve({ id: 1, url: 'http://localhost/app', title: 'Local Web Page' });
+        resolve(null);
       }
     });
   }
@@ -1570,23 +1599,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function ensureContentScriptInjected(tab) {
     if (!tab || !tab.id) {
-      throw new Error('No active browser tab found.');
+      throw new Error('No active browser tab found. Please open a webpage.');
     }
 
     const url = tab.url || '';
-    const restrictedPrefixes = ['chrome://', 'edge://', 'about:', 'chrome-search://', 'devtools://'];
+    const restrictedPrefixes = ['chrome://', 'edge://', 'about:', 'chrome-search://', 'devtools://', 'chrome-extension://'];
     for (const prefix of restrictedPrefixes) {
       if (url.startsWith(prefix)) {
         const protocol = url.split(':')[0] || 'browser';
-        throw new Error(`Cannot inspect restricted browser page (${protocol}:). Please open an HTTP/HTTPS web page.`);
+        throw new Error(`Cannot inspect restricted browser page (${protocol}:). Please open an HTTP/HTTPS or local file web page.`);
       }
     }
 
-    // If local test hook is available in this window
-    if (typeof window !== 'undefined' && window.__WebVeil_TestHook) {
-      return true;
-    }
-
+    // Ping existing content script on tab
     try {
       const pingResp = await sendTabMessage(tab.id, { action: 'PING' });
       if (pingResp && pingResp.status === 'ACTIVE') {
@@ -1594,6 +1619,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (_) {}
 
+    // Programmatically inject content_script.js into target tab
     if (typeof chrome !== 'undefined' && chrome.scripting && chrome.scripting.executeScript && tab.id) {
       console.log('[WebVeil] Content script absent on tab', tab.id, '— programmatically injecting content_script.js');
       try {
@@ -1601,23 +1627,27 @@ document.addEventListener('DOMContentLoaded', () => {
           target: { tabId: tab.id },
           files: ['content_script.js']
         });
-        await new Promise(r => setTimeout(r, 120));
+        await new Promise(r => setTimeout(r, 150));
         const retryPing = await sendTabMessage(tab.id, { action: 'PING' });
         if (retryPing && retryPing.status === 'ACTIVE') {
           return true;
         }
       } catch (injErr) {
-        console.warn('[WebVeil] Auto-injection failed:', injErr);
+        console.warn('[WebVeil] Auto-injection note:', injErr);
+        if (url.startsWith('file://')) {
+          throw new Error('To inspect local file:// pages in Chrome, enable "Allow access to file URLs" in chrome://extensions -> WebVeil Details.');
+        }
         const detail = chrome.runtime?.lastError?.message || injErr.message;
         throw new Error(`Content script auto-injection failed (${detail}). Please reload the tab.`);
       }
     }
 
-    if (typeof window !== 'undefined' && window.__WebVeil_TestHook) {
+    // Only allow test hook in headless test runner without chrome.tabs
+    if ((typeof chrome === 'undefined' || !chrome.tabs) && typeof window !== 'undefined' && window.__WebVeil_TestHook) {
       return true;
     }
 
-    throw new Error('Could not establish connection to content script. Please reload the tab.');
+    throw new Error('Could not establish connection to content script. Please reload the webpage tab.');
   }
 
   function handleMockMessage(message) {
@@ -1646,34 +1676,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function sendTabMessage(tabId, message) {
     return new Promise((resolve, reject) => {
-      try {
-        if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.sendMessage && tabId) {
-          chrome.tabs.sendMessage(tabId, message, (response) => {
-            if (chrome.runtime?.lastError) {
-              if (typeof window !== 'undefined' && window.__WebVeil_TestHook) {
-                resolve(handleMockMessage(message));
-              } else {
-                reject(new Error(chrome.runtime.lastError.message));
-              }
-            } else if (response) {
-              resolve(response);
-            } else if (typeof window !== 'undefined' && window.__WebVeil_TestHook) {
-              resolve(handleMockMessage(message));
-            } else {
-              reject(new Error('No response from content script'));
-            }
-          });
-        } else if (typeof window !== 'undefined' && window.__WebVeil_TestHook) {
-          resolve(handleMockMessage(message));
-        } else {
-          reject(new Error('No tab messaging available'));
-        }
-      } catch (e) {
+      // In headless unit test environments without chrome.tabs
+      if (typeof chrome === 'undefined' || !chrome.tabs || !chrome.tabs.sendMessage) {
         if (typeof window !== 'undefined' && window.__WebVeil_TestHook) {
-          resolve(handleMockMessage(message));
-        } else {
-          reject(e);
+          return resolve(handleMockMessage(message));
         }
+        return reject(new Error('No tab messaging available'));
+      }
+
+      try {
+        chrome.tabs.sendMessage(tabId, message, (response) => {
+          if (chrome.runtime?.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (response !== undefined) {
+            resolve(response);
+          } else {
+            reject(new Error('No response received from webpage content script'));
+          }
+        });
+      } catch (e) {
+        reject(e);
       }
     });
   }
@@ -1800,12 +1822,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Settings: Ollama Model & Clear All Sessions ──
-  const settingsOllamaModel     = document.getElementById('settings-ollama-model');
-  const clearAllSessionsBtn     = document.getElementById('clear-all-sessions-btn');
-  const clearConfirmRow         = document.getElementById('clear-confirm-row');
-  const confirmClearSessionsBtn = document.getElementById('confirm-clear-sessions-btn');
-  const cancelClearSessionsBtn  = document.getElementById('cancel-clear-sessions-btn');
-
   try {
     const savedModel = localStorage.getItem('webveil_ollama_model');
     if (savedModel && settingsOllamaModel) {
@@ -1902,85 +1918,175 @@ document.addEventListener('DOMContentLoaded', () => {
     taskInput.style.height = Math.min(taskInput.scrollHeight, 100) + 'px';
   });
 
-  // ── Model Selector Dropdown ──
+  // ── Model Selector & Cascade Dropdown ──
   function getDisplayModelName(name) {
     if (!name) return 'Cascade';
     if (name.includes('Cascade')) return 'Cascade';
     if (name.includes('Ollama')) return 'Ollama';
-    if (name.includes('Nemotron') || name.includes('OpenRouter')) return 'Nemotron';
+    if (name.includes('Nemotron') || name.includes('OpenRouter')) return 'OpenRouter';
     if (name.includes('Gemini')) return 'Gemini';
     return name;
   }
 
-  if (modelSelectBtn && modelDropdownMenu) {
-    modelSelectBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      modelDropdownMenu.classList.toggle('open');
-    });
+  const checkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="wv-check-icon"><polyline points="20 6 9 17 4 12"/></svg>`;
 
-    const checkSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="wv-check-icon"><polyline points="20 6 9 17 4 12"/></svg>`;
+  let currentActiveTrigger = null;
 
-    document.querySelectorAll('.wv-model-row').forEach(row => {
-      row.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isLocked = row.classList.contains('locked');
-        const modelName = row.getAttribute('data-model');
+  function toggleModelMenu(triggerEl) {
+    if (!modelDropdownMenu) return;
 
-        if (isLocked) {
-          showStatus(`Model "${modelName}" requires provider access. Configure in Settings.`);
-          setTimeout(hideStatus, 3000);
-          return;
-        }
+    if (modelDropdownMenu.classList.contains('open') && currentActiveTrigger === triggerEl) {
+      closeModelMenu();
+      return;
+    }
 
-        if (modelSelectName && modelName) {
-          modelSelectName.textContent = getDisplayModelName(modelName);
-          if (modelSelectBtn) {
-            modelSelectBtn.title = `Active model: ${modelName}`;
-          }
-        }
+    currentActiveTrigger = triggerEl;
+    const rect = triggerEl.getBoundingClientRect();
+    const padding = 8;
+    const desiredWidth = 276;
+    const menuWidth = Math.min(desiredWidth, window.innerWidth - (padding * 2));
+    modelDropdownMenu.style.width = menuWidth + 'px';
 
-        // Clear active and checkmarks from all rows
-        document.querySelectorAll('.wv-model-row').forEach(r => {
-          r.classList.remove('active');
-          if (!r.classList.contains('locked')) {
-            const badge = r.querySelector('.wv-model-badge-right');
-            if (badge) badge.innerHTML = '';
-          }
-        });
+    // Vertical placement
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const approxMenuHeight = 240;
+    if (spaceBelow >= approxMenuHeight || spaceBelow >= window.innerHeight * 0.45) {
+      modelDropdownMenu.style.top = (rect.bottom + 6) + 'px';
+      modelDropdownMenu.style.bottom = 'auto';
+    } else {
+      modelDropdownMenu.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+      modelDropdownMenu.style.top = 'auto';
+    }
 
-        // Set active and checkmark on selected row
-        row.classList.add('active');
-        const badge = row.querySelector('.wv-model-badge-right');
-        if (badge) badge.innerHTML = checkSvg;
+    // Horizontal placement
+    let targetLeft;
+    // If trigger is in the right half of the sidepanel or would overflow right
+    if (rect.left > window.innerWidth / 2 || (rect.left + menuWidth > window.innerWidth - padding)) {
+      targetLeft = rect.right - menuWidth;
+      if (targetLeft + menuWidth > window.innerWidth - padding) {
+        targetLeft = window.innerWidth - menuWidth - padding;
+      }
+    } else {
+      targetLeft = rect.left;
+    }
 
-        modelDropdownMenu.classList.remove('open');
-      });
-    });
+    // Strict boundary clamping: never push left edge off-screen or into negative territory
+    targetLeft = Math.max(padding, targetLeft);
 
-    const connectProvidersBtn = document.getElementById('connect-providers-btn');
-    if (connectProvidersBtn) {
-      connectProvidersBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        modelDropdownMenu.classList.remove('open');
-        showSettings();
+    modelDropdownMenu.style.left = targetLeft + 'px';
+    modelDropdownMenu.style.right = 'auto';
+
+    document.querySelectorAll('.wv-model-pill').forEach(el => el.classList.remove('menu-open'));
+    triggerEl.classList.add('menu-open');
+    modelDropdownMenu.classList.add('open');
+  }
+
+  function closeModelMenu() {
+    if (modelDropdownMenu) {
+      modelDropdownMenu.classList.remove('open');
+    }
+    document.querySelectorAll('.wv-model-pill').forEach(el => el.classList.remove('menu-open'));
+    currentActiveTrigger = null;
+  }
+
+  function selectModel(modelName) {
+    currentSelectedModel = modelName;
+    try {
+      localStorage.setItem('webveil_selected_model', modelName);
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ webveil_selected_model: modelName });
+      }
+    } catch (_) {}
+
+    const shortName = getDisplayModelName(modelName);
+
+    if (modelSelectName) {
+      modelSelectName.textContent = shortName;
+    }
+    if (modelSelectBtn) {
+      modelSelectBtn.title = `Active model: ${modelName} · Click to switch`;
+    }
+
+    // Update non-clickable header status labels
+    if (landingStatusLabel && isServerOnline) landingStatusLabel.textContent = shortName;
+    if (convStatusLabel && isServerOnline) convStatusLabel.textContent = shortName;
+
+    // Update settings model list selection state
+    if (settingsModelList) {
+      settingsModelList.querySelectorAll('.wv-settings-model-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.getAttribute('data-model') === modelName);
       });
     }
 
-    const addModelHeaderBtn = document.getElementById('add-model-header-btn');
-    if (addModelHeaderBtn) {
-      addModelHeaderBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        modelDropdownMenu.classList.remove('open');
-        showSettings();
-      });
-    }
-
-    document.addEventListener('click', (e) => {
-      if (!modelSelectBtn.contains(e.target) && !modelDropdownMenu.contains(e.target)) {
-        modelDropdownMenu.classList.remove('open');
+    // Update row active state and checkmark
+    document.querySelectorAll('.wv-model-row').forEach(r => {
+      const isMatch = r.getAttribute('data-model') === modelName;
+      r.classList.toggle('active', isMatch);
+      const badge = r.querySelector('.wv-model-badge-right');
+      if (badge) {
+        badge.innerHTML = isMatch ? checkSvg : '';
       }
     });
+
+    closeModelMenu();
   }
+
+  // Bind click handlers to triggers
+  // Settings model list click handler
+  if (settingsModelList) {
+    settingsModelList.querySelectorAll('.wv-settings-model-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        const modelName = opt.getAttribute('data-model');
+        if (modelName) selectModel(modelName);
+      });
+    });
+  }
+
+  if (modelSelectBtn) {
+    modelSelectBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleModelMenu(modelSelectBtn);
+    });
+  }
+
+  // Model rows
+  document.querySelectorAll('.wv-model-row').forEach(row => {
+    row.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isLocked = row.classList.contains('locked');
+      const modelName = row.getAttribute('data-model');
+
+      if (isLocked) {
+        showStatus(`Model "${modelName}" requires provider access. Configure in Settings.`);
+        setTimeout(hideStatus, 3000);
+        return;
+      }
+
+      if (modelName) {
+        selectModel(modelName);
+      }
+    });
+  });
+
+  // Global dismiss
+  document.addEventListener('click', (e) => {
+    if (modelDropdownMenu && modelDropdownMenu.classList.contains('open')) {
+      if (!modelDropdownMenu.contains(e.target) && (!currentActiveTrigger || !currentActiveTrigger.contains(e.target))) {
+        closeModelMenu();
+      }
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modelDropdownMenu && modelDropdownMenu.classList.contains('open')) {
+      closeModelMenu();
+    }
+  });
+
+  window.addEventListener('resize', closeModelMenu);
+
+  // Initialize UI on load
+  selectModel(currentSelectedModel);
 
 
 

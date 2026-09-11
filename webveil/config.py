@@ -31,7 +31,7 @@ class WebVeilConfig:
         self.openai_api_key: Optional[str] = os.getenv("OPENAI_API_KEY")
         self.openrouter_api_key: Optional[str] = os.getenv("OPENROUTER_API_KEY")
         self.ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        self.ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.1")
+        self.ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
         self.gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         self.openrouter_model: str = os.getenv("OPENROUTER_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")

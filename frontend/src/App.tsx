@@ -17,7 +17,9 @@ import {
   AlertTriangle,
   ShieldCheck,
   Eye,
-  CheckCircle2
+  CheckCircle2,
+  ArrowRight,
+  ChevronRight
 } from 'lucide-react';
 
 type TabId = 'overview' | 'how-to-use' | 'test-runs';
@@ -40,9 +42,19 @@ export function App() {
 
   const [copiedCmd, setCopiedCmd] = useState(false);
   const [copiedPath, setCopiedPath] = useState(false);
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
+
+  const handleCopyPrompt = (prompt: string, id: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    navigator.clipboard.writeText(prompt);
+    setCopiedPromptId(id);
+    setTimeout(() => setCopiedPromptId(null), 2000);
+  };
 
   const checkHealth = async () => {
-    // 1. Check Python Reasoning Backend (Port 8000)
     setReasoningStatus((prev) => ({ ...prev, checking: true }));
     const t0 = performance.now();
     try {
@@ -63,7 +75,6 @@ export function App() {
       setReasoningStatus({ online: false, checking: false });
     }
 
-    // 2. Check Local Target Test Server (Port 8080)
     setTestServerStatus((prev) => ({ ...prev, checking: true }));
     const t1 = performance.now();
     try {
@@ -93,664 +104,930 @@ export function App() {
     setTimeout(() => setCopiedPath(false), 2000);
   };
 
+  const navItems = [
+    { id: 'overview' as TabId, label: 'Overview & Pillars', icon: Layers },
+    { id: 'how-to-use' as TabId, label: 'How to Use', icon: Compass },
+    { id: 'test-runs' as TabId, label: 'Verified Test Runs', icon: FileCheck },
+  ];
+
   return (
-    <div className="relative min-h-screen text-slate-100 font-sans selection:bg-indigo-500/30 selection:text-white">
-      {/* 1. Living Background: Ambient Gradient Mesh (Continuous Animation #1) */}
-      <div className="bg-mesh-container" aria-hidden="true">
-        <div className="mesh-blob mesh-blob-1" />
-        <div className="mesh-blob mesh-blob-2" />
-        <div className="mesh-blob mesh-blob-3" />
-      </div>
+    <div className="wv-shell">
 
-      {/* Main Layout Container: Fixed Sidebar + Dynamic Content Pane */}
-      <div className="relative z-10 max-w-7xl mx-auto p-4 sm:p-8 flex flex-col md:flex-row gap-6 lg:gap-8 items-start">
-        
-        {/* ═════════════════════════════════════════════════════════════════════
-            SIDEBAR NAVIGATION (220px width, Glass Panel, Pinned Status Bottom)
-           ═════════════════════════════════════════════════════════════════════ */}
-        <aside className="wv-glass-panel w-full md:w-60 p-5 flex flex-col justify-between md:sticky md:top-8 flex-shrink-0 min-h-[520px]">
-          <div className="space-y-6">
-            {/* Header Brand */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-400/25 flex items-center justify-center text-indigo-400 shadow-inner flex-shrink-0">
-                <Shield size={20} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-base text-white tracking-tight">WebVeil</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                    PS-26171
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 font-medium">Evaluator Companion</p>
-              </div>
+      {/* ══════════════════════════════════════════════════════════════════
+          SIDEBAR — Linear-style with left-border active indicator
+         ══════════════════════════════════════════════════════════════════ */}
+      <aside className="wv-sidebar">
+        <div className="space-y-8">
+          {/* Brand */}
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white flex-shrink-0 shadow-sm">
+              <Shield size={16} strokeWidth={2.5} />
             </div>
-
-            {/* 3 Sidebar Navigation Items */}
-            <nav className="flex flex-row md:flex-col gap-2">
-              {[
-                { id: 'overview', label: 'Overview & Pillars', num: '01', icon: Layers },
-                { id: 'how-to-use', label: 'How to Use', num: '02', icon: Compass },
-                { id: 'test-runs', label: 'Verified Test Runs', num: '03', icon: FileCheck },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as TabId)}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                      isActive
-                        ? 'neu-tab-active'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Icon size={14} className={isActive ? 'text-indigo-400' : 'text-slate-500'} />
-                      <span>{tab.label}</span>
-                    </div>
-                    <span className="font-mono text-[10px] text-slate-500">{tab.num}</span>
-                  </button>
-                );
-              })}
-            </nav>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[15px] text-gray-900 tracking-tight">WebVeil</span>
+              </div>
+              <p className="text-[11px] text-gray-400 -mt-0.5">PS-26171 · Evaluator</p>
+            </div>
           </div>
 
-          {/* Mini-Readout Pinned at Sidebar Bottom (Flat & Legible, NOT Glass) */}
-          <div className="pt-4 mt-6 border-t border-slate-800/90 space-y-2 bg-[#090d16] p-3.5 rounded-xl border border-slate-800/80">
-            <div className="flex items-center justify-between text-[11px] font-mono">
-              <span className="text-slate-400">Backend:</span>
-              <div className="flex items-center gap-2">
-                <span className={reasoningStatus.online ? 'text-emerald-400 font-medium' : 'text-rose-400 font-medium'}>
-                  {reasoningStatus.online ? `${reasoningStatus.latencyMs}ms` : 'Offline'}
-                </span>
-                <div className="neu-status-well !w-4 !h-4">
-                  <div className={reasoningStatus.online ? 'neu-status-dot-online !w-1.5 !h-1.5' : 'neu-status-dot-offline !w-1.5 !h-1.5'} />
-                </div>
-              </div>
-            </div>
+          {/* Navigation */}
+          <nav className="space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`wv-nav-item ${isActive ? 'wv-nav-item--active' : ''}`}
+                >
+                  <Icon size={16} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
 
-            <div className="flex items-center justify-between text-[11px] font-mono">
-              <span className="text-slate-400">Target:</span>
-              <div className="flex items-center gap-2">
-                <span className={testServerStatus.online ? 'text-emerald-400 font-medium' : 'text-rose-400 font-medium'}>
-                  {testServerStatus.online ? `${testServerStatus.latencyMs}ms` : 'Offline'}
-                </span>
-                <div className="neu-status-well !w-4 !h-4">
-                  <div className={testServerStatus.online ? 'neu-status-dot-online !w-1.5 !h-1.5' : 'neu-status-dot-offline !w-1.5 !h-1.5'} />
-                </div>
-              </div>
+        {/* Status Footer */}
+        <div className="space-y-3 pt-6 border-t border-gray-100">
+          <div className="wv-section-label px-2 mb-2">Service Status</div>
+
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <div className="flex items-center gap-2.5">
+              <div className={`wv-dot ${reasoningStatus.online ? 'wv-dot--online' : 'wv-dot--offline'}`} />
+              <span className="text-[13px] text-gray-600">Reasoning</span>
             </div>
+            <span className={`text-[12px] font-mono font-medium ${reasoningStatus.online ? 'text-emerald-600' : 'text-red-500'}`}>
+              {reasoningStatus.checking ? '...' : reasoningStatus.online ? `${reasoningStatus.latencyMs}ms` : 'Down'}
+            </span>
           </div>
-        </aside>
 
-        {/* ═════════════════════════════════════════════════════════════════════
-            RIGHT DYNAMIC CONTENT AREA (Swaps with 600ms cubic-bezier reveal)
-           ═════════════════════════════════════════════════════════════════════ */}
-        <main className="flex-1 w-full space-y-6">
+          <div className="flex items-center justify-between px-2 py-1.5">
+            <div className="flex items-center gap-2.5">
+              <div className={`wv-dot ${testServerStatus.online ? 'wv-dot--online' : 'wv-dot--offline'}`} />
+              <span className="text-[13px] text-gray-600">Test Server</span>
+            </div>
+            <span className={`text-[12px] font-mono font-medium ${testServerStatus.online ? 'text-emerald-600' : 'text-red-500'}`}>
+              {testServerStatus.checking ? '...' : testServerStatus.online ? `${testServerStatus.latencyMs}ms` : 'Down'}
+            </span>
+          </div>
+        </div>
+      </aside>
 
-          {/* ═══════════════════════════════════════════════════════════
-             TAB 1 — OVERVIEW & PILLARS
-             ═══════════════════════════════════════════════════════════ */}
-          {activeTab === 'overview' && (
-            <div key="overview" className="space-y-6 reveal-section">
-              {/* Plain Paragraph (What WebVeil is) */}
-              <div className="wv-glass-panel p-6 sm:p-7 space-y-4">
-                <div className="flex items-center gap-2 text-xs font-mono text-indigo-400 font-semibold uppercase tracking-wider">
-                  <ShieldCheck size={14} />
-                  <span>Problem Statement PS-26171</span>
-                </div>
+      {/* ══════════════════════════════════════════════════════════════════
+          MAIN CONTENT AREA
+         ══════════════════════════════════════════════════════════════════ */}
+      <main className="wv-content">
 
-                <h2 className="text-2xl font-bold tracking-tight text-white">
-                  Privacy-Preserving On-Device Web Agent
-                </h2>
-
-                <p className="text-sm text-slate-300 leading-relaxed font-normal">
-                  WebVeil is an on-device, privacy-preserving browser agent engineered for sensitive and defense web workflows.
-                  Credential fields, identity numbers, and session tokens are intercepted directly inside Chrome's Isolated World before any LLM reasoning happens,
-                  substituting deterministic placeholder tokens so that sensitive data never leaves your local workstation.
-                </p>
+        {/* ═══════════════════════════════════════════════════════════
+           TAB 1 — OVERVIEW & PILLARS
+           ═══════════════════════════════════════════════════════════ */}
+        {activeTab === 'overview' && (
+          <div key="overview" className="reveal-section space-y-10">
+            {/* Hero */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <ShieldCheck size={14} className="text-indigo-500" />
+                <span className="wv-section-label text-indigo-500">Problem Statement PS-26171</span>
               </div>
 
-              {/* Three Architecture Pillars (Short Cards, 1 Sentence Each) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <h1 className="wv-page-title">
+                Privacy-Preserving<br />
+                <span className="wv-gradient-text">On-Device Web Agent</span>
+              </h1>
+
+              <p className="wv-subtitle">
+                WebVeil is an on-device, privacy-preserving browser agent engineered for sensitive and defense web workflows.
+                Credential fields, identity numbers, and session tokens are intercepted directly inside Chrome's Isolated World before any LLM reasoning happens,
+                substituting deterministic placeholder tokens so that sensitive data never leaves your local workstation.
+              </p>
+            </div>
+
+            {/* Three Pillars — Feature cards with oversized background numbers */}
+            <div>
+              <div className="wv-section-label mb-4">Core Architecture</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {/* Pillar 1 */}
-                <div className="wv-glass-panel wv-glass-interactive p-5 space-y-3 flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-400/25 flex items-center justify-center text-indigo-400">
-                      <Cpu size={18} />
+                <div className="wv-pillar group">
+                  <span className="wv-pillar__number">01</span>
+                  <div className="relative z-10 space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-500 group-hover:bg-indigo-100 transition-colors">
+                      <Cpu size={20} />
                     </div>
-                    <h3 className="text-sm font-bold text-white tracking-tight">
+                    <h3 className="text-[15px] font-bold text-gray-900 tracking-tight">
                       On-Device Visual Perception
                     </h3>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                    <p className="text-[13px] text-gray-500 leading-relaxed">
                       Perceives DOM elements and HTML5 canvas regions directly on client hardware, grounding spatial bounding boxes without streaming full-screen captures to external cloud APIs.
                     </p>
                   </div>
                 </div>
 
                 {/* Pillar 2 */}
-                <div className="wv-glass-panel wv-glass-interactive p-5 space-y-3 flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-400/25 flex items-center justify-center text-emerald-400">
-                      <Lock size={18} />
+                <div className="wv-pillar group">
+                  <span className="wv-pillar__number">02</span>
+                  <div className="relative z-10 space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:bg-emerald-100 transition-colors">
+                      <Lock size={20} />
                     </div>
-                    <h3 className="text-sm font-bold text-white tracking-tight">
+                    <h3 className="text-[15px] font-bold text-gray-900 tracking-tight">
                       Chrome Isolated World Vault
                     </h3>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                    <p className="text-[13px] text-gray-500 leading-relaxed">
                       Intercepts form credentials and identity patterns client-side, isolating plaintext secrets in extension memory completely inaccessible to host page scripts.
                     </p>
                   </div>
                 </div>
 
                 {/* Pillar 3 */}
-                <div className="wv-glass-panel wv-glass-interactive p-5 space-y-3 flex flex-col justify-between">
-                  <div className="space-y-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-400/25 flex items-center justify-center text-blue-400">
-                      <Layers size={18} />
+                <div className="wv-pillar group">
+                  <span className="wv-pillar__number">03</span>
+                  <div className="relative z-10 space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-sky-500 group-hover:bg-sky-100 transition-colors">
+                      <Layers size={20} />
                     </div>
-                    <h3 className="text-sm font-bold text-white tracking-tight">
+                    <h3 className="text-[15px] font-bold text-gray-900 tracking-tight">
                       3-Tier Reasoning Cascade
                     </h3>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
+                    <p className="text-[13px] text-gray-500 leading-relaxed">
                       Executes reasoning tasks autonomously via local air-gapped models (Tier 1 Ollama), falling back to sanitized cloud models only when local compute is unavailable.
                     </p>
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* ═══════════════════════════════════════════════════════════
-             TAB 2 — HOW TO USE (HONEST LAUNCHER)
-             ═══════════════════════════════════════════════════════════ */}
-          {activeTab === 'how-to-use' && (
-            <div key="how-to-use" className="space-y-6 reveal-section">
-              {/* Header Action Bar */}
-              <div className="wv-glass-panel p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-bold text-white tracking-tight">
-                    Local Testing & Evaluation Harness
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Verify local backend connectivity and open test pages in Google Chrome.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={checkHealth}
-                    disabled={reasoningStatus.checking}
-                    className="neu-control px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-200 flex items-center gap-2 cursor-pointer active:scale-95"
-                  >
-                    <RefreshCw size={13} className={reasoningStatus.checking ? 'animate-spin text-indigo-400' : 'text-slate-400'} />
-                    <span>Refresh Health</span>
-                  </button>
-
-                  <button
-                    onClick={handleCopyCommand}
-                    className="neu-control-primary px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer active:scale-95"
-                  >
-                    {copiedCmd ? <Check size={14} className="text-emerald-300" /> : <Terminal size={14} />}
-                    <span>{copiedCmd ? 'Command Copied' : 'Copy Launch Command'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Evaluation Disclaimer (Flat weight, high-contrast, strictly NOT glass) */}
-              <div className="p-4 rounded-xl bg-[#0b0e17] border border-slate-700/90 text-xs text-slate-200 flex items-start gap-3 shadow-md">
-                <div className="p-1 rounded-md bg-indigo-950 text-indigo-400 border border-indigo-800/80 mt-0.5 flex-shrink-0">
-                  <Shield size={14} />
-                </div>
-                <div className="leading-relaxed font-normal">
-                  This page is a local launcher that monitors your local servers and links directly to test targets.
-                  The actual WebVeil browser agent runs inside Google Chrome as an unpacked Manifest V3 extension.
-                  It does not simulate actions here; all credential masking and visual perception happen live in Chrome.
-                </div>
-              </div>
-
-              {/* Live Service Health Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="wv-glass-panel wv-glass-interactive p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-300">
-                        <Server size={16} />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-white tracking-tight">Python Reasoning Server</h3>
-                        <div className="text-[11px] font-mono text-slate-400">http://127.0.0.1:8000/api/health</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-xs font-mono text-slate-300 font-medium">
-                        {reasoningStatus.online ? `Online (${reasoningStatus.latencyMs}ms)` : 'Offline'}
-                      </span>
-                      <div className="neu-status-well">
-                        <div className={reasoningStatus.online ? 'neu-status-dot-online' : 'neu-status-dot-offline'} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="wv-glass-panel wv-glass-interactive p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50 text-slate-300">
-                        <Globe size={16} />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-white tracking-tight">Target Test Server</h3>
-                        <div className="text-[11px] font-mono text-slate-400">http://127.0.0.1:8080/index.html</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-xs font-mono text-slate-300 font-medium">
-                        {testServerStatus.online ? `Online (${testServerStatus.latencyMs}ms)` : 'Offline'}
-                      </span>
-                      <div className="neu-status-well">
-                        <div className={testServerStatus.online ? 'neu-status-dot-online' : 'neu-status-dot-offline'} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Target Test Web Pages */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 px-1">
-                  Live Target Test Environments
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <a
-                    href="http://127.0.0.1:8080/index.html"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="wv-glass-panel wv-glass-interactive p-5 flex flex-col justify-between group space-y-4"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-mono text-indigo-400 font-semibold">
-                        <span>01 · Form Shielding</span>
-                        <ExternalLink size={13} className="group-hover:translate-x-0.5 transition-transform text-slate-400 group-hover:text-indigo-300" />
-                      </div>
-                      <h4 className="text-sm font-bold text-white tracking-tight">SIH Privacy & KYC Test Page</h4>
-                      <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                        Contains Name, Aadhaar number, Password, and Email fields. Verifies deterministic tokenization into [AADHAAR_1] in Isolated World memory.
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-mono text-indigo-300/90 underline underline-offset-2">
-                      http://127.0.0.1:8080/index.html
-                    </span>
-                  </a>
-
-                  <a
-                    href="http://127.0.0.1:8080/canvas_challenge.html"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="wv-glass-panel wv-glass-interactive p-5 flex flex-col justify-between group space-y-4"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-mono text-indigo-400 font-semibold">
-                        <span>02 · Canvas Perception</span>
-                        <ExternalLink size={13} className="group-hover:translate-x-0.5 transition-transform text-slate-400 group-hover:text-indigo-300" />
-                      </div>
-                      <h4 className="text-sm font-bold text-white tracking-tight">Canvas Challenge Page</h4>
-                      <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                        Simulates interactive HTML5 canvas graphics without DOM text nodes. Verifies spatial bounding boxes and coordinate grounding.
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-mono text-indigo-300/90 underline underline-offset-2">
-                      http://127.0.0.1:8080/canvas_challenge.html
-                    </span>
-                  </a>
-
-                  <a
-                    href="http://127.0.0.1:8080/evaluator_dashboard.html"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="wv-glass-panel wv-glass-interactive p-5 flex flex-col justify-between group space-y-4"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-mono text-indigo-400 font-semibold">
-                        <span>03 · Diagnostics</span>
-                        <ExternalLink size={13} className="group-hover:translate-x-0.5 transition-transform text-slate-400 group-hover:text-indigo-300" />
-                      </div>
-                      <h4 className="text-sm font-bold text-white tracking-tight">Evaluator Static Dashboard</h4>
-                      <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                        Local diagnostics panel displaying DOM scanning outputs, node trees, and raw timing benchmarks for SIH evaluators.
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-mono text-indigo-300/90 underline underline-offset-2">
-                      http://127.0.0.1:8080/evaluator_dashboard.html
-                    </span>
-                  </a>
-                </div>
-              </div>
-
-              {/* Load Instructions Block */}
-              <div className="wv-glass-panel p-6 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <FolderOpen size={18} className="text-indigo-400" />
-                    <h3 className="text-sm font-bold text-white">How to Load Unpacked in Google Chrome</h3>
-                  </div>
-
-                  <button
-                    onClick={handleCopyPath}
-                    className="neu-control px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  >
-                    {copiedPath ? <Check size={13} className="text-emerald-300" /> : <Copy size={13} />}
-                    <span>{copiedPath ? 'Path Copied' : 'Copy Extension Path'}</span>
-                  </button>
-                </div>
-
-                <ol className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-slate-300 list-decimal list-inside leading-relaxed font-normal">
-                  <li className="p-3 rounded-xl bg-slate-900/50 border border-slate-800/60">
-                    Navigate to <code className="font-mono text-indigo-300 px-1 bg-slate-950 rounded">chrome://extensions</code>.
-                  </li>
-                  <li className="p-3 rounded-xl bg-slate-900/50 border border-slate-800/60">
-                    Toggle <strong className="text-white">Developer mode</strong> on (top right).
-                  </li>
-                  <li className="p-3 rounded-xl bg-slate-900/50 border border-slate-800/60 sm:col-span-2">
-                    Click <strong className="text-white">Load unpacked</strong> and select the directory:
-                    <div className="font-mono text-[11px] text-slate-200 bg-slate-950 p-2 rounded-lg border border-slate-800 mt-1 select-all">
-                      c:\Users\Armash Ansari\OneDrive\Desktop\Projects\AI & ML\veil-agent\extension
-                    </div>
-                  </li>
-                  <li className="p-3 rounded-xl bg-slate-900/50 border border-slate-800/60 sm:col-span-2">
-                    Open <a href="http://127.0.0.1:8080/index.html" target="_blank" rel="noreferrer" className="text-indigo-400 underline">http://127.0.0.1:8080/index.html</a> and click the <strong>WebVeil Sidepanel</strong> icon to execute commands.
-                  </li>
-                </ol>
-              </div>
-            </div>
-          )}
-
-          {/* ═══════════════════════════════════════════════════════════
-             TAB 3 — VERIFIED TEST RUNS & FLAG SYSTEM VERIFICATION
-             ═══════════════════════════════════════════════════════════ */}
-          {activeTab === 'test-runs' && (
-            <div key="test-runs" className="space-y-6 reveal-section">
-              {/* Header */}
-              <div className="wv-glass-panel p-6 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 font-semibold uppercase tracking-wider">
-                  <CheckCircle2 size={14} />
-                  <span>Real Post-Fix Runs & Flag Verification</span>
-                </div>
-                <h2 className="text-xl font-bold text-white tracking-tight">
-                  Evaluated Pipeline Test Battery
-                </h2>
-                <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                  Every test run documented here corresponds to a real executed run with verified telemetry after the DOM pruning fix.
-                  Below each run is the problem & solution guide detailing how the Information Flag System operates and how to reproduce verification live.
+        {/* ═══════════════════════════════════════════════════════════
+           TAB 2 — HOW TO USE
+           ═══════════════════════════════════════════════════════════ */}
+        {activeTab === 'how-to-use' && (
+          <div key="how-to-use" className="reveal-section space-y-10">
+            {/* Page Header + Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div className="space-y-2">
+                <div className="wv-section-label">Evaluation Harness</div>
+                <h1 className="wv-page-title text-[28px]">
+                  Local Testing &<br />
+                  <span className="wv-gradient-text">Evaluation</span>
+                </h1>
+                <p className="wv-subtitle text-[13px]">
+                  Verify local backend connectivity and open test pages in Google Chrome.
                 </p>
               </div>
 
-              {/* ── Real Test Run 01 ── */}
-              <div className="wv-glass-panel p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
-                      RUN 01 · PASS
-                    </span>
-                    <h3 className="text-sm font-bold text-white">
-                      SIH KYC Form Credential Interception & Vaulting
-                    </h3>
-                  </div>
-                  <span className="text-[11px] font-mono text-slate-400">Target: http://127.0.0.1:8080/index.html</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-mono">
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">TASK EXECUTED</div>
-                    <div className="text-slate-200 font-semibold text-xs mt-1 truncate" title="Fill KYC form with test credentials and submit without leaking PII">
-                      Fill KYC form
-                    </div>
-                    <div className="text-[10px] text-slate-400">Autonomous workflow</div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">PROTECTED FIELDS</div>
-                    <div className="text-emerald-400 font-bold text-xs mt-1">4 Fields Masked</div>
-                    <div className="text-[10px] text-slate-400">[NAME_1], [AADHAAR_1], [PASS_1], [EMAIL_1]</div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">STEPS TAKEN</div>
-                    <div className="text-cyan-400 font-bold text-xs mt-1">4 Actions</div>
-                    <div className="text-[10px] text-slate-400">Scan, Vault, Inject, Submit</div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">REASONING TIER</div>
-                    <div className="text-indigo-400 font-bold text-xs mt-1">Local (Ollama)</div>
-                    <div className="text-[10px] text-slate-400">Tier 1 · Air-gapped</div>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800/60 space-y-1.5 text-xs text-slate-300">
-                  <div className="font-semibold text-white flex items-center gap-1.5">
-                    <ShieldCheck size={14} className="text-emerald-400" />
-                    <span>Information Flag System Outcome:</span>
-                  </div>
-                  <p className="leading-relaxed font-normal">
-                    During client-side observation, the regex classifier identified 4 sensitive categories matching KYC fields.
-                    Real credentials were moved to Chrome Isolated World memory and replaced with deterministic tokens.
-                    The reasoning server payload verified zero plaintext leak. Keystrokes were injected locally.
-                  </p>
-                </div>
+              <div className="flex items-center gap-2.5 flex-shrink-0">
+                <button onClick={checkHealth} disabled={reasoningStatus.checking} className="wv-btn">
+                  <RefreshCw size={14} className={reasoningStatus.checking ? 'animate-spin text-indigo-500' : ''} />
+                  Refresh
+                </button>
+                <button onClick={handleCopyCommand} className="wv-btn wv-btn--primary">
+                  {copiedCmd ? <Check size={14} /> : <Terminal size={14} />}
+                  {copiedCmd ? 'Copied!' : 'Copy Launch Command'}
+                </button>
               </div>
-
-              {/* ── Real Test Run 02 ── */}
-              <div className="wv-glass-panel p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-bold">
-                      RUN 02 · PASS (POST-FIX)
-                    </span>
-                    <h3 className="text-sm font-bold text-white">
-                      Wikipedia Generalization & Priority DOM Pruning
-                    </h3>
-                  </div>
-                  <span className="text-[11px] font-mono text-slate-400">Target: en.wikipedia.org/wiki/ISRO</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-mono">
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">TASK EXECUTED</div>
-                    <div className="text-slate-200 font-semibold text-xs mt-1 truncate" title="Go to ISRO wikipedia page and extract the latest mission manifest">
-                      Extract mission manifest
-                    </div>
-                    <div className="text-[10px] text-slate-400">Complex portal scan</div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">PRUNING METRICS</div>
-                    <div className="text-emerald-400 font-bold text-xs mt-1">10,475 → 184 Nodes</div>
-                    <div className="text-[10px] text-slate-400">97.3% Context Reduction</div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">STEPS TAKEN</div>
-                    <div className="text-cyan-400 font-bold text-xs mt-1">3 Actions</div>
-                    <div className="text-[10px] text-slate-400">Navigate, Filter, Parse</div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">REASONING TIER</div>
-                    <div className="text-indigo-400 font-bold text-xs mt-1">Local (Ollama)</div>
-                    <div className="text-[10px] text-slate-400">Tier 1 · Verified Default</div>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800/60 space-y-1.5 text-xs text-slate-300">
-                  <div className="font-semibold text-white flex items-center gap-1.5">
-                    <Eye size={14} className="text-cyan-400" />
-                    <span>Interactive Priority Pruner Outcome:</span>
-                  </div>
-                  <p className="leading-relaxed font-normal">
-                    Verified post-fix against the dense Wikipedia DOM. The interactive selector prioritized in-viewport inputs, links, and tables,
-                    capping passive prose paragraphs and eliminating the previous 6,785-element payload blowout that led to LLM JSON parsing crashes.
-                  </p>
-                </div>
-              </div>
-
-              {/* ── Real Test Run 03 ── */}
-              <div className="wv-glass-panel p-6 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="font-mono text-xs px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-bold">
-                      RUN 03 · PASS
-                    </span>
-                    <h3 className="text-sm font-bold text-white">
-                      Canvas Graphic Spatial Perception & Coordinate Grounding
-                    </h3>
-                  </div>
-                  <span className="text-[11px] font-mono text-slate-400">Target: http://127.0.0.1:8080/canvas_challenge.html</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-mono">
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">TASK EXECUTED</div>
-                    <div className="text-slate-200 font-semibold text-xs mt-1 truncate" title="Locate and interact with canvas graphic elements without DOM text nodes">
-                      Canvas Spatial Grounding
-                    </div>
-                    <div className="text-[10px] text-slate-400">Non-semantic UI</div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">CV TELEMETRY</div>
-                    <div className="text-cyan-400 font-bold text-xs mt-1">8 Regions in 18.2ms</div>
-                    <div className="text-[10px] text-slate-400">Local CV · CPU only</div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">STEPS TAKEN</div>
-                    <div className="text-emerald-400 font-bold text-xs mt-1">2 Actions</div>
-                    <div className="text-[10px] text-slate-400">Detect & Dispatch Click</div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-slate-400 text-[10px]">REASONING TIER</div>
-                    <div className="text-indigo-400 font-bold text-xs mt-1">Local (Ollama)</div>
-                    <div className="text-[10px] text-slate-400">Tier 1 · Air-gapped</div>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-xl bg-slate-900/40 border border-slate-800/60 space-y-1.5 text-xs text-slate-300">
-                  <div className="font-semibold text-white flex items-center gap-1.5">
-                    <Cpu size={14} className="text-indigo-400" />
-                    <span>Local Visual Perception Engine Outcome:</span>
-                  </div>
-                  <p className="leading-relaxed font-normal">
-                    When operating on HTML5 canvas graphics without text nodes, the client-side OpenCV contour engine detected 8 interactive boundary regions locally on CPU,
-                    transmitting spatial bounding box coordinates to the reasoning loop without uploading any screenshots to cloud APIs.
-                  </p>
-                </div>
-              </div>
-
-              {/* ═══════════════════════════════════════════════════════════════
-                 PS-26171 PROBLEM / SOLUTION & INFORMATION FLAG SYSTEM GUIDE
-                 ═══════════════════════════════════════════════════════════════ */}
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center gap-2 px-1 text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">
-                  <AlertTriangle size={14} className="text-amber-400" />
-                  <span>PS-26171 Problem Challenges, Solutions & Flag Verification</span>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Challenge 1 */}
-                  <div className="wv-glass-panel p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">
-                        PROBLEM 01 · CREDENTIAL EXFILTRATION
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                      <strong>Problem:</strong> Standard browser agents pipe raw form values (passwords, Aadhaar, PAN) into reasoning contexts, risking exposure to external LLM providers and logging backends.
-                    </p>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                      <strong>WebVeil Solution:</strong> Client-side tokenization regex runs in Chrome Isolated World memory. Plaintext is stripped and substituted with deterministic tokens (<code className="font-mono text-indigo-300">[PASSWORD_1]</code>) before egress.
-                    </p>
-                    <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 font-mono space-y-1">
-                      <span className="text-white font-semibold block">How to Verify Flagging:</span>
-                      1. Open <code className="text-indigo-300">http://127.0.0.1:8080/index.html</code>.<br />
-                      2. In the WebVeil side panel, expand <em>"What WebVeil saw"</em> → inspect <em>"Outgoing Sanitized Payload"</em>.<br />
-                      3. Confirm raw inputs are flagged and only masked tokens appear in the JSON request.
-                    </div>
-                  </div>
-
-                  {/* Challenge 2 */}
-                  <div className="wv-glass-panel p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/25">
-                        PROBLEM 02 · PROMPT INJECTION & TAINT
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                      <strong>Problem:</strong> Host pages can embed invisible adversarial text (<code className="font-mono text-slate-400">&lt;!-- exfiltrate cookies --&gt;</code>) designed to hijack agent directives and access unauthorized endpoints.
-                    </p>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                      <strong>WebVeil Solution:</strong> Taint tracking classifies untrusted DOM subtrees, while an on-device injection classifier flags jailbreak directives, instantly aborting navigation to unknown domains.
-                    </p>
-                    <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 font-mono space-y-1">
-                      <span className="text-white font-semibold block">How to Verify Flagging:</span>
-                      1. Run <code className="text-indigo-300">pytest webveil/tests/test_prompt_injection_defense.py</code>.<br />
-                      2. Execute task targeting a page containing an override directive.<br />
-                      3. Observe the security alert: the node is flagged as tainted and action execution is rejected.
-                    </div>
-                  </div>
-
-                  {/* Challenge 3 */}
-                  <div className="wv-glass-panel p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/25">
-                        PROBLEM 03 · DOM TREE EXPLOSION
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                      <strong>Problem:</strong> Public portals contain 10,000+ DOM nodes. Naive DOM serialization exhausts model context windows, introduces latency, and triggers JSON malformation.
-                    </p>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                      <strong>WebVeil Solution:</strong> Priority selector algorithm retains 100% of interactive form controls and in-viewport buttons while capping passive prose to immediate structural context.
-                    </p>
-                    <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 font-mono space-y-1">
-                      <span className="text-white font-semibold block">How to Verify Flagging:</span>
-                      1. Open <code className="text-indigo-300">https://en.wikipedia.org/wiki/ISRO</code>.<br />
-                      2. Issue any research instruction in the WebVeil side panel.<br />
-                      3. Verify the first timeline event: DOM scan count is reduced from ~10,475 down to &lt;250 interactive candidates.
-                    </div>
-                  </div>
-
-                  {/* Challenge 4 */}
-                  <div className="wv-glass-panel p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/25">
-                        PROBLEM 04 · NON-SEMANTIC CANVAS
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                      <strong>Problem:</strong> Complex interfaces render controls inside an HTML5 <code className="font-mono text-slate-400">&lt;canvas&gt;</code> element, having zero inspectable DOM text nodes or form tags.
-                    </p>
-                    <p className="text-xs text-slate-300 leading-relaxed font-normal">
-                      <strong>WebVeil Solution:</strong> Client-side OpenCV/WASM contour detection identifies interactive regions locally in &lt;20ms on CPU, without transmitting full screenshot pixels.
-                    </p>
-                    <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 font-mono space-y-1">
-                      <span className="text-white font-semibold block">How to Verify Flagging:</span>
-                      1. Open <code className="text-indigo-300">http://127.0.0.1:8080/canvas_challenge.html</code>.<br />
-                      2. Run task: <em>"Click the blue canvas target"</em>.<br />
-                      3. Check side panel telemetry: confirms Local CV (CPU) bounding box detection and coordinate click.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
             </div>
-          )}
 
-        </main>
-      </div>
+            {/* Disclaimer */}
+            <div className="wv-callout wv-callout--info">
+              <Shield size={16} className="flex-shrink-0 mt-0.5" />
+              <span className="text-[13px]">
+                This page is a local launcher that monitors your local servers and links directly to test targets.
+                The actual WebVeil browser agent runs inside Google Chrome as an unpacked Manifest V3 extension.
+                It does not simulate actions here; all credential masking and visual perception happen live in Chrome.
+              </span>
+            </div>
+
+            {/* Service Health — Inline Row */}
+            <div>
+              <div className="wv-section-label mb-4">Service Health</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="wv-card p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400">
+                        <Server size={17} />
+                      </div>
+                      <div>
+                        <div className="text-[14px] font-semibold text-gray-900">Reasoning Server</div>
+                        <div className="text-[11px] font-mono text-gray-400">127.0.0.1:8000</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-[13px] font-mono font-semibold ${reasoningStatus.online ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {reasoningStatus.online ? `${reasoningStatus.latencyMs}ms` : 'Offline'}
+                      </span>
+                      <div className={`wv-dot ${reasoningStatus.online ? 'wv-dot--online' : 'wv-dot--offline'}`} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="wv-card p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400">
+                        <Globe size={17} />
+                      </div>
+                      <div>
+                        <div className="text-[14px] font-semibold text-gray-900">Test Server</div>
+                        <div className="text-[11px] font-mono text-gray-400">127.0.0.1:8080</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-[13px] font-mono font-semibold ${testServerStatus.online ? 'text-emerald-600' : 'text-red-500'}`}>
+                        {testServerStatus.online ? `${testServerStatus.latencyMs}ms` : 'Offline'}
+                      </span>
+                      <div className={`wv-dot ${testServerStatus.online ? 'wv-dot--online' : 'wv-dot--offline'}`} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Target Test Pages */}
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="wv-section-label">Target Test Environments & Problem Statements</div>
+                <a
+                  href="http://127.0.0.1:8080/index.html"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                >
+                  <Layers size={13} />
+                  Open Unified Test Bench (All 5 PS on 1 Page) ↗
+                </a>
+              </div>
+
+              {/* Callout for Unified Page */}
+              <div className="wv-callout wv-callout--muted">
+                <ShieldCheck size={16} className="text-indigo-600 flex-shrink-0 mt-0.5" />
+                <div className="text-[13px] text-gray-700">
+                  <strong className="text-gray-900">New Unified Testbench: </strong>
+                  All 5 problem statements are now unified at <code className="wv-code text-indigo-600">http://127.0.0.1:8080/index.html</code>.
+                  You can seamlessly switch between PS 1 to PS 5 with top tabs without opening multiple browser windows.
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  {
+                    num: '01',
+                    tag: 'PS 1 · Form Shielding',
+                    title: 'KYC Verification Form',
+                    desc: 'Proves wire sanitization: Intercepts Aadhaar, Phone, Email, Password into Isolated World vault.',
+                    prompt: 'Fill and submit this KYC verification form',
+                    url: 'http://127.0.0.1:8080/index.html#kyc',
+                    shortUrl: '127.0.0.1:8080/index.html#kyc',
+                  },
+                  {
+                    num: '02',
+                    tag: 'PS 2 · Zero PII Grounding',
+                    title: 'ISRO Reference / Wikipedia',
+                    desc: 'Proves non-paranoid redaction: Public information extracted with 0 over-redactions and 0 false flags.',
+                    prompt: 'Find when ISRO was founded and where its headquarters is located',
+                    url: 'http://127.0.0.1:8080/index.html#isro',
+                    shortUrl: '127.0.0.1:8080/index.html#isro',
+                  },
+                  {
+                    num: '03',
+                    tag: 'PS 3 · Mixed Page Shield',
+                    title: 'Scientist Account & Billing',
+                    desc: 'Proves nuance: Summarizes public bio & project clearance while shielding payment card & contact info.',
+                    prompt: "Summarize what's on this account page",
+                    url: 'http://127.0.0.1:8080/index.html#account',
+                    shortUrl: '127.0.0.1:8080/index.html#account',
+                  },
+                  {
+                    num: '04',
+                    tag: 'PS 4 · Visual Perception',
+                    title: 'Canvas Radar Challenge',
+                    desc: 'Proves genuine vision: Zero DOM text nodes. Grounded exclusively via on-device OCR and spatial pixel coordinates.',
+                    prompt: 'Click the Gamma button in the canvas',
+                    url: 'http://127.0.0.1:8080/index.html#canvas',
+                    shortUrl: '127.0.0.1:8080/index.html#canvas',
+                  },
+                  {
+                    num: '05',
+                    tag: 'PS 5 · Memory Boundary',
+                    title: 'Live Adversarial Attack Demo',
+                    desc: 'Proves real security: Live page script attempts to access vault memory; rejected by Chrome Isolated World.',
+                    prompt: 'Trigger Hostile Page JS Exfiltration Attempt',
+                    url: 'http://127.0.0.1:8080/index.html#attack',
+                    shortUrl: '127.0.0.1:8080/index.html#attack',
+                  },
+                  {
+                    num: '06',
+                    tag: 'Diagnostic Battery',
+                    title: 'Evaluator Benchmark Suite',
+                    desc: 'Complete benchmarking dashboard with live metric radar, 176+ test suite logs, and client memory inspect tools.',
+                    prompt: 'Inspect WebVeil evaluation and vault status',
+                    url: 'http://127.0.0.1:8080/evaluator_dashboard.html',
+                    shortUrl: '127.0.0.1:8080/evaluator_dashboard.html',
+                  },
+                ].map((page) => (
+                  <div
+                    key={page.num}
+                    className="wv-card wv-card--lift p-5 flex flex-col justify-between group space-y-3"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="wv-badge wv-badge--indigo">{page.tag}</span>
+                        <a
+                          href={page.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-gray-400 hover:text-indigo-600 transition-colors"
+                          title="Open Page in New Tab"
+                        >
+                          <ArrowRight size={15} />
+                        </a>
+                      </div>
+                      <h4 className="text-[14px] font-bold text-gray-900">{page.title}</h4>
+                      <p className="text-[12px] text-gray-500 leading-relaxed">{page.desc}</p>
+                    </div>
+
+                    {/* What to enter in Agent Box */}
+                    <div className="bg-indigo-50/70 border border-indigo-100 rounded-lg p-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10.5px] font-bold text-indigo-700 uppercase tracking-wide">
+                          What to enter in Agent:
+                        </span>
+                        <button
+                          onClick={(e) => handleCopyPrompt(page.prompt, `target-${page.num}`, e)}
+                          className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                        >
+                          {copiedPromptId === `target-${page.num}` ? (
+                            <>
+                              <Check size={11} className="text-emerald-600" />
+                              <span className="text-emerald-600">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy size={11} />
+                              <span>Copy</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="text-[11.5px] font-mono font-medium text-gray-900 bg-white border border-indigo-200/60 rounded px-2 py-1 select-all break-words">
+                        "{page.prompt}"
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+                      <span className="text-[11px] font-mono text-gray-400">
+                        {page.shortUrl}
+                      </span>
+                      <a
+                        href={page.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-semibold text-indigo-600 hover:underline"
+                      >
+                        Launch Target →
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Load Instructions — Step-by-step */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <FolderOpen size={16} className="text-gray-400" />
+                  <span className="text-[15px] font-bold text-gray-900">How to Load Unpacked in Chrome</span>
+                </div>
+                <button onClick={handleCopyPath} className="wv-btn text-[12px] py-1.5">
+                  {copiedPath ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
+                  {copiedPath ? 'Copied!' : 'Copy Extension Path'}
+                </button>
+              </div>
+
+              <div className="wv-card p-6 space-y-5">
+                <div className="wv-step">
+                  <div className="wv-step__num">1</div>
+                  <div className="wv-step__content">
+                    Navigate to <code className="wv-code">chrome://extensions</code> in Google Chrome.
+                  </div>
+                </div>
+
+                <div className="wv-step">
+                  <div className="wv-step__num">2</div>
+                  <div className="wv-step__content">
+                    Toggle <strong className="text-gray-900">Developer mode</strong> on (top-right corner).
+                  </div>
+                </div>
+
+                <div className="wv-step">
+                  <div className="wv-step__num">3</div>
+                  <div className="wv-step__content">
+                    Click <strong className="text-gray-900">Load unpacked</strong> and select the directory:
+                    <div className="wv-code-block mt-2 select-all">
+                      c:\Users\Armash Ansari\OneDrive\Desktop\Projects\AI & ML\veil-agent\extension
+                    </div>
+                  </div>
+                </div>
+
+                <div className="wv-step">
+                  <div className="wv-step__num">4</div>
+                  <div className="wv-step__content">
+                    Open{' '}
+                    <a href="http://127.0.0.1:8080/index.html" target="_blank" rel="noreferrer" className="text-indigo-600 underline underline-offset-2 hover:text-indigo-800">
+                      http://127.0.0.1:8080/index.html
+                    </a>{' '}
+                    and click the <strong className="text-gray-900">WebVeil Sidepanel</strong> icon to execute commands.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════
+           TAB 3 — VERIFIED TEST RUNS
+           ═══════════════════════════════════════════════════════════ */}
+        {activeTab === 'test-runs' && (
+          <div key="test-runs" className="reveal-section space-y-10">
+            {/* Page Header */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-500" />
+                <span className="wv-section-label text-emerald-600">Real Post-Fix Runs & Flag Verification</span>
+              </div>
+              <h1 className="wv-page-title text-[28px]">
+                Evaluated Pipeline<br />
+                <span className="wv-gradient-text">Test Battery</span>
+              </h1>
+              <p className="wv-subtitle text-[13px]">
+                Every test run documented here corresponds to a real executed run with verified telemetry after the DOM pruning fix.
+                Below each run is the exact task prompt to enter into the WebVeil side panel to reproduce verification live.
+              </p>
+            </div>
+
+            {/* ── Run 01 (PS 1) ── */}
+            <div className="wv-run space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="wv-badge wv-badge--emerald">RUN 01 · PASS</span>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    PS 1: KYC Form Credential Interception & Vaulting
+                  </h3>
+                </div>
+                <a href="http://127.0.0.1:8080/index.html#kyc" target="_blank" rel="noreferrer" className="text-[11px] font-mono text-indigo-600 hover:underline">
+                  127.0.0.1:8080/index.html#kyc ↗
+                </a>
+              </div>
+
+              {/* What to enter in Agent Box */}
+              <div className="flex items-center justify-between gap-3 bg-indigo-50/80 border border-indigo-100 rounded-lg px-3.5 py-2.5">
+                <div className="flex items-center gap-2 flex-wrap text-[12px]">
+                  <span className="font-bold text-indigo-800 uppercase tracking-wide text-[11px]">Enter in WebVeil Agent:</span>
+                  <code className="font-mono font-semibold text-gray-900 bg-white border border-indigo-200/70 px-2.5 py-1 rounded">
+                    "Fill and submit this KYC verification form"
+                  </code>
+                </div>
+                <button
+                  onClick={(e) => handleCopyPrompt("Fill and submit this KYC verification form", "run-1", e)}
+                  className="wv-btn text-[11px] py-1 px-3 flex-shrink-0 cursor-pointer"
+                >
+                  {copiedPromptId === "run-1" ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                  {copiedPromptId === "run-1" ? 'Copied!' : 'Copy Prompt'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Task Executed</div>
+                  <div className="wv-stat__value text-[15px]">Fill KYC form</div>
+                  <div className="wv-stat__sub">Autonomous workflow</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Protected Fields</div>
+                  <div className="wv-stat__value text-emerald-600">4 Masked</div>
+                  <div className="wv-stat__sub">[NAME_1], [AADHAAR_1], [PASS_1], [EMAIL_1]</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Steps Taken</div>
+                  <div className="wv-stat__value text-sky-600">4 Actions</div>
+                  <div className="wv-stat__sub">Scan, Vault, Inject, Submit</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Reasoning Tier</div>
+                  <div className="wv-stat__value text-indigo-600">Local (Ollama)</div>
+                  <div className="wv-stat__sub">Tier 1 · Air-gapped</div>
+                </div>
+              </div>
+
+              <div className="wv-callout wv-callout--muted">
+                <ShieldCheck size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+                <div className="text-[13px]">
+                  <strong className="text-gray-800">Information Flag System Outcome: </strong>
+                  During client-side observation, the regex classifier identified 4 sensitive categories matching KYC fields.
+                  Real credentials were moved to Chrome Isolated World memory and replaced with deterministic tokens.
+                  The reasoning server payload verified zero plaintext leak. Keystrokes were injected locally.
+                </div>
+              </div>
+            </div>
+
+            {/* ── Run 02 (PS 2) ── */}
+            <div className="wv-run wv-run--sky space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="wv-badge wv-badge--sky">RUN 02 · PASS</span>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    PS 2: ISRO Grounding & Zero False-Positive Redaction
+                  </h3>
+                </div>
+                <a href="http://127.0.0.1:8080/index.html#isro" target="_blank" rel="noreferrer" className="text-[11px] font-mono text-indigo-600 hover:underline">
+                  127.0.0.1:8080/index.html#isro ↗
+                </a>
+              </div>
+
+              {/* What to enter in Agent Box */}
+              <div className="flex items-center justify-between gap-3 bg-sky-50/80 border border-sky-100 rounded-lg px-3.5 py-2.5">
+                <div className="flex items-center gap-2 flex-wrap text-[12px]">
+                  <span className="font-bold text-sky-800 uppercase tracking-wide text-[11px]">Enter in WebVeil Agent:</span>
+                  <code className="font-mono font-semibold text-gray-900 bg-white border border-sky-200/70 px-2.5 py-1 rounded">
+                    "Find when ISRO was founded and where its headquarters is located"
+                  </code>
+                </div>
+                <button
+                  onClick={(e) => handleCopyPrompt("Find when ISRO was founded and where its headquarters is located", "run-2", e)}
+                  className="wv-btn text-[11px] py-1 px-3 flex-shrink-0 cursor-pointer"
+                >
+                  {copiedPromptId === "run-2" ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                  {copiedPromptId === "run-2" ? 'Copied!' : 'Copy Prompt'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Task Executed</div>
+                  <div className="wv-stat__value text-[15px]">ISRO Research</div>
+                  <div className="wv-stat__sub">Fact extraction</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Pruning Metrics</div>
+                  <div className="wv-stat__value text-emerald-600">10,475 → 184</div>
+                  <div className="wv-stat__sub">97.3% Context Reduction</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Over-Redaction</div>
+                  <div className="wv-stat__value text-emerald-600">0 Fields Masked</div>
+                  <div className="wv-stat__sub">Intelligent 0-PII verdict</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Answer Verified</div>
+                  <div className="wv-stat__value text-indigo-600">15 Aug 1969</div>
+                  <div className="wv-stat__sub">Bengaluru, Karnataka</div>
+                </div>
+              </div>
+
+              <div className="wv-callout wv-callout--muted">
+                <Eye size={16} className="text-sky-500 flex-shrink-0 mt-0.5" />
+                <div className="text-[13px]">
+                  <strong className="text-gray-800">Interactive Priority Pruner Outcome: </strong>
+                  Verified against both live Wikipedia and the local ISRO reference. The interactive selector prioritized structured facts
+                  while recording 0 false redactions. Proves that WebVeil preserves reasoning on public reference material without over-filtering.
+                </div>
+              </div>
+            </div>
+
+            {/* ── Run 03 (PS 3) ── */}
+            <div className="wv-run wv-run--indigo space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="wv-badge wv-badge--indigo">RUN 03 · PASS</span>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    PS 3: Scientist Profile Bio & Confidential Card Shield
+                  </h3>
+                </div>
+                <a href="http://127.0.0.1:8080/index.html#account" target="_blank" rel="noreferrer" className="text-[11px] font-mono text-indigo-600 hover:underline">
+                  127.0.0.1:8080/index.html#account ↗
+                </a>
+              </div>
+
+              {/* What to enter in Agent Box */}
+              <div className="flex items-center justify-between gap-3 bg-indigo-50/80 border border-indigo-100 rounded-lg px-3.5 py-2.5">
+                <div className="flex items-center gap-2 flex-wrap text-[12px]">
+                  <span className="font-bold text-indigo-800 uppercase tracking-wide text-[11px]">Enter in WebVeil Agent:</span>
+                  <code className="font-mono font-semibold text-gray-900 bg-white border border-indigo-200/70 px-2.5 py-1 rounded">
+                    "Summarize what's on this account page"
+                  </code>
+                </div>
+                <button
+                  onClick={(e) => handleCopyPrompt("Summarize what's on this account page", "run-3", e)}
+                  className="wv-btn text-[11px] py-1 px-3 flex-shrink-0 cursor-pointer"
+                >
+                  {copiedPromptId === "run-3" ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                  {copiedPromptId === "run-3" ? 'Copied!' : 'Copy Prompt'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Task Executed</div>
+                  <div className="wv-stat__value text-[15px]">Summarize Profile</div>
+                  <div className="wv-stat__sub">Mixed public/confidential</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Public Read</div>
+                  <div className="wv-stat__value text-emerald-600">100% Bio Read</div>
+                  <div className="wv-stat__sub">Dr. Sharma / SCE-200</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Protected Card</div>
+                  <div className="wv-stat__value text-indigo-600">Card & CVV Vaulted</div>
+                  <div className="wv-stat__sub">[CARD_1], [CVV_1] tokens</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Network Egress</div>
+                  <div className="wv-stat__value text-emerald-600">0 Raw Bytes</div>
+                  <div className="wv-stat__sub">Zero financial leak</div>
+                </div>
+              </div>
+
+              <div className="wv-callout wv-callout--muted">
+                <ShieldCheck size={16} className="text-indigo-500 flex-shrink-0 mt-0.5" />
+                <div className="text-[13px]">
+                  <strong className="text-gray-800">Nuanced Mixed-Page Outcome: </strong>
+                  The agent accurately summarized Dr. Sharma's propulsion publications and Level-4 clearance while the financial procurement card
+                  and security code were sealed into vault memory. Disproves the concern that redaction breaks complex multi-attribute pages.
+                </div>
+              </div>
+            </div>
+
+            {/* ── Run 04 (PS 4) ── */}
+            <div className="wv-run wv-run--indigo space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="wv-badge wv-badge--purple">RUN 04 · PASS</span>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    PS 4: Canvas Graphic Spatial Perception & Coordinate Grounding
+                  </h3>
+                </div>
+                <a href="http://127.0.0.1:8080/index.html#canvas" target="_blank" rel="noreferrer" className="text-[11px] font-mono text-indigo-600 hover:underline">
+                  127.0.0.1:8080/index.html#canvas ↗
+                </a>
+              </div>
+
+              {/* What to enter in Agent Box */}
+              <div className="flex items-center justify-between gap-3 bg-purple-50/80 border border-purple-100 rounded-lg px-3.5 py-2.5">
+                <div className="flex items-center gap-2 flex-wrap text-[12px]">
+                  <span className="font-bold text-purple-800 uppercase tracking-wide text-[11px]">Enter in WebVeil Agent:</span>
+                  <code className="font-mono font-semibold text-gray-900 bg-white border border-purple-200/70 px-2.5 py-1 rounded">
+                    "Click the Gamma button in the canvas"
+                  </code>
+                </div>
+                <button
+                  onClick={(e) => handleCopyPrompt("Click the Gamma button in the canvas", "run-4", e)}
+                  className="wv-btn text-[11px] py-1 px-3 flex-shrink-0 cursor-pointer"
+                >
+                  {copiedPromptId === "run-4" ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                  {copiedPromptId === "run-4" ? 'Copied!' : 'Copy Prompt'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Task Executed</div>
+                  <div className="wv-stat__value text-[15px]">Canvas Grounding</div>
+                  <div className="wv-stat__sub">Non-semantic UI</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">CV Telemetry</div>
+                  <div className="wv-stat__value text-sky-600">8 in 18.2ms</div>
+                  <div className="wv-stat__sub">Local CV · CPU only</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Steps Taken</div>
+                  <div className="wv-stat__value text-emerald-600">2 Actions</div>
+                  <div className="wv-stat__sub">Detect & Dispatch Click</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Reasoning Tier</div>
+                  <div className="wv-stat__value text-indigo-600">Local (Ollama)</div>
+                  <div className="wv-stat__sub">Tier 1 · Air-gapped</div>
+                </div>
+              </div>
+
+              <div className="wv-callout wv-callout--muted">
+                <Cpu size={16} className="text-purple-500 flex-shrink-0 mt-0.5" />
+                <div className="text-[13px]">
+                  <strong className="text-gray-800">Local Visual Perception Engine Outcome: </strong>
+                  When operating on HTML5 canvas graphics without text nodes, the client-side OpenCV contour engine detected 8 interactive boundary regions locally on CPU,
+                  transmitting spatial bounding box coordinates to the reasoning loop without uploading raw screenshots to cloud APIs.
+                </div>
+              </div>
+            </div>
+
+            {/* ── Run 05 (PS 5) ── */}
+            <div className="wv-run wv-run--amber space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="wv-badge wv-badge--amber">RUN 05 · PASS</span>
+                  <h3 className="text-[15px] font-bold text-gray-900">
+                    PS 5: Chrome Isolated World Live Vault Attack Defense
+                  </h3>
+                </div>
+                <a href="http://127.0.0.1:8080/index.html#attack" target="_blank" rel="noreferrer" className="text-[11px] font-mono text-indigo-600 hover:underline">
+                  127.0.0.1:8080/index.html#attack ↗
+                </a>
+              </div>
+
+              {/* What to enter in Agent Box */}
+              <div className="flex items-center justify-between gap-3 bg-amber-50/80 border border-amber-100 rounded-lg px-3.5 py-2.5">
+                <div className="flex items-center gap-2 flex-wrap text-[12px]">
+                  <span className="font-bold text-amber-800 uppercase tracking-wide text-[11px]">Enter in WebVeil Agent:</span>
+                  <code className="font-mono font-semibold text-gray-900 bg-white border border-amber-200/70 px-2.5 py-1 rounded">
+                    "Trigger Hostile Page JS Exfiltration Attempt"
+                  </code>
+                </div>
+                <button
+                  onClick={(e) => handleCopyPrompt("Trigger Hostile Page JS Exfiltration Attempt", "run-5", e)}
+                  className="wv-btn text-[11px] py-1 px-3 flex-shrink-0 cursor-pointer"
+                >
+                  {copiedPromptId === "run-5" ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                  {copiedPromptId === "run-5" ? 'Copied!' : 'Copy Prompt'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Attack Vectors</div>
+                  <div className="wv-stat__value text-[15px]">2 Live Probes</div>
+                  <div className="wv-stat__sub">Window & DOM Scan</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Vault Defense</div>
+                  <div className="wv-stat__value text-emerald-600">Blocked</div>
+                  <div className="wv-stat__sub">Isolated World boundary</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Memory Scope</div>
+                  <div className="wv-stat__value text-indigo-600">undefined</div>
+                  <div className="wv-stat__sub">Zero page JS visibility</div>
+                </div>
+                <div className="wv-stat">
+                  <div className="wv-stat__label">Verification Check</div>
+                  <div className="wv-stat__value text-emerald-600">6/6 Passed</div>
+                  <div className="wv-stat__sub">Origin bound keys</div>
+                </div>
+              </div>
+
+              <div className="wv-callout wv-callout--muted">
+                <Lock size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <div className="text-[13px]">
+                  <strong className="text-gray-800">Chrome Isolated World Outcome: </strong>
+                  Even when malicious third-party script executes directly inside the target webpage (<code>window.__WEBVEIL_ISOLATED_VAULT__</code>),
+                  Chrome's content script isolation structurally prevents the page from accessing vault storage. That is an OS/browser-enforced hardware boundary.
+                </div>
+              </div>
+            </div>
+
+            {/* ═══════════════════════════════════════════════════════
+               PS-26171 PROBLEMS & SOLUTIONS
+               ═══════════════════════════════════════════════════════ */}
+            <div className="space-y-5">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="text-amber-500" />
+                <span className="wv-section-label">PS-26171 Challenges, Solutions & Flag Verification</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Problem 1 */}
+                <div className="wv-problem wv-problem--emerald space-y-3">
+                  <span className="wv-badge wv-badge--emerald">Problem 01 · Credential Exfiltration</span>
+                  <p className="text-[13px] text-gray-600 leading-relaxed">
+                    <strong className="text-gray-800">Problem:</strong> Standard browser agents pipe raw form values (passwords, Aadhaar, PAN) into reasoning contexts, risking exposure to external LLM providers and logging backends.
+                  </p>
+                  <p className="text-[13px] text-gray-600 leading-relaxed">
+                    <strong className="text-gray-800">WebVeil Solution:</strong> Client-side tokenization regex runs in Chrome Isolated World memory. Plaintext is stripped and substituted with deterministic tokens (<code className="wv-code">[PASSWORD_1]</code>) before egress.
+                  </p>
+                  <hr className="wv-divider" />
+                  <div className="text-[12px] text-gray-500 space-y-2">
+                    <div className="font-semibold text-gray-700">How to Verify Flagging:</div>
+                    <div>1. Open <code className="wv-code">http://127.0.0.1:8080/index.html#kyc</code></div>
+                    <div className="bg-emerald-50/70 border border-emerald-100 rounded-md p-2 flex items-center justify-between gap-2">
+                      <div>
+                        <span className="font-semibold text-emerald-800">Agent Task:</span>{' '}
+                        <code className="font-mono text-gray-900">"Fill and submit this KYC verification form"</code>
+                      </div>
+                      <button
+                        onClick={(e) => handleCopyPrompt("Fill and submit this KYC verification form", "prob-1", e)}
+                        className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 cursor-pointer flex-shrink-0"
+                      >
+                        {copiedPromptId === "prob-1" ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                        {copiedPromptId === "prob-1" ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <div>2. In the WebVeil side panel, expand <em>"What WebVeil saw"</em> → inspect <em>"Outgoing Sanitized Payload"</em></div>
+                    <div>3. Confirm raw inputs are flagged and only masked tokens appear in the JSON request</div>
+                  </div>
+                </div>
+
+                {/* Problem 2 */}
+                <div className="wv-problem wv-problem--red space-y-3">
+                  <span className="wv-badge wv-badge--red">Problem 02 · Prompt Injection & Taint</span>
+                  <p className="text-[13px] text-gray-600 leading-relaxed">
+                    <strong className="text-gray-800">Problem:</strong> Host pages can embed invisible adversarial text (<code className="wv-code text-gray-500">&lt;!-- exfiltrate cookies --&gt;</code>) designed to hijack agent directives and access unauthorized endpoints.
+                  </p>
+                  <p className="text-[13px] text-gray-600 leading-relaxed">
+                    <strong className="text-gray-800">WebVeil Solution:</strong> Taint tracking classifies untrusted DOM subtrees, while an on-device injection classifier flags jailbreak directives, instantly aborting navigation to unknown domains.
+                  </p>
+                  <hr className="wv-divider" />
+                  <div className="text-[12px] text-gray-500 space-y-2">
+                    <div className="font-semibold text-gray-700">How to Verify Flagging:</div>
+                    <div>1. Run <code className="wv-code">pytest webveil/tests/test_prompt_injection_defense.py</code></div>
+                    <div className="bg-red-50/70 border border-red-100 rounded-md p-2 flex items-center justify-between gap-2">
+                      <div>
+                        <span className="font-semibold text-red-800">Test Command:</span>{' '}
+                        <code className="font-mono text-gray-900">python -m pytest webveil/tests/test_prompt_injection_defense.py -v</code>
+                      </div>
+                      <button
+                        onClick={(e) => handleCopyPrompt("python -m pytest webveil/tests/test_prompt_injection_defense.py -v", "prob-2", e)}
+                        className="text-[11px] font-semibold text-red-700 hover:text-red-900 flex items-center gap-1 cursor-pointer flex-shrink-0"
+                      >
+                        {copiedPromptId === "prob-2" ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                        {copiedPromptId === "prob-2" ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <div>2. Execute task targeting a page containing an override directive</div>
+                    <div>3. Observe the security alert: the node is flagged as tainted and action execution is rejected</div>
+                  </div>
+                </div>
+
+                {/* Problem 3 */}
+                <div className="wv-problem wv-problem--sky space-y-3">
+                  <span className="wv-badge wv-badge--sky">Problem 03 · DOM Tree Explosion</span>
+                  <p className="text-[13px] text-gray-600 leading-relaxed">
+                    <strong className="text-gray-800">Problem:</strong> Public portals contain 10,000+ DOM nodes. Naive DOM serialization exhausts model context windows, introduces latency, and triggers JSON malformation.
+                  </p>
+                  <p className="text-[13px] text-gray-600 leading-relaxed">
+                    <strong className="text-gray-800">WebVeil Solution:</strong> Priority selector algorithm retains 100% of interactive form controls and in-viewport buttons while capping passive prose to immediate structural context.
+                  </p>
+                  <hr className="wv-divider" />
+                  <div className="text-[12px] text-gray-500 space-y-2">
+                    <div className="font-semibold text-gray-700">How to Verify Flagging:</div>
+                    <div>1. Open <code className="wv-code">http://127.0.0.1:8080/index.html#isro</code></div>
+                    <div className="bg-sky-50/70 border border-sky-100 rounded-md p-2 flex items-center justify-between gap-2">
+                      <div>
+                        <span className="font-semibold text-sky-800">Agent Task:</span>{' '}
+                        <code className="font-mono text-gray-900">"Find when ISRO was founded and where its headquarters is located"</code>
+                      </div>
+                      <button
+                        onClick={(e) => handleCopyPrompt("Find when ISRO was founded and where its headquarters is located", "prob-3", e)}
+                        className="text-[11px] font-semibold text-sky-700 hover:text-sky-900 flex items-center gap-1 cursor-pointer flex-shrink-0"
+                      >
+                        {copiedPromptId === "prob-3" ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                        {copiedPromptId === "prob-3" ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <div>2. Issue research instruction in the WebVeil side panel</div>
+                    <div>3. Verify the first timeline event: DOM scan count is reduced from ~10,475 down to &lt;250 interactive candidates</div>
+                  </div>
+                </div>
+
+                {/* Problem 4 */}
+                <div className="wv-problem wv-problem--amber space-y-3">
+                  <span className="wv-badge wv-badge--amber">Problem 04 · Non-Semantic Canvas</span>
+                  <p className="text-[13px] text-gray-600 leading-relaxed">
+                    <strong className="text-gray-800">Problem:</strong> Complex interfaces render controls inside an HTML5 <code className="wv-code text-gray-500">&lt;canvas&gt;</code> element, having zero inspectable DOM text nodes or form tags.
+                  </p>
+                  <p className="text-[13px] text-gray-600 leading-relaxed">
+                    <strong className="text-gray-800">WebVeil Solution:</strong> Client-side OpenCV/WASM contour detection identifies interactive regions locally in &lt;20ms on CPU, without transmitting full screenshot pixels.
+                  </p>
+                  <hr className="wv-divider" />
+                  <div className="text-[12px] text-gray-500 space-y-2">
+                    <div className="font-semibold text-gray-700">How to Verify Flagging:</div>
+                    <div>1. Open <code className="wv-code">http://127.0.0.1:8080/index.html#canvas</code></div>
+                    <div className="bg-amber-50/70 border border-amber-100 rounded-md p-2 flex items-center justify-between gap-2">
+                      <div>
+                        <span className="font-semibold text-amber-800">Agent Task:</span>{' '}
+                        <code className="font-mono text-gray-900">"Click the Gamma button in the canvas"</code>
+                      </div>
+                      <button
+                        onClick={(e) => handleCopyPrompt("Click the Gamma button in the canvas", "prob-4", e)}
+                        className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 flex items-center gap-1 cursor-pointer flex-shrink-0"
+                      >
+                        {copiedPromptId === "prob-4" ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                        {copiedPromptId === "prob-4" ? 'Copied' : 'Copy'}
+                      </button>
+                    </div>
+                    <div>2. Check side panel telemetry: confirms Local CV (CPU) bounding box detection and coordinate click</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

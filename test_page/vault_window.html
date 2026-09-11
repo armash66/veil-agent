@@ -3,226 +3,182 @@
 <head>
   <meta charset="UTF-8">
   <title>WebVeil Client-Side Vault — Isolated Security Realm</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #FAFAFA;
-      color: #1a1a2e;
-      padding: 24px;
-      -webkit-font-smoothing: antialiased;
+    :root {
+      --bg: #090d16;
+      --card-bg: #131b2e;
+      --border: #1e293b;
+      --primary: #38bdf8;
+      --accent: #818cf8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
     }
-
+    body {
+      margin: 0;
+      padding: 24px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      box-sizing: border-box;
+    }
     .header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #f0f0f5;
+      border-bottom: 1px solid var(--border);
       padding-bottom: 16px;
       margin-bottom: 20px;
     }
-
     .header-title {
       display: flex;
       align-items: center;
       gap: 12px;
     }
-
     .header-title h1 {
       margin: 0;
       font-size: 18px;
       font-weight: 700;
-      color: #111827;
+      color: var(--primary);
     }
-
     .badges {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
       margin-bottom: 16px;
     }
-
     .badge {
-      font-size: 10px;
-      padding: 3px 10px;
-      border-radius: 6px;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-    }
-
-    .badge-secure {
-      background: #ecfdf5;
-      color: #059669;
-      border: 1px solid #a7f3d0;
-    }
-
-    .badge-isolated {
-      background: #f5f3ff;
-      color: #6d28d9;
-      border: 1px solid #c4b5fd;
-    }
-
-    .badge-egress {
-      background: #eef2ff;
-      color: #4338ca;
-      border: 1px solid #c7d2fe;
-    }
-
-    .card {
-      background: #ffffff;
-      border: 1px solid #f0f0f5;
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-    }
-
-    .card-title {
       font-size: 11px;
-      font-weight: 700;
-      color: #6b7280;
-      margin-bottom: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
     }
-
+    .badge-secure {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .badge-isolated {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .badge-egress {
+      background: rgba(129, 140, 248, 0.15);
+      color: #a5b4fc;
+      border: 1px solid rgba(129, 140, 248, 0.3);
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
     }
-
     th {
       text-align: left;
       padding: 8px 12px;
-      color: #6b7280;
-      border-bottom: 1px solid #f0f0f5;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
       font-weight: 600;
       font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
     }
-
     td {
       padding: 10px 12px;
-      border-bottom: 1px solid #f9fafb;
-      color: #374151;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
     }
-
     .token-chip {
-      font-family: 'JetBrains Mono', 'Fira Code', monospace;
-      background: #f5f3ff;
-      color: #6d28d9;
+      font-family: monospace;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--primary);
       padding: 2px 8px;
       border-radius: 4px;
       font-size: 12px;
       font-weight: 600;
     }
-
     .secret-value {
-      font-family: 'JetBrains Mono', 'Fira Code', monospace;
-      color: #374151;
-      background: #f9fafb;
+      font-family: monospace;
+      color: #cbd5e1;
+      background: #0b1120;
       padding: 2px 8px;
       border-radius: 4px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid var(--border);
     }
-
     .btn-toggle {
-      background: #f9fafb;
-      color: #6b7280;
-      border: 1px solid #e5e7eb;
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
       padding: 2px 8px;
       border-radius: 4px;
       font-size: 11px;
       cursor: pointer;
       margin-left: 6px;
-      font-family: inherit;
-      transition: all 120ms ease;
     }
-
     .btn-toggle:hover {
-      background: #f0f0f5;
-      color: #374151;
-      border-color: #d1d5db;
+      background: #334155;
+      color: #fff;
     }
-
     .btn-action {
-      background: #4f46e5;
+      background: #0284c7;
       color: #fff;
       border: none;
       padding: 8px 14px;
-      border-radius: 8px;
+      border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      font-family: inherit;
-      transition: background 120ms ease;
     }
-
     .btn-action:hover {
-      background: #4338ca;
+      background: #0369a1;
     }
-
     .btn-attack {
-      background: #ef4444;
+      background: #dc2626;
       color: #fff;
       border: none;
       padding: 8px 14px;
-      border-radius: 8px;
+      border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       margin-right: 8px;
-      font-family: inherit;
-      transition: all 120ms ease;
     }
-
     .btn-attack:hover {
-      background: #dc2626;
+      background: #b91c1c;
     }
-
-    .btn-attack--amber {
-      background: #d97706;
-    }
-
-    .btn-attack--amber:hover {
-      background: #b45309;
-    }
-
     .log-box {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
+      background: #050811;
+      border: 1px solid var(--border);
+      border-radius: 6px;
       padding: 12px;
-      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-family: monospace;
       font-size: 12px;
-      color: #b91c1c;
-      max-height: 140px;
+      color: #a5f3fc;
+      max-height: 120px;
       overflow-y: auto;
-      margin-top: 12px;
-      white-space: pre-wrap;
-      line-height: 1.6;
+      margin-top: 10px;
     }
-
     .empty-state {
       text-align: center;
       padding: 32px 16px;
-      color: #9ca3af;
+      color: var(--text-muted);
       font-size: 13px;
-    }
-
-    .card-desc {
-      font-size: 12px;
-      color: #6b7280;
-      line-height: 1.6;
-      margin: 0 0 12px 0;
     }
   </style>
 </head>
@@ -236,9 +192,9 @@
         <circle cx="64" cy="58" r="11" fill="url(#vwhg)"/>
         <circle cx="64" cy="58" r="5" fill="white"/>
       </svg>
-      <h1>WebVeil Client-Side Vault</h1>
+      <h1>WebVeil Client-Side Vault — Isolated Security Boundary</h1>
     </div>
-    <button id="refresh-btn" class="btn-action">↻ Refresh Vault</button>
+    <button id="refresh-btn" class="btn-action">🔄 Refresh Vault</button>
   </div>
 
   <div class="badges">
@@ -257,12 +213,12 @@
 
   <div class="card">
     <div class="card-title">Live Adversarial Verification (Prove Isolation to Judges)</div>
-    <p class="card-desc">
-      Click below to execute simulated adversarial scripts directly in the web page's JavaScript scope (<code>window</code>). Proves that page scripts cannot read the vault.
+    <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 12px 0;">
+      Click below to execute simulated adversarial scripts directly in the web page's JavaScript scope (`window`). Proves that page scripts cannot read the vault.
     </p>
     <div>
       <button id="attack-scope-btn" class="btn-attack">Attack 1: Probe `window` for Vault Memory</button>
-      <button id="attack-dom-btn" class="btn-attack btn-attack--amber">Attack 2: Inspect DOM Attributes for Secrets</button>
+      <button id="attack-dom-btn" class="btn-attack" style="background:#d97706;">Attack 2: Inspect DOM Attributes for Secrets</button>
     </div>
     <div id="attack-log" class="log-box">Awaiting security verification attack run...</div>
   </div>

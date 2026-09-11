@@ -394,7 +394,7 @@ class CascadeReasoningProvider:
         4. Local Mock
         """
         # ── Tier 1: Local Ollama (Primary) ──
-        if self._ollama:
+        if self._ollama and getattr(self._ollama, "is_available", lambda: True)():
             try:
                 logger.info("[Cascade] Trying Tier 1: Local Ollama (zero-network egress)...")
                 plan = self._ollama.reason(task, world_model, action_history, error_context)
@@ -405,6 +405,8 @@ class CascadeReasoningProvider:
                 logger.warning(f"[Cascade] Tier 1 returned error or invalid plan: {plan.thought if plan else 'None'}. Escalating...")
             except Exception as e:
                 logger.warning(f"[Cascade] Tier 1 (Ollama) unavailable: {e}. Escalating to Tier 2 (OpenRouter)...")
+        elif self._ollama:
+            logger.info("[Cascade] Tier 1 (Ollama daemon offline). Instantly escalating to Tier 2...")
 
         # ── Tier 2: OpenRouter Free (Backup) ──
         if self._openrouter:

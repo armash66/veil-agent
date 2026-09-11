@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "WebVeil — Privacy-Preserving Agent",
+  "name": "WebVeil",
   "version": "2.0.0",
-  "description": "On-device DOM observation, PII redaction, and privacy-preserving browser agent with isolated-world vault.",
+  "description": "On-device DOM observation, PII redaction, and browser agent with isolated-world vault.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -26,11 +26,24 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content_script.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "world": "ISOLATED"
     }
   ],
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
   "action": {
-    "default_title": "WebVeil — Open Side Panel"
+    "default_title": "WebVeil",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
   },
   "declarative_net_request": {
     "rule_resources": [

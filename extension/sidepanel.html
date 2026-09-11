@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>WebVeil AI Agent</title>
+  <title>WebVeil</title>
   <meta name="description" content="Privacy-preserving browser agent with on-device DOM observation and PII redaction.">
   <link rel="stylesheet" href="sidepanel.css">
+  <link rel="icon" type="image/svg+xml" href="logo.svg">
 </head>
 <body>
 
@@ -16,14 +17,22 @@
     <!-- Header -->
     <div class="wv-header">
       <div class="wv-brand">
-        <div class="wv-brand-icon"></div>
+        <div class="wv-brand-icon">
+          <svg width="20" height="20" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="wvg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs>
+            <path d="M64 8L16 30v30c0 28 20 54 48 60 28-6 48-32 48-60V30L64 8z" fill="url(#wvg)"/>
+            <ellipse cx="64" cy="58" rx="28" ry="18" fill="white" opacity="0.95"/>
+            <circle cx="64" cy="58" r="11" fill="url(#wvg)"/>
+            <circle cx="64" cy="58" r="5" fill="white"/>
+          </svg>
+        </div>
         <span>WebVeil</span>
       </div>
       <div class="wv-header-actions">
-        <div class="wv-server-badge offline" id="server-badge" title="Reasoning server connection status">
-          <span class="wv-badge-dot"></span>
-          <span class="wv-badge-text" id="server-badge-text">Offline</span>
-        </div>
+        <span class="wv-status-indicator offline" id="landing-status-indicator" title="Server status">
+          <span class="wv-status-dot"></span>
+          <span class="wv-status-label" id="landing-status-label">Offline</span>
+        </span>
         <button id="landing-theme-btn" class="wv-icon-btn wv-theme-toggle-btn" title="Toggle Light / Dark mode">
           <svg class="wv-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
           <svg class="wv-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
@@ -65,14 +74,10 @@
         <span id="conv-title" class="wv-conv-title">New Chat</span>
       </div>
       <div class="wv-conv-header-right">
-        <div class="wv-server-badge online" id="conv-server-badge" title="Active Reasoning Tier · Sanitized Egress Boundary">
-          <span class="wv-badge-dot"></span>
-          <span class="wv-badge-text" id="conv-server-badge-text">Local (Ollama)</span>
-        </div>
-        <button id="conv-theme-btn" class="wv-icon-btn wv-theme-toggle-btn" title="Toggle Light / Dark mode">
-          <svg class="wv-theme-icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-          <svg class="wv-theme-icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-        </button>
+        <span class="wv-status-indicator online" id="conv-status-indicator" title="Server status">
+          <span class="wv-status-dot"></span>
+          <span class="wv-status-label" id="conv-status-label">Local</span>
+        </span>
         <button id="conv-settings-btn" class="wv-icon-btn" title="Settings">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
@@ -86,6 +91,15 @@
     <div id="messages-area" class="wv-messages">
       <!-- Hero prompt (centered when empty) -->
       <div id="hero-prompt" class="wv-hero">
+        <div class="wv-hero-logo">
+          <svg width="36" height="36" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="wvherog" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs>
+            <path d="M64 8L16 30v30c0 28 20 54 48 60 28-6 48-32 48-60V30L64 8z" fill="url(#wvherog)"/>
+            <ellipse cx="64" cy="58" rx="28" ry="18" fill="white" opacity="0.95"/>
+            <circle cx="64" cy="58" r="11" fill="url(#wvherog)"/>
+            <circle cx="64" cy="58" r="5" fill="white"/>
+          </svg>
+        </div>
         <h1 class="wv-hero-title">What can I do for you?</h1>
         <div class="wv-suggestions">
           <button class="wv-suggestion-pill" data-prompt="Open the ISRO website and find the missions page.">Open the ISRO website</button>
@@ -120,55 +134,12 @@
                 <span id="model-select-name">Cascade</span>
                 <svg class="wv-chevron-down" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
-              <div id="model-dropdown-menu" class="wv-model-menu">
-                <div class="wv-model-section-header">
-                  <span>Resilience Cascade</span>
-                </div>
-
-                <div class="wv-model-list">
-                  <div class="wv-model-row active" data-model="Auto-Cascade (Local First)">
-                    <div class="wv-model-info">
-                      <div class="wv-model-name">Auto-Cascade (Local First)</div>
-                      <div class="wv-model-desc">Local Ollama ➔ Nemotron 3 ➔ Gemini</div>
-                    </div>
-                    <div class="wv-model-badge-right">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="wv-check-icon"><polyline points="20 6 9 17 4 12"/></svg>
-                    </div>
-                  </div>
-
-                  <div class="wv-model-row" data-model="Local (Ollama)">
-                    <div class="wv-model-info">
-                      <div class="wv-model-name">Tier 1: Local Ollama</div>
-                      <div class="wv-model-desc">Zero keys, zero reasoning egress</div>
-                    </div>
-                    <div class="wv-model-badge-right"></div>
-                  </div>
-
-                  <div class="wv-model-row" data-model="Nemotron 3 Ultra (OpenRouter)">
-                    <div class="wv-model-info">
-                      <div class="wv-model-name">Tier 2: Nemotron 3 Ultra</div>
-                      <div class="wv-model-desc">Free hosted backup (OpenRouter)</div>
-                    </div>
-                    <div class="wv-model-badge-right"></div>
-                  </div>
-
-                  <div class="wv-model-row" data-model="Gemini 2.5 Flash">
-                    <div class="wv-model-info">
-                      <div class="wv-model-name">Tier 3: Gemini 2.5 Flash</div>
-                      <div class="wv-model-desc">Google free tier backup</div>
-                    </div>
-                    <div class="wv-model-badge-right"></div>
-                  </div>
-                </div>
-              </div>
             </div>
+
+            <!-- Instructions Selector Pill — REMOVED per user request -->
           </div>
 
           <div class="wv-input-right-tools">
-            <button id="attach-btn" class="wv-action-icon-btn" title="Attach file">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-            </button>
-            <input type="file" id="attachment-file-input" style="display: none;" />
             <button id="send-btn" class="wv-send-circle-btn" title="Send" disabled>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
             </button>
@@ -208,6 +179,41 @@
             <span id="settings-active-tier-badge" class="wv-tier-badge">Local (Ollama)</span>
           </div>
           <div class="wv-settings-help-text">Automatic escalation order: Tier 1 Local Ollama (zero network egress) ➔ Tier 2 OpenRouter ➔ Tier 3 Gemini. Read-only status.</div>
+        </div>
+
+        <div class="wv-settings-card">
+          <div class="wv-settings-label">Model Selection</div>
+          <div class="wv-settings-help-text" style="margin-bottom: 8px;">Choose the active reasoning provider. Auto-Cascade uses failover across all tiers.</div>
+          <div id="settings-model-list" class="wv-settings-model-list">
+            <label class="wv-settings-model-option selected" data-model="Auto-Cascade (Local First)">
+              <span class="wv-radio-dot"></span>
+              <div class="wv-settings-model-info">
+                <span class="wv-settings-model-name">Auto-Cascade</span>
+                <span class="wv-settings-model-desc">Ollama ➔ OpenRouter ➔ Gemini failover</span>
+              </div>
+            </label>
+            <label class="wv-settings-model-option" data-model="Local (Ollama)">
+              <span class="wv-radio-dot"></span>
+              <div class="wv-settings-model-info">
+                <span class="wv-settings-model-name">Local Ollama</span>
+                <span class="wv-settings-model-desc">Zero network egress · 100% on-device</span>
+              </div>
+            </label>
+            <label class="wv-settings-model-option" data-model="Nemotron 3 Ultra (OpenRouter)">
+              <span class="wv-radio-dot"></span>
+              <div class="wv-settings-model-info">
+                <span class="wv-settings-model-name">OpenRouter</span>
+                <span class="wv-settings-model-desc">Nemotron 3 Ultra · High-reasoning cloud</span>
+              </div>
+            </label>
+            <label class="wv-settings-model-option" data-model="Gemini 2.5 Flash">
+              <span class="wv-radio-dot"></span>
+              <div class="wv-settings-model-info">
+                <span class="wv-settings-model-name">Google Gemini</span>
+                <span class="wv-settings-model-desc">Gemini 2.5 Flash · Multimodal cloud tier</span>
+              </div>
+            </label>
+          </div>
         </div>
 
         <div class="wv-settings-card">
@@ -282,6 +288,75 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════
+       GLOBAL MODEL & CASCADE SELECTION DROPDOWN
+       ═══════════════════════════════════════════════════════ -->
+  <div id="model-dropdown-menu" class="wv-model-menu">
+    <div class="wv-model-section-header">
+      <span>Reasoning Engine & Cascade</span>
+    </div>
+
+    <div class="wv-model-list">
+      <div class="wv-model-row active" data-model="Auto-Cascade (Local First)" data-display="Cascade">
+        <div class="wv-model-icon-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="wv-model-info">
+          <div class="wv-model-name-row">
+            <span class="wv-model-name">Auto-Cascade</span>
+            <span class="wv-model-tag">Recommended</span>
+          </div>
+          <div class="wv-model-desc">Ollama ➔ OpenRouter ➔ Gemini failover</div>
+        </div>
+        <div class="wv-model-badge-right">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="wv-check-icon"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+      </div>
+
+      <div class="wv-model-row" data-model="Local (Ollama)" data-display="Ollama">
+        <div class="wv-model-icon-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/></svg>
+        </div>
+        <div class="wv-model-info">
+          <div class="wv-model-name-row">
+            <span class="wv-model-name">Local Ollama</span>
+            <span class="wv-model-tag tag-private">Private</span>
+          </div>
+          <div class="wv-model-desc">Zero network egress · 100% on-device</div>
+        </div>
+        <div class="wv-model-badge-right"></div>
+      </div>
+
+      <div class="wv-model-row" data-model="Nemotron 3 Ultra (OpenRouter)" data-display="OpenRouter">
+        <div class="wv-model-icon-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+        </div>
+        <div class="wv-model-info">
+          <div class="wv-model-name-row">
+            <span class="wv-model-name">OpenRouter</span>
+            <span class="wv-model-tag tag-cloud">Nemotron</span>
+          </div>
+          <div class="wv-model-desc">Nemotron 3 Ultra · High-reasoning tier</div>
+        </div>
+        <div class="wv-model-badge-right"></div>
+      </div>
+
+      <div class="wv-model-row" data-model="Gemini 2.5 Flash" data-display="Gemini">
+        <div class="wv-model-icon-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+        </div>
+        <div class="wv-model-info">
+          <div class="wv-model-name-row">
+            <span class="wv-model-name">Google Gemini</span>
+            <span class="wv-model-tag tag-ai">Flash</span>
+          </div>
+          <div class="wv-model-desc">Gemini 2.5 Flash · Multimodal cloud AI</div>
+        </div>
+        <div class="wv-model-badge-right"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
        PAYLOAD MODAL — hairline frame, flat JSON content
        ═══════════════════════════════════════════════════════ -->
   <div id="payload-modal" class="wv-modal-overlay">
@@ -298,7 +373,6 @@
 
   <script src="local_vision_engine.js"></script>
   <script src="visual_privacy_engine.js"></script>
-  <script src="content_script.js"></script>
   <script src="sidepanel.js"></script>
 </body>
 </html>
