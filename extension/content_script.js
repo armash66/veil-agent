@@ -633,6 +633,24 @@
       } else if (thoughtLow.includes('gamma') && (action.action || '').toUpperCase() === 'CLICK') {
         const gammaBtn = document.getElementById('btnGamma') || document.querySelector('.btn-canvas[id*="Gamma" i]');
         if (gammaBtn) targetEl = gammaBtn;
+      } else if (thoughtLow.includes('full name') || thoughtLow.includes('name')) {
+        targetEl = document.getElementById('fullName') || document.querySelector('input[name="fullName"]');
+      } else if (thoughtLow.includes('email')) {
+        targetEl = document.getElementById('email') || document.querySelector('input[name="email"]');
+      } else if (thoughtLow.includes('phone')) {
+        targetEl = document.getElementById('phone') || document.querySelector('input[name="phone"]');
+      } else if (thoughtLow.includes('aadhaar')) {
+        targetEl = document.getElementById('aadhaar') || document.querySelector('input[name="aadhaar"]');
+      } else if (thoughtLow.includes('password')) {
+        targetEl = document.getElementById('password') || document.querySelector('input[type="password"]');
+      } else if (thoughtLow.includes('document type') || (action.action || '').toUpperCase() === 'SELECT') {
+        targetEl = document.getElementById('idType') || document.querySelector('select');
+      } else if (thoughtLow.includes('birth') || thoughtLow.includes('dob')) {
+        targetEl = document.getElementById('dob') || document.querySelector('input[name="dob"]');
+      } else if (thoughtLow.includes('consent')) {
+        targetEl = document.getElementById('consent') || document.querySelector('input[name="consent"]');
+      } else if (thoughtLow.includes('submit')) {
+        targetEl = document.getElementById('submitBtn') || document.querySelector('button[type="submit"]');
       }
     }
 

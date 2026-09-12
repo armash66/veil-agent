@@ -402,6 +402,7 @@ class ReasonRequest(BaseModel):
 class ActionResponse(BaseModel):
     action: str
     node_id: Optional[int] = None
+    element_id: Optional[str] = None
     text: Optional[str] = None
     url: Optional[str] = None
     key: Optional[str] = None
@@ -719,8 +720,9 @@ async def reason(request: ReasonRequest):
             # Informational tasks need no browser mutations
             final_actions = [ActionResponse(action="DONE", thought=cleaned_thought, rationale="Summary/information provided.")]
         else:
-            # Map node IDs to check tag types
+            # Map node IDs to check tag types and element_ids
             node_tag_map = {n.node_id: (getattr(n, 'tag_name', '') or '').lower() for n in nodes}
+            node_el_id_map = {n.node_id: getattr(n, 'element_id', None) for n in nodes}
             for a in plan.actions:
                 act_val = a.action.value
                 # If LLM hallucinates a TYPE on a non-typable element like span/div/p, convert or skip it
@@ -732,6 +734,7 @@ async def reason(request: ReasonRequest):
                 final_actions.append(ActionResponse(
                     action=act_val,
                     node_id=a.node_id,
+                    element_id=node_el_id_map.get(a.node_id),
                     text=a.text or a.url,
                     url=a.url or a.text,
                     key=a.key,
