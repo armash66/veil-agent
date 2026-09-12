@@ -715,9 +715,10 @@
     }
 
     if (actionType === 'NAVIGATE') {
-      const targetUrl = action.url || action.text;
-      if (!targetUrl) {
-        return { valid: false, detail: 'FIREWALL REJECT: NAVIGATE requires a URL' };
+      const targetUrl = (action.url || action.text || '').trim();
+      if (!targetUrl || !targetUrl.startsWith('http') && !targetUrl.startsWith('/') && !targetUrl.startsWith('#')) {
+        // No-op gracefully if agent said "navigate to form" while already on the page
+        return { valid: true };
       }
       return { valid: true };
     }
@@ -852,9 +853,14 @@
     }
 
     if (actionType === 'NAVIGATE') {
-      const targetUrl = browserAction.url || browserAction.text;
-      if (!targetUrl) {
-        return { success: false, detail: 'FIREWALL REJECT: NAVIGATE requires a URL' };
+      const targetUrl = (browserAction.url || browserAction.text || '').trim();
+      if (!targetUrl || (!targetUrl.startsWith('http') && !targetUrl.startsWith('/') && !targetUrl.startsWith('#'))) {
+        // Spurious LLM navigation like "navigate to KYC form" -> auto switch tab if needed
+        const thoughtLow = (browserAction.thought || '').toLowerCase();
+        if (thoughtLow.includes('kyc') && typeof window.activateTab === 'function') {
+          try { window.activateTab('kyc', false); } catch (_) {}
+        }
+        return { success: true, detail: `Already on active page (NAVIGATE no-op: ${browserAction.text || 'current'})` };
       }
       window.location.href = targetUrl;
       return { success: true, detail: `Navigating to ${targetUrl}` };

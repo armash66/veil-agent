@@ -731,6 +731,12 @@ async def reason(request: ReasonRequest):
                     if tag not in ('input', 'textarea', 'select'):
                         logger.warning(f"[Reason] Discarding invalid TYPE on <{tag}> node #{a.node_id}")
                         continue
+                # If LLM emits NAVIGATE with no real URL (e.g. "navigate to form" on the current page), ignore or skip it
+                if act_val == 'navigate':
+                    target_u = (a.url or a.text or '').strip()
+                    if not target_u or not (target_u.startswith('http') or target_u.startswith('/') or target_u.startswith('#')):
+                        logger.info(f"[Reason] Skipping spurious NAVIGATE without URL on current page: {target_u}")
+                        continue
                 final_actions.append(ActionResponse(
                     action=act_val,
                     node_id=a.node_id,
