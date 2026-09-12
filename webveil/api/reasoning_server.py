@@ -706,14 +706,30 @@ async def reason(request: ReasonRequest):
         if not raw_p or not isinstance(raw_p, str):
             raw_p = getattr(provider, "provider_name", "Local (Ollama)")
         provider_used = str(raw_p) if raw_p is not None and not hasattr(raw_p, "_mock_name") else "Local (Ollama)"
-        cleaned_thought = clean_thought(plan.thought or "")
-        return ReasonResponse(
-            thought=cleaned_thought,
-            provider_used=provider_used,
-            tier_used=provider_used,
-            actions=[
-                ActionResponse(
-                    action=a.action.value,
+        # Check if the task is an informational question/summary task
+        task_low = (request.task or "").lower()
+        is_summary_or_info = any(k in task_low for k in [
+            'summarize', 'summary', 'explain', 'what is', "what's", 'tell me', 'who is', 'describe', 'find out', 'overview'
+        ]) and not any(k in task_low for k in ['fill', 'submit', 'type', 'click on', 'buy', 'select'])
+
+        # Build valid action responses
+        final_actions = []
+        if is_summary_or_info:
+            # Informational tasks need no browser mutations
+            final_actions = [ActionResponse(action="DONE", thought=cleaned_thought, rationale="Summary/information provided.")]
+        else:
+            # Map node IDs to check tag types
+            node_tag_map = {n.node_id: (getattr(n, 'tag_name', '') or '').lower() for n in nodes}
+            for a in plan.actions:
+                act_val = a.action.value
+                # If LLM hallucinates a TYPE on a non-typable element like span/div/p, convert or skip it
+                if act_val == 'type' and a.node_id in node_tag_map:
+                    tag = node_tag_map[a.node_id]
+                    if tag not in ('input', 'textarea', 'select'):
+                        logger.warning(f"[Reason] Discarding invalid TYPE on <{tag}> node #{a.node_id}")
+                        continue
+                final_actions.append(ActionResponse(
+                    action=act_val,
                     node_id=a.node_id,
                     text=a.text or a.url,
                     url=a.url or a.text,
@@ -723,9 +739,13 @@ async def reason(request: ReasonRequest):
                     value=a.value,
                     thought=clean_thought(a.thought or ""),
                     rationale=clean_thought(a.thought or f"I'll execute {a.action.value} on node #{a.node_id if a.node_id is not None else 'N/A'}"),
-                )
-                for a in plan.actions
-            ],
+                ))
+
+        return ReasonResponse(
+            thought=cleaned_thought,
+            provider_used=provider_used,
+            tier_used=provider_used,
+            actions=final_actions,
         )
     except Exception as e:
         logger.error(f"[Reason] Provider error: {e}")
