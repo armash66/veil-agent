@@ -613,26 +613,17 @@
   function resolveTargetElement(nodeId, action = {}) {
     let targetEl = null;
 
-    // 1. Match by tagged data-webveil-id attribute
-    if (nodeId != null) {
-      targetEl = document.querySelector(`[data-webveil-id="${nodeId}"]`);
+    // 1. Direct match by element_id attribute if provided
+    if (action.element_id) {
+      targetEl = document.getElementById(action.element_id);
     }
 
-    // 2. Index lookup in live fresh query
-    const freshElements = Array.from(document.querySelectorAll(DOM_OBSERVER_SELECTORS));
-    if (!targetEl && nodeId != null && nodeId >= 0 && nodeId < freshElements.length) {
-      targetEl = freshElements[nodeId];
-    }
-
-    // 3. Fallback match by element ID or action intent hints
     const thoughtLow = ((action.thought || '') + ' ' + (action.text || '') + ' ' + (action.value || '')).toLowerCase();
-    if (!targetEl || (targetEl && targetEl.getBoundingClientRect().width === 0 && targetEl.getBoundingClientRect().height === 0)) {
-      if (action.element_id) {
-        const byId = document.getElementById(action.element_id);
-        if (byId) targetEl = byId;
-      } else if (thoughtLow.includes('gamma') && (action.action || '').toUpperCase() === 'CLICK') {
-        const gammaBtn = document.getElementById('btnGamma') || document.querySelector('.btn-canvas[id*="Gamma" i]');
-        if (gammaBtn) targetEl = gammaBtn;
+
+    // 2. Match by field semantics/intent if element_id wasn't present
+    if (!targetEl) {
+      if (thoughtLow.includes('gamma') && (action.action || '').toUpperCase() === 'CLICK') {
+        targetEl = document.getElementById('btnGamma') || document.querySelector('.btn-canvas[id*="Gamma" i]');
       } else if (thoughtLow.includes('full name') || thoughtLow.includes('name')) {
         targetEl = document.getElementById('fullName') || document.querySelector('input[name="fullName"]');
       } else if (thoughtLow.includes('email')) {
@@ -652,6 +643,17 @@
       } else if (thoughtLow.includes('submit')) {
         targetEl = document.getElementById('submitBtn') || document.querySelector('button[type="submit"]');
       }
+    }
+
+    // 3. Match by tagged data-webveil-id attribute
+    if (!targetEl && nodeId != null) {
+      targetEl = document.querySelector(`[data-webveil-id="${nodeId}"]`);
+    }
+
+    // 4. Index lookup in live fresh query
+    const freshElements = Array.from(document.querySelectorAll(DOM_OBSERVER_SELECTORS));
+    if (!targetEl && nodeId != null && nodeId >= 0 && nodeId < freshElements.length) {
+      targetEl = freshElements[nodeId];
     }
 
     if (!targetEl) {
