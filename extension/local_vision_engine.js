@@ -131,7 +131,7 @@ class ONNXLocalVisionEngine extends LocalVisionEngine {
       height = imageSource.height || 600;
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (ctx) ctx.drawImage(imageSource, 0, 0);
     } else if (typeof imageSource === 'string' && imageSource.startsWith('data:image')) {
       const img = await this._loadImage(imageSource);
@@ -139,7 +139,7 @@ class ONNXLocalVisionEngine extends LocalVisionEngine {
       height = img.naturalHeight || 600;
       canvas.width = width;
       canvas.height = height;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       if (ctx) ctx.drawImage(img, 0, 0);
     } else {
       canvas.width = width;
@@ -155,7 +155,7 @@ class ONNXLocalVisionEngine extends LocalVisionEngine {
         const patchCanvas = document.createElement('canvas');
         patchCanvas.width = 224;
         patchCanvas.height = 224;
-        const pctx = patchCanvas.getContext('2d');
+        const pctx = patchCanvas.getContext('2d', { willReadFrequently: true });
         if (pctx) {
           pctx.drawImage(canvas, 0, 0, 224, 224);
           const imgData = pctx.getImageData(0, 0, 224, 224).data;
@@ -198,7 +198,7 @@ class ONNXLocalVisionEngine extends LocalVisionEngine {
     } else {
       // 2. Perform On-Device Visual Gradient & Salience Detection (Local CV CPU fallback)
       try {
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (ctx) {
           const visualSalienceRegions = this._detectSalientRegions(ctx, width, height);
           visualSalienceRegions.forEach(sr => {

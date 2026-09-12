@@ -29,12 +29,12 @@ class OllamaProvider:
         self,
         base_url: Optional[str] = None,
         model: Optional[str] = None,
-        timeout: float = 35.0,
+        timeout: Optional[float] = None,
     ):
         from webveil.config import config
         self._base_url = (base_url or config.ollama_base_url or "http://localhost:11434").rstrip("/")
-        self._model_name = model or config.ollama_model or "llama3.2:3b"
-        self._timeout = timeout
+        self._model_name = model or config.ollama_model or "llama3.2:1b"
+        self._timeout = float(timeout) if timeout is not None else getattr(config, "ollama_timeout", 100.0)
         self._token_usage = TokenUsage()
         logger.info(f"[Ollama] Initialized at {self._base_url} with model '{self._model_name}' (timeout: {self._timeout}s)")
 

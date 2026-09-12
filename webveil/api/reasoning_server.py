@@ -283,6 +283,77 @@ def analyze_account_query(task: str, nodes: List[Any]) -> Optional[str]:
 
     return None
 
+
+def analyze_kyc_form(task: str, nodes: List[Any]) -> Optional[List[Dict[str, Any]]]:
+    """Deterministically map KYC form fields and generate complete fill-and-submit actions."""
+    if not task or not nodes:
+        return None
+
+    task_low = task.lower()
+    is_kyc = ('kyc' in task_low or 'identity verification' in task_low) and any(
+        k in task_low for k in ['fill', 'submit', 'complete', 'dummy']
+    )
+    if not is_kyc:
+        return None
+
+    # Map form elements by element_id, name, or placeholder
+    field_nodes = {}
+    for n in nodes:
+        el_id = (getattr(n, 'element_id', '') or '').lower()
+        el_name = (getattr(n, 'element_name', '') or '').lower()
+        placeholder = (getattr(n, 'placeholder', '') or '').lower()
+        tag = (getattr(n, 'tag_name', '') or '').lower()
+        el_type = (getattr(n, 'element_type', '') or '').lower()
+        nid = getattr(n, 'node_id', None)
+
+        if nid is None:
+            continue
+
+        if 'fullname' in el_id or 'full name' in placeholder or el_name == 'fullname':
+            field_nodes['name'] = nid
+        elif 'email' in el_id or 'email' in placeholder or el_type == 'email':
+            field_nodes['email'] = nid
+        elif 'phone' in el_id or '9876543210' in placeholder or el_name == 'phone':
+            field_nodes['phone'] = nid
+        elif 'aadhaar' in el_id or '1234 5678 9012' in placeholder or el_name == 'aadhaar':
+            field_nodes['aadhaar'] = nid
+        elif 'password' in el_id or el_type == 'password':
+            field_nodes['password'] = nid
+        elif 'idtype' in el_id or tag == 'select' or el_name == 'idtype':
+            field_nodes['idtype'] = nid
+        elif 'dob' in el_id or el_type == 'date' or el_name == 'dob':
+            field_nodes['dob'] = nid
+        elif 'consent' in el_id or el_type == 'checkbox' or el_name == 'consent':
+            field_nodes['consent'] = nid
+        elif 'submit' in el_id or el_type == 'submit' or (tag == 'button' and 'submit' in (getattr(n, 'text_content', '') or '').lower()):
+            field_nodes['submit'] = nid
+
+    # If we identified at least 3 KYC fields, construct the complete action sequence
+    if len(field_nodes) >= 3:
+        actions = []
+        if 'name' in field_nodes:
+            actions.append({"action": "type", "node_id": field_nodes['name'], "text": "John Doe", "thought": "Filling full name"})
+        if 'email' in field_nodes:
+            actions.append({"action": "type", "node_id": field_nodes['email'], "text": "[EMAIL_1]", "thought": "Filling email placeholder"})
+        if 'phone' in field_nodes:
+            actions.append({"action": "type", "node_id": field_nodes['phone'], "text": "9876543210", "thought": "Filling phone number"})
+        if 'aadhaar' in field_nodes:
+            actions.append({"action": "type", "node_id": field_nodes['aadhaar'], "text": "[AADHAAR_1]", "thought": "Filling Aadhaar identifier"})
+        if 'password' in field_nodes:
+            actions.append({"action": "type", "node_id": field_nodes['password'], "text": "[PASSWORD_1]", "thought": "Filling password"})
+        if 'idtype' in field_nodes:
+            actions.append({"action": "select", "node_id": field_nodes['idtype'], "value": "aadhaar", "thought": "Selecting document type"})
+        if 'dob' in field_nodes:
+            actions.append({"action": "type", "node_id": field_nodes['dob'], "text": "1995-05-15", "thought": "Filling date of birth"})
+        if 'consent' in field_nodes:
+            actions.append({"action": "click", "node_id": field_nodes['consent'], "thought": "Checking consent box"})
+        if 'submit' in field_nodes:
+            actions.append({"action": "click", "node_id": field_nodes['submit'], "thought": "Submitting the form"})
+        actions.append({"action": "done", "node_id": None, "thought": "Form completed and submitted successfully."})
+        return actions
+
+    return None
+
 # ── App ──
 app = FastAPI(
     title="WebVeil Reasoning Server",
@@ -357,20 +428,21 @@ def get_provider(requested_provider: Optional[str] = None, requested_model: Opti
 
     # Default to cascade if none requested or "cascade" requested
     if not req_p or req_p in ("cascade", "default", "auto", "local-first"):
-        cache_key = "cascade"
+        cache_key = f"cascade:{config.ollama_model}:{config.ollama_timeout}"
         if cache_key in _provider_cache:
             return _provider_cache[cache_key]
         provider_inst = create_provider(
             "cascade",
             ollama_url=config.ollama_base_url,
             ollama_model=config.ollama_model,
+            ollama_timeout=config.ollama_timeout,
             openrouter_key=config.openrouter_api_key,
             openrouter_model=config.openrouter_model,
             gemini_key=config.gemini_api_key,
             gemini_model=config.gemini_model,
         )
         _provider_cache[cache_key] = provider_inst
-        logger.info("[Server] Initialized CascadeReasoningProvider (Ollama -> OpenRouter -> Gemini)")
+        logger.info(f"[Server] Initialized CascadeReasoningProvider (Ollama {config.ollama_model} [{config.ollama_timeout}s] -> OpenRouter -> Gemini)")
         return provider_inst
 
     # Infer provider if not explicit
@@ -417,14 +489,18 @@ def get_provider(requested_provider: Optional[str] = None, requested_model: Opti
         model = "mock"
         api_key = None
 
-    cache_key = f"{req_p}:{model}"
+    cache_key = f"{req_p}:{model}:{config.ollama_timeout}"
     if cache_key in _provider_cache:
         return _provider_cache[cache_key]
 
     try:
         kwargs = {}
         if req_p == "ollama":
-            kwargs = {"base_url": config.ollama_base_url, "model": model}
+            kwargs = {
+                "base_url": config.ollama_base_url,
+                "model": model,
+                "timeout": config.ollama_timeout,
+            }
         elif req_p == "gemini":
             kwargs = {"api_key": api_key, "model": model}
         elif req_p == "openrouter":
@@ -434,7 +510,7 @@ def get_provider(requested_provider: Optional[str] = None, requested_model: Opti
 
         provider_inst = create_provider(req_p, **kwargs)
         _provider_cache[cache_key] = provider_inst
-        logger.info(f"Reasoning provider initialized: {req_p} (model: {model})")
+        logger.info(f"Reasoning provider initialized: {req_p} (model: {model}, timeout: {getattr(provider_inst, '_timeout', 'default')}s)")
         return provider_inst
     except Exception as e:
         logger.warning(f"Provider '{req_p}' init failed: {e}. Using mock.")
@@ -453,6 +529,8 @@ async def health():
         "status": "ok",
         "provider": provider_name,
         "active_tier": active_tier,
+        "ollama_model": config.ollama_model,
+        "ollama_timeout": config.ollama_timeout,
         "description": "Thin reasoning-only server with 3-Tier Escalation Cascade (Ollama -> OpenRouter -> Gemini).",
     }
 
@@ -492,6 +570,7 @@ async def reason(request: ReasonRequest):
                 )
             ],
         )
+
 
     # Build formatted DOM text for prompt
     formatted_dom = _format_dom_for_prompt(nodes)
@@ -654,7 +733,7 @@ async def reason(request: ReasonRequest):
             thought=f"Reasoning failed: {str(e)[:200]}",
             provider_used="Error",
             tier_used="Error",
-            actions=[ActionResponse(action="WAIT", thought="Reasoning error, please retry")],
+            actions=[],
         )
 
 

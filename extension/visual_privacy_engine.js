@@ -169,7 +169,7 @@ class VisualPrivacyEngine {
     const patchCanvas = document.createElement('canvas');
     patchCanvas.width = w;
     patchCanvas.height = h;
-    const patchCtx = patchCanvas.getContext('2d');
+    const patchCtx = patchCanvas.getContext('2d', { willReadFrequently: true });
     if (!patchCtx) return;
 
     // 2. Draw original patch into temp canvas

@@ -47,7 +47,7 @@ DOM FORMAT:
 Each interactive element is shown as:
 [node_id] <tag id='...' type='...' placeholder='...' value='...'>"text or options" [interactive]
 
-RESPOND WITH ONLY VALID JSON in this exact format:
+RESPOND WITH ONLY A SINGLE VALID JSON OBJECT. DO NOT WRITE ANY CONVERSATIONAL TEXT, MARKDOWN PREAMBLE, OR LIST OUTSIDE THE JSON OBJECT.
 {
   "thought": "Overall reasoning for this plan",
   "actions": [
@@ -273,7 +273,7 @@ def parse_action_plan(raw_response: str, max_actions: int = 15) -> ActionPlan:
 
 # ─── 3-Tier Escalation Cascade ──────────────────────────────────────────
 
-def _is_error_plan(plan: Optional[ActionPlan]) -> bool:
+def _is_error_plan(plan: Optional[ActionPlan], task: str = "") -> bool:
     if not plan:
         return True
     if getattr(plan, "provider_used", "").endswith(": Error)"):
@@ -283,7 +283,19 @@ def _is_error_plan(plan: Optional[ActionPlan]) -> bool:
         "api error", "quota exceeded", "resource_exhausted", "rate limit",
         "429", "unauthorized", "failed to parse", "parse error", "no json in llm"
     ]
-    return any(k in thought for k in error_keywords)
+    if any(k in thought for k in error_keywords):
+        return True
+
+    # If the user asked to fill, click, or submit something, an action plan with 0 actions or only a DONE action without steps is invalid
+    task_low = (task or "").lower()
+    needs_action = any(k in task_low for k in ['fill', 'submit', 'click', 'enter', 'type', 'select', 'complete'])
+    if needs_action:
+        real_actions = [a for a in plan.actions if a.action != ActionType.DONE and a.action != ActionType.WAIT]
+        if not real_actions:
+            logger.warning(f"[Cascade] LLM proposed 0 executable actions for action task '{task[:40]}'. Escalating tier...")
+            return True
+
+    return False
 
 
 class CascadeReasoningProvider:
@@ -310,6 +322,7 @@ class CascadeReasoningProvider:
         self,
         ollama_url: Optional[str] = None,
         ollama_model: Optional[str] = None,
+        ollama_timeout: Optional[float] = None,
         openrouter_key: Optional[str] = None,
         openrouter_model: Optional[str] = None,
         gemini_key: Optional[str] = None,
@@ -323,10 +336,11 @@ class CascadeReasoningProvider:
         # Initialize Tier 1: Local Ollama
         try:
             from webveil.reasoning.providers.ollama_provider import OllamaProvider
+            effective_timeout = ollama_timeout if ollama_timeout is not None else getattr(config, "ollama_timeout", float(os.getenv("OLLAMA_TIMEOUT", "100.0")))
             self._ollama: Optional[OllamaProvider] = OllamaProvider(
                 base_url=ollama_url or config.ollama_base_url,
                 model=ollama_model or config.ollama_model,
-                timeout=float(os.getenv("OLLAMA_TIMEOUT", "35.0")),
+                timeout=effective_timeout,
             )
         except Exception as e:
             logger.warning(f"[Cascade] Ollama provider init failed: {e}")
@@ -412,7 +426,7 @@ class CascadeReasoningProvider:
             try:
                 logger.info("[Cascade] Trying Tier 1: Local Ollama (zero-network egress)...")
                 plan = self._ollama.reason(task, world_model, action_history, error_context)
-                if plan and not _is_error_plan(plan):
+                if plan and not _is_error_plan(plan, task):
                     plan.provider_used = "Local (Ollama)"
                     self._active_tier = "Local (Ollama)"
                     return plan
@@ -427,7 +441,7 @@ class CascadeReasoningProvider:
             try:
                 logger.info("[Cascade] Trying Tier 2: OpenRouter (free open-weight model)...")
                 plan = self._openrouter.reason(task, world_model, action_history, error_context)
-                if plan and not _is_error_plan(plan):
+                if plan and not _is_error_plan(plan, task):
                     plan.provider_used = "Fallback (OpenRouter)"
                     self._active_tier = "Fallback (OpenRouter)"
                     return plan
@@ -440,7 +454,7 @@ class CascadeReasoningProvider:
             try:
                 logger.info("[Cascade] Trying Tier 3: Gemini 2.5 Flash Free Tier...")
                 plan = self._gemini.reason(task, world_model, action_history, error_context)
-                if plan and not _is_error_plan(plan):
+                if plan and not _is_error_plan(plan, task):
                     plan.provider_used = "Fallback (Gemini)"
                     self._active_tier = "Fallback (Gemini)"
                     return plan

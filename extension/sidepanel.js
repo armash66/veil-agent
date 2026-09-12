@@ -163,6 +163,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         const data = await res.json();
         if (data.status === 'ok') {
+          if (data.ollama_model && settingsOllamaModel) {
+            settingsOllamaModel.placeholder = data.ollama_model;
+            if (!settingsOllamaModel.value || settingsOllamaModel.value === 'llama3.2:3b') {
+              settingsOllamaModel.value = data.ollama_model;
+              try {
+                localStorage.setItem('webveil_ollama_model', data.ollama_model);
+              } catch (_) {}
+            }
+          }
           setServerStatus(true, data.active_tier || 'Local (Ollama)');
           return;
         }
@@ -1107,7 +1116,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function getSelectedProviderAndModel() {
     const label = ((currentSelectedModel || '') + ' ' + (modelSelectName ? modelSelectName.textContent : '')).trim().toLowerCase();
     if (label.includes('ollama') || label.includes('llama')) {
-      return { provider: 'ollama', model: 'llama3.2:3b' };
+      const savedOllama = (settingsOllamaModel && settingsOllamaModel.value.trim()) || localStorage.getItem('webveil_ollama_model') || '';
+      const modelToUse = (savedOllama && savedOllama !== 'llama3.2:3b') ? savedOllama : '';
+      return { provider: 'ollama', model: modelToUse };
     } else if (label.includes('nemotron') || label.includes('openrouter')) {
       return { provider: 'openrouter', model: 'nvidia/nemotron-3.5-lightning:free' };
     } else if (label.includes('gemini')) {
@@ -1377,7 +1388,7 @@ document.addEventListener('DOMContentLoaded', () => {
               const synthCanvas = document.createElement('canvas');
               synthCanvas.width = piiResult.viewport?.width || 1280;
               synthCanvas.height = piiResult.viewport?.height || 800;
-              const sctx = synthCanvas.getContext('2d');
+              const sctx = synthCanvas.getContext('2d', { willReadFrequently: true });
               if (sctx) {
                 sctx.fillStyle = '#0f0f12';
                 sctx.fillRect(0, 0, synthCanvas.width, synthCanvas.height);
@@ -1497,6 +1508,12 @@ document.addEventListener('DOMContentLoaded', () => {
           }
 
           reasonData = await res.json();
+          if (reasonData.provider_used === 'Error' || reasonData.tier_used === 'Error') {
+            const errSummary = reasonData.thought || 'Reasoning error';
+            completeReasoning(true, 'Stopped · reasoning failed', errSummary);
+            addMessage(session, { type: 'agent', text: errSummary });
+            return;
+          }
           actionPlan = reasonData.action_plan || reasonData;
           const tierUsed = reasonData.provider_used || reasonData.tier_used || 'Local (Ollama)';
           setServerStatus(true, tierUsed);
@@ -1969,7 +1986,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Settings: Ollama Model & Clear All Sessions ──
   try {
-    const savedModel = localStorage.getItem('webveil_ollama_model');
+    let savedModel = localStorage.getItem('webveil_ollama_model');
+    if (savedModel === 'llama3.2:3b') {
+      savedModel = 'llama3.2:1b';
+      localStorage.setItem('webveil_ollama_model', savedModel);
+    }
     if (savedModel && settingsOllamaModel) {
       settingsOllamaModel.value = savedModel.trim();
     }
