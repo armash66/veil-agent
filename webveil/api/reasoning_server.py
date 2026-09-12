@@ -706,6 +706,7 @@ async def reason(request: ReasonRequest):
         if not raw_p or not isinstance(raw_p, str):
             raw_p = getattr(provider, "provider_name", "Local (Ollama)")
         provider_used = str(raw_p) if raw_p is not None and not hasattr(raw_p, "_mock_name") else "Local (Ollama)"
+        cleaned_thought = clean_thought(plan.thought or "")
         # Check if the task is an informational question/summary task
         task_low = (request.task or "").lower()
         is_summary_or_info = any(k in task_low for k in [
