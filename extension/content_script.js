@@ -727,6 +727,11 @@
       return { valid: true };
     }
 
+    if (action.node_id == null && !action.element_id) {
+      // If node_id is null, it is an informational completion action (e.g. answering grounding question)
+      return { valid: true };
+    }
+
     const { targetEl, freshElements } = resolveTargetElement(action.node_id, action);
 
     if (!targetEl) {
@@ -871,6 +876,10 @@
       document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
       document.activeElement?.dispatchEvent(new KeyboardEvent('keyup', { key, bubbles: true }));
       return { success: true, detail: `Pressed key: ${key}` };
+    }
+
+    if (browserAction.node_id == null && !browserAction.element_id) {
+      return { success: true, detail: `Completed action without node mutation (${browserAction.action})` };
     }
 
     // ── 6. Target-node resolution (fresh DOM query & tag resolution) ──

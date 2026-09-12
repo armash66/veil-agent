@@ -711,8 +711,9 @@ async def reason(request: ReasonRequest):
         # Check if the task is an informational question/summary task
         task_low = (request.task or "").lower()
         is_summary_or_info = any(k in task_low for k in [
-            'summarize', 'summary', 'explain', 'what is', "what's", 'tell me', 'who is', 'describe', 'find out', 'overview'
-        ]) and not any(k in task_low for k in ['fill', 'submit', 'type', 'click on', 'buy', 'select'])
+            'summarize', 'summary', 'explain', 'what is', "what's", 'tell me', 'who is', 'describe', 'find out', 'find when', 'find where', 'overview',
+            'headquarters', 'founded', 'foundation', 'when was', 'where is', 'which', 'price of', 'compare'
+        ]) and not any(k in task_low for k in ['fill', 'submit', 'type', 'click on', 'buy', 'enter', 'select'])
 
         # Build valid action responses
         final_actions = []
